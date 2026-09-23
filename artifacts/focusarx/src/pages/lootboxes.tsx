@@ -16,12 +16,19 @@ function authHeaders() {
   return h;
 }
 
+/*
+ * Rarity styling. The tiers used eleven `--rgba-*` tokens that were never
+ * declared, so every border and fill here resolved to nothing and a legendary
+ * box looked like a common one. A rarity ladder is a status ladder, so it
+ * reads the status hues now and the tint lives in the soft fills — which also
+ * keeps the tiers on the same colour scale in both themes.
+ */
 const RARITY_STYLES: Record<string, { border: string; bg: string; glow: string; label: string; color: string }> = {
-  common:    { border: "var(--rgba-148-163-184-0_2)", bg: "var(--rgba-148-163-184-0_05)", glow: "0 0 0 transparent",              label: "Common",    color: "var(--foreground-muted)" },
-  uncommon:  { border: "var(--rgba-16-185-129-0_25)",  bg: "var(--rgba-16-185-129-0_06)",  glow: "0 0 12px var(--rgba-16-185-129-0_12)",  label: "Uncommon",  color: "var(--palette-10b981)" },
-  rare:      { border: "var(--rgba-59-130-246-0_3)",   bg: "var(--rgba-59-130-246-0_06)",  glow: "0 0 16px var(--rgba-59-130-246-0_15)",  label: "Rare",      color: "var(--color-info)" },
-  epic:      { border: "var(--rgba-139-92-246-0_35)",  bg: "var(--rgba-139-92-246-0_08)",  glow: "0 0 20px var(--rgba-139-92-246-0_2)",   label: "Epic",      color: "var(--brand-500)" },
-  legendary: { border: "var(--rgba-245-158-11-0_4)",   bg: "var(--rgba-245-158-11-0_08)",  glow: "0 0 28px var(--rgba-245-158-11-0_25)",  label: "Legendary", color: "var(--color-warning)" },
+  common:    { border: "var(--border-subtle)", bg: "var(--surface-1)",    glow: "none",                label: "Common",    color: "var(--foreground-muted)" },
+  uncommon:  { border: "var(--border-strong)", bg: "var(--success-soft)", glow: "none",                label: "Uncommon",  color: "var(--success)" },
+  rare:      { border: "var(--border-strong)", bg: "var(--info-soft)",    glow: "none",                label: "Rare",      color: "var(--info)" },
+  epic:      { border: "var(--border-strong)", bg: "var(--brand-soft)",   glow: "none",                label: "Epic",      color: "var(--brand-strong)" },
+  legendary: { border: "var(--border-strong)", bg: "var(--warning-soft)", glow: "none",                label: "Legendary", color: "var(--warning)" },
 };
 
 interface BoxType {
@@ -117,11 +124,11 @@ function BoxTypeCard({ boxType, myBoxes, wallet, onBuy, onOpen }: {
  * label, and how hard the box shakes before it opens.
  */
 const REVEAL_RARITY: Record<string, { label: string; color: string; glow: string; burst: number; shake: number }> = {
-  common:    { label: "Common",    color: "var(--foreground-muted)", glow: "var(--rgba-148-163-184-0_35)", burst: 10, shake: 0.18 },
-  uncommon:  { label: "Uncommon",  color: "var(--palette-10b981)",   glow: "var(--rgba-16-185-129-0_45)",  burst: 16, shake: 0.26 },
-  rare:      { label: "Rare",      color: "var(--color-info)",       glow: "var(--rgba-59-130-246-0_5)",   burst: 24, shake: 0.36 },
-  epic:      { label: "Epic",      color: "var(--brand-500)",        glow: "var(--rgba-139-92-246-0_55)",  burst: 32, shake: 0.48 },
-  legendary: { label: "Legendary", color: "var(--color-warning)",    glow: "var(--rgba-245-158-11-0_6)",   burst: 44, shake: 0.62 },
+  common:    { label: "Common",    color: "var(--foreground-muted)", glow: "var(--surface-hover)", burst: 10, shake: 0.18 },
+  uncommon:  { label: "Uncommon",  color: "var(--success)",  glow: "var(--success-soft)", burst: 16, shake: 0.26 },
+  rare:      { label: "Rare",      color: "var(--info)",     glow: "var(--info-soft)",    burst: 24, shake: 0.36 },
+  epic:      { label: "Epic",      color: "var(--brand-strong)", glow: "var(--brand-soft)", burst: 32, shake: 0.48 },
+  legendary: { label: "Legendary", color: "var(--warning)",  glow: "var(--warning-soft)", burst: 44, shake: 0.62 },
 };
 
 type RevealStage = "shake" | "burst" | "reveal";
@@ -174,7 +181,7 @@ function OpeningAnimation({ reward, rarity = "rare", grantedItem, inventoryId, o
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/85 backdrop-blur-sm"
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/85"
       onClick={stage === "reveal" ? onClose : undefined}
     >
       <div className="relative w-full max-w-sm mx-4">
@@ -186,8 +193,8 @@ function OpeningAnimation({ reward, rarity = "rare", grantedItem, inventoryId, o
           variants={POP}
           initial="initial"
           animate="animate"
-          className="relative rounded-3xl border bg-[var(--palette-0d0f1c)] p-8 text-center"
-          style={{ borderColor: r.color, boxShadow: `0 0 40px ${r.glow}` }}
+          className="relative rounded-[var(--radius-xl)] border bg-[var(--palette-0d0f1c)] p-8 text-center"
+          style={{ borderColor: r.color, boxShadow: `0 0 0 1px ${r.glow}` }}
           onClick={e => e.stopPropagation()}
         >
           <div className="relative flex h-40 items-center justify-center">
@@ -229,8 +236,8 @@ function OpeningAnimation({ reward, rarity = "rare", grantedItem, inventoryId, o
                 initial={{ scale: 0.3, rotate: -25, opacity: 0 }}
                 animate={{ scale: 1, rotate: 0, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 260, damping: 14 }}
-                className="text-8xl drop-shadow-[0_0_24px_var(--rgba-0-0-0-0_6)]"
-                style={{ filter: `drop-shadow(0 0 18px ${r.glow})` }}
+                className="text-8xl drop-"
+                style={{ filter: `drop-shadow(0 0 10px ${r.glow})` }}
               >
                 {reward?.emoji ?? grantedItem?.emoji ?? "🎁"}
               </motion.div>
@@ -268,7 +275,7 @@ function OpeningAnimation({ reward, rarity = "rare", grantedItem, inventoryId, o
                       finally { setEquipping(false); }
                     }}
                     disabled={equipping}
-                    className="w-full rounded-xl py-2.5 text-sm font-bold text-[var(--palette-white)] transition-transform hover:scale-[1.02] disabled:opacity-60"
+                    className="w-full rounded-xl py-2.5 text-sm font-bold text-[var(--palette-white)] transition-transform disabled:opacity-60"
                     style={{ background: `linear-gradient(135deg, ${r.color}, color-mix(in srgb, ${r.color} 60%, transparent))` }}>
                     {equipping ? "Equipping…" : `✨ Equip ${grantedItem!.name} now`}
                   </button>

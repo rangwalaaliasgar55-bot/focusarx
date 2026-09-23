@@ -127,7 +127,7 @@ export default function UrgeSurfing() {
           whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.97 }}
           onClick={handleOpen}
-          className="flex items-center gap-3 rounded-2xl border border-[var(--palette-teal-600)]/30 bg-gradient-to-r from-[var(--palette-teal-900)]/40 to-[var(--palette-blue-900)]/40 px-7 py-4 text-base font-semibold text-[var(--palette-teal-200)] shadow-lg hover:shadow-[var(--palette-teal-900)]/30 transition-shadow"
+          className="flex items-center gap-3 rounded-2xl border border-[var(--palette-teal-600)]/30 bg-[var(--palette-teal-900)]/40 px-7 py-4 text-base font-semibold text-[var(--palette-teal-200)] shadow-lg transition-shadow"
         >
           <Waves size={20} className="text-[var(--palette-teal-400)]" />
           I'm struggling right now 🌊

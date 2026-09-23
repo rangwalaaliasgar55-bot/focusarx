@@ -168,7 +168,6 @@ export default function Hero3D() {
   if (webglOk === false) {
     return (
       <div className="absolute inset-0 z-[var(--z-base)] flex items-center justify-center opacity-20">
-        <div className="h-[300px] w-[300px] rounded-full bg-gradient-to-r from-[var(--palette-purple-500)] to-[var(--palette-blue-500)] blur-3xl animate-pulse motion-reduce:animate-none" />
       </div>
     );
   }
@@ -177,7 +176,7 @@ export default function Hero3D() {
   if (staticOnly) {
     return (
       <div className="absolute inset-0 z-[var(--z-base)] flex items-center justify-center opacity-30">
-        <div className="h-[280px] w-[280px] rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)] blur-2xl" />
+        <div className="h-[280px] w-[280px] rounded-full bg-[var(--brand-600)] blur-2xl" />
       </div>
     );
   }

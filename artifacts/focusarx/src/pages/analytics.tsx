@@ -53,7 +53,7 @@ function HeatmapCell({ minutes, date }: { minutes: number; date: string }) {
   const color = `color-mix(in srgb, var(--brand-600) ${(alpha * 100).toFixed(0)}%, transparent)`;
   return (
     <div
-      className="aspect-square rounded-sm cursor-default transition-transform hover:scale-125"
+      className="aspect-square rounded-sm cursor-default transition-transform"
       style={{ background: color, outline: "1px solid var(--rgba-124-58-237-0_06)" }}
       title={`${date}: ${minutes}m`}
     />
@@ -83,7 +83,7 @@ const HOUR_COLORS = ["var(--brand-600)", "var(--brand-400)", "var(--brand-teal)"
 const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-12-17-40-0_95)] px-3 py-2 text-xs text-[var(--foreground)] shadow-xl backdrop-blur-xl">
+    <div className="rounded-lg border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-12-17-40-0_95)] px-3 py-2 text-xs text-[var(--foreground)] shadow-[var(--shadow-lg)]">
       <p className="font-semibold">{label}</p>
       <p className="text-[var(--brand-400)]">{payload[0]?.value}m focused</p>
     </div>
@@ -115,7 +115,7 @@ function legacyWeekTrend(wc: { thisWeekMinutes: number; lastWeekMinutes: number 
 const BarTooltip = ({ active, payload, label }: TooltipProps) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-12-17-40-0_95)] px-3 py-2 text-xs text-[var(--foreground)] shadow-xl backdrop-blur-xl">
+    <div className="rounded-lg border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-12-17-40-0_95)] px-3 py-2 text-xs text-[var(--foreground)] shadow-[var(--shadow-lg)]">
       <p className="font-semibold">{label}</p>
       <p className="text-[var(--brand-teal)]">{payload[0]?.value}m</p>
     </div>
@@ -137,7 +137,7 @@ function PremiumLock({ feature, description }: { feature: string; description: s
   const cheapest = premiumStatus?.plans?.[0];
   const needed = cheapest ? Math.max(0, cheapest.tokenCost - balance) : 0;
   return (
-    <div className="rounded-2xl border border-[var(--palette-amber-500)]/20 bg-gradient-to-br from-[var(--palette-amber-950)]/20 to-[var(--surface-1)] p-6 text-center">
+    <div className="rounded-2xl border border-[var(--palette-amber-500)]/20 bg-[var(--palette-amber-950)]/20 p-6 text-center">
       <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-[var(--palette-amber-500)]/15 text-[var(--palette-amber-400)]">
         <Lock size={20} />
       </div>
@@ -149,7 +149,7 @@ function PremiumLock({ feature, description }: { feature: string; description: s
           {needed > 0 ? `, need ${needed.toLocaleString()} more for ${cheapest.durationDays} days` : ""}.
         </p>
       )}
-      <Link href="/premium" className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-gradient-to-r from-[var(--palette-amber-500)] to-[var(--palette-amber-600)] px-5 py-2 text-xs font-bold text-white">
+      <Link href="/premium" className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[var(--palette-amber-500)] px-5 py-2 text-xs font-bold text-white">
         <Crown size={14} /> Unlock Premium
       </Link>
     </div>
@@ -199,10 +199,9 @@ export default function AnalyticsPage() {
   const weekBar = data?.weekBarData ?? [];
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
+    <div className="relative min-h-[100dvh] overflow-hidden">
       <PageSEO {...PAGE_SEO.analytics} />
       <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute -left-32 top-1/3 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-6-214-160-0_06),transparent_65%)] blur-3xl" />
       </div>
       <main className="relative z-[var(--z-content)] mx-auto max-w-4xl px-4 py-10">
         <PageTransition>
@@ -221,7 +220,7 @@ export default function AnalyticsPage() {
             isError ? (
               <QueryError what="your analytics" onRetry={() => void refetch()} retrying={isRefetching} />
             ) : (
-              <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-12 text-center backdrop-blur-xl">
+              <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-12 text-center">
                 <TrendingUp size={40} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />
                 <p className="text-sm text-[var(--foreground-muted)]">Complete sessions to see your analytics.</p>
               </div>
@@ -241,7 +240,7 @@ export default function AnalyticsPage() {
                     key={label}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4 text-center backdrop-blur-xl"
+                    className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4 text-center"
                   >
                     <Icon size={16} className="mx-auto mb-1.5" style={{ color }} />
                     <p className="text-[11px] text-[var(--foreground-subtle)]">{label}</p>
@@ -254,7 +253,7 @@ export default function AnalyticsPage() {
               {wc ? (
                 isPremium ? (
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
+                    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5">
                       <div className="mb-3 flex items-start justify-between">
                         <div>
                           <p className="text-xs text-[var(--foreground-subtle)]">Compared to last week</p>
@@ -275,7 +274,7 @@ export default function AnalyticsPage() {
                     </div>
 
                     {weekBar.length > 0 && (
-                      <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
+                      <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5">
                         <p className="mb-3 text-xs font-semibold text-[var(--foreground)]">This week — daily focus</p>
                         <ResponsiveContainer width="100%" height={100}>
                           <BarChart data={weekBar} margin={{ top: 2, right: 0, bottom: 0, left: -24 }}>
@@ -294,7 +293,7 @@ export default function AnalyticsPage() {
               ) : null}
 
               {/* 14-day focus chart — free */}
-              <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6 backdrop-blur-xl">
+              <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6">
                 <h2 className="mb-5 text-sm font-semibold text-[var(--foreground)]">Focus time — last 14 days</h2>
                 <ResponsiveContainer width="100%" height={200}>
                   <AreaChart data={chart14} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
@@ -323,7 +322,7 @@ export default function AnalyticsPage() {
 
               {/* Hour & weekday heatmap — premium */}
               {isPremium ? (
-                <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
+                <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5">
                   <div className="mb-4 flex items-center justify-between">
                     <div>
                       <h2 className="text-sm font-semibold">Focus time by hour and weekday</h2>
@@ -369,7 +368,7 @@ export default function AnalyticsPage() {
                 {isPremium ? (
                   <>
                     {topHours.length > 0 && (
-                      <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6 backdrop-blur-xl">
+                      <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6">
                         <h2 className="mb-5 text-sm font-semibold text-[var(--foreground)]">Most productive hours</h2>
                         <ResponsiveContainer width="100%" height={180}>
                           <PieChart>
@@ -399,7 +398,7 @@ export default function AnalyticsPage() {
                       </div>
                     )}
 
-                    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6 backdrop-blur-xl">
+                    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6">
                       <h2 className="mb-4 text-sm font-semibold text-[var(--foreground)]">Activity — last 91 days</h2>
                       <div className="mb-2 flex gap-1 text-[11px] text-[var(--foreground-subtle)]">
                         {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d) => (

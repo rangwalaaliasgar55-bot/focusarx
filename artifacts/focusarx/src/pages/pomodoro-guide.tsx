@@ -7,8 +7,8 @@ import { ClusterLinks } from "@/components/ClusterLinks";
 
 function TipCard({ icon: Icon, title, body, color }: { icon: React.ComponentType<{ size?: number | string; className?: string; style?: React.CSSProperties }>; title: string; body: string; color: string }) {
   return (
-    <div className="rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-8 hover:border-[var(--palette-f87171)]/30 transition-all group">
-      <div className="h-12 w-12 rounded-2xl bg-[var(--palette-white)]/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+    <div className="rounded-[var(--radius-xl)] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-8 hover:border-[var(--palette-f87171)]/30 transition-all group">
+      <div className="h-12 w-12 rounded-2xl bg-[var(--palette-white)]/5 flex items-center justify-center mb-6 transition-transform">
         <Icon size={24} style={{ color }} />
       </div>
       <h3 className="text-xl font-bold text-[var(--palette-white)] mb-3">{title}</h3>
@@ -37,7 +37,7 @@ export default function PomodoroGuidePage() {
           </p>
           <AuthorBlock lastReviewed={GUIDE_LIBRARY_REVIEWED} className="mt-6 justify-center" />
           <Link href="/signup">
-            <button className="h-16 px-10 rounded-2xl bg-gradient-to-r from-[var(--palette-red-500)] to-[var(--palette-orange-500)] text-lg font-semibold shadow-[0_0_40px_var(--rgba-239-68-68-0_3)] hover:scale-105 transition-transform">
+            <button className="h-16 px-10 rounded-2xl bg-[var(--palette-red-500)] text-lg font-semibold transition-transform">
               Try the Free Pomodoro Timer <ArrowRight size={18} className="inline ml-1" />
             </button>
           </Link>
@@ -55,7 +55,7 @@ export default function PomodoroGuidePage() {
               { label: "Neuro-Recharge", value: "5m", note: "Replenishes glycogen in the prefrontal cortex." },
               { label: "Consolidation", value: "30m", note: "Long break to move info from short to long-term memory." },
             ].map(s => (
-              <div key={s.label} className="rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-8 backdrop-blur-xl">
+              <div key={s.label} className="rounded-[var(--radius-xl)] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-8">
                 <p className="text-5xl font-semibold text-[var(--palette-white)] mb-4">{s.value}</p>
                 <p className="text-xs font-semibold uppercase tracking-widest text-[var(--palette-red-400)] mb-2">{s.label}</p>
                 <p className="text-xs text-[var(--foreground-subtle)] leading-relaxed">{s.note}</p>
@@ -83,7 +83,7 @@ export default function PomodoroGuidePage() {
 
         {/* CTA */}
         <section className="text-center">
-          <div className="rounded-[40px] border border-[var(--palette-red-500)]/20 bg-gradient-to-br from-[var(--palette-red-500)]/10 to-[var(--palette-orange-500)]/5 p-16 relative overflow-hidden">
+          <div className="rounded-[40px] border border-[var(--palette-red-500)]/20 bg-[var(--palette-red-500)]/10 p-16 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8 opacity-5">
                <Timer size={200} className="text-[var(--palette-red-400)]" />
             </div>
@@ -91,7 +91,7 @@ export default function PomodoroGuidePage() {
             <p className="text-[var(--foreground-muted)] mb-12 max-w-xl mx-auto text-lg">FocusArx combines the classic Pomodoro system with AI coaching and immersive 3D metrics.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/signup">
-                <button className="h-16 px-12 rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] font-semibold text-lg hover:scale-105 transition-all">
+                <button className="h-16 px-12 rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] font-semibold text-lg transition-all">
                   Initialize Timer
                 </button>
               </Link>

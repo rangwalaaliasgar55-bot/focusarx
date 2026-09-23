@@ -44,12 +44,12 @@ export default function DistractionModal({ sessionId, onDone, onSkip }: Props) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/60 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/60 px-4"
     >
       <motion.div
         initial={{ scale: 0.93, y: 16 }}
         animate={{ scale: 1, y: 0 }}
-        className="w-full max-w-sm rounded-2xl border border-[var(--rgba-124-58-237-0_25)] bg-[var(--rgba-8-12-28-0_98)] p-6 shadow-2xl"
+        className="w-full max-w-sm rounded-2xl border border-[var(--rgba-124-58-237-0_25)] bg-[var(--rgba-8-12-28-0_98)] p-6 shadow-[var(--shadow-lg)]"
       >
         <div className="mb-2 flex items-center gap-2">
           <span className="text-lg">📓</span>
@@ -65,11 +65,7 @@ export default function DistractionModal({ sessionId, onDone, onSkip }: Props) {
                   <button
                     key={r.id}
                     onClick={() => { setReason(r.id); setStep(2); }}
-                    className={`flex items-center gap-2.5 rounded-xl border px-3 py-3 text-left transition-all ${
-                      reason === r.id
-                        ? "border-[var(--brand-600)] bg-[var(--rgba-124-58-237-0_15)]"
-                        : "border-[var(--rgba-124-58-237-0_12)] hover:border-[var(--rgba-124-58-237-0_3)]"
-                    }`}
+                    className={`flex items-center gap-2.5 rounded-xl border px-3 py-3 text-left transition-all ${ reason === r.id ? "border-[var(--brand-600)] bg-[var(--rgba-124-58-237-0_15)]" : "border-[var(--rgba-124-58-237-0_12)] hover:border-[var(--rgba-124-58-237-0_3)]" }`}
                   >
                     <span>{r.emoji}</span>
                     <span className="text-sm text-[var(--foreground)]">{r.label}</span>

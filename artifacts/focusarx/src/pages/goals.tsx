@@ -65,7 +65,7 @@ export default function GoalsPage() {
   }
 
   return (
-    <div className="min-h-screen forge-bg-glow text-[var(--foreground)] px-4 sm:px-6 py-8 max-w-4xl mx-auto">
+    <div className="min-h-screen text-[var(--foreground)] px-4 sm:px-6 py-8 max-w-4xl mx-auto">
       <PageHeader
         icon={<Target size={18} className="text-[var(--brand-400)]" />}
         badgeColor="var(--brand-600)"
@@ -74,7 +74,7 @@ export default function GoalsPage() {
         actions={
           <button
             onClick={() => setShowForm(s => !s)}
-            className="flex items-center gap-1.5 rounded-xl bg-[var(--brand-600)] px-4 py-2 text-[12px] font-bold text-[var(--palette-white)] hover:bg-[var(--palette-6d31d4)] transition-colors shadow-lg shadow-[var(--rgba-124-58-237-0_25)]"
+            className="flex items-center gap-1.5 rounded-xl bg-[var(--brand-600)] px-4 py-2 text-[12px] font-bold text-[var(--palette-white)] hover:bg-[var(--palette-6d31d4)] transition-colors shadow-lg"
           >
             <Plus size={14} /> New Goal
           </button>
@@ -90,7 +90,7 @@ export default function GoalsPage() {
           </div>
           <div className="h-2 rounded-full bg-[var(--rgba-255-255-255-0_06)] overflow-hidden">
             <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)]"
+              className="h-full rounded-full bg-[var(--brand-600)]"
               initial={{ width: 0 }}
               animate={{ width: `${completionRate}%` }}
               transition={{ duration: 0.25, ease: "easeOut" }}
@@ -218,9 +218,9 @@ function GoalCard({ goal, onToggle, onDelete }: { goal: Goal; onToggle: (id: str
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className={`flex items-start gap-3 rounded-2xl border p-4 transition-all shadow-3d ${goal.completed ? "border-[var(--palette-emerald-900)]/30 bg-[var(--palette-emerald-900)]/10 opacity-70" : "border-[var(--border-subtle)] bg-[var(--surface-hover)] hover:border-[var(--brand-600)]/30"}`}
+      className={`flex items-start gap-3 rounded-2xl border p-4 transition-all shadow-[var(--shadow-sm)] ${goal.completed ? "border-[var(--palette-emerald-900)]/30 bg-[var(--palette-emerald-900)]/10 opacity-70" : "border-[var(--border-subtle)] bg-[var(--surface-hover)] hover:border-[var(--brand-600)]/30"}`}
     >
-      <button onClick={() => onToggle(goal.id)} className="mt-0.5 shrink-0 transition-transform hover:scale-110">
+      <button onClick={() => onToggle(goal.id)} className="mt-0.5 shrink-0 transition-transform">
         {goal.completed
           ? <CheckCircle2 size={18} className="text-[var(--palette-emerald-500)]" />
           : <Circle size={18} className="text-[var(--foreground-subtle)] hover:text-[var(--brand-600)]" />}

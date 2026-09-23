@@ -73,7 +73,7 @@ function MessageBubble({ msg, isMe, onReact }: { msg: DmMessage; isMe: boolean; 
           <div className="flex gap-1 bg-[var(--surface-hover)] border border-[var(--border-subtle)] rounded-full px-2 py-1">
             {EMOJI_REACTIONS.map(e => (
               <button key={e} onClick={() => { onReact(e); setShowReact(false); }}
-                className="text-base hover:scale-125 transition-transform">{e}</button>
+                className="text-base transition-transform">{e}</button>
             ))}
           </div>
         )}

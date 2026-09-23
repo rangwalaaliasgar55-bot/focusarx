@@ -77,7 +77,7 @@ export default function ReferralPage() {
 
   if (status === "unauthenticated") {
     return (
-      <div className="relative min-h-[100dvh] forge-bg-glow flex items-center justify-center">
+      <div className="relative min-h-[100dvh] flex items-center justify-center">
         <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-8 text-center max-w-sm">
           <Gift size={32} className="text-[var(--brand-400)] mx-auto mb-4" />
           <p className="text-[var(--foreground)] font-semibold mb-2">Sign in to refer friends</p>
@@ -88,7 +88,7 @@ export default function ReferralPage() {
   }
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
+    <div className="relative min-h-[100dvh] overflow-hidden">
       <main className="relative z-[var(--z-content)] mx-auto max-w-xl px-4 py-10">
         <PageTransition>
           <header className="mb-8">
@@ -100,12 +100,12 @@ export default function ReferralPage() {
 
           {/* Reward cards */}
           <div className="grid grid-cols-2 gap-3 mb-8">
-            <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4 text-center backdrop-blur-xl">
+            <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4 text-center">
               <Coins size={22} className="text-[var(--brand-gold)] mx-auto mb-2" />
               <p className="text-xl font-bold text-[var(--brand-gold)]">+200</p>
               <p className="text-xs text-[var(--foreground-muted)]">Coins for joinee</p>
             </div>
-            <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4 text-center backdrop-blur-xl">
+            <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4 text-center">
               <Zap size={22} className="text-[var(--brand-400)] mx-auto mb-2" />
               <p className="text-xl font-bold text-[var(--brand-400)]">+500</p>
               <p className="text-xs text-[var(--foreground-muted)]">XP for joinee</p>
@@ -113,7 +113,7 @@ export default function ReferralPage() {
           </div>
 
           {/* Your referral code */}
-          <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl mb-4">
+          <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 mb-4">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--foreground-subtle)] mb-3">Your Referral Code</p>
             {isLoading ? (
               <div className="h-12 animate-pulse rounded-xl bg-[var(--rgba-124-58-237-0_08)]" />
@@ -145,7 +145,7 @@ export default function ReferralPage() {
           </div>
 
           {/* Apply a code */}
-          <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl mb-6">
+          <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 mb-6">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--foreground-subtle)] mb-3">Enter a Friend's Code</p>
             {applyResult ? (
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
@@ -176,7 +176,7 @@ export default function ReferralPage() {
           </div>
 
           {/* How it works */}
-          <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
+          <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--foreground-subtle)] mb-4">How it works</p>
             <div className="space-y-3">
               {[

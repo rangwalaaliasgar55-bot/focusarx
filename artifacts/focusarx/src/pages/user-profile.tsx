@@ -137,7 +137,7 @@ export default function UserProfilePage() {
   return (
     <div className="min-h-screen bg-[var(--muted)] text-[var(--foreground)]">
       {/* Hero banner */}
-      <div className="relative h-28 sm:h-36 bg-gradient-to-br from-[var(--brand-600)]/30 to-[var(--palette-4f46e5)]/20 border-b border-[var(--border-subtle)]">
+      <div className="relative h-28 sm:h-36 bg-[var(--brand-soft)] border-b border-[var(--border-subtle)]">
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_30%_50%,_var(--brand-600),_transparent_70%)]" />
         <Link href="/" className="absolute top-4 left-4 flex items-center gap-1.5 text-xs text-[var(--foreground-subtle)] hover:text-[var(--foreground)] transition-colors">
           <ArrowLeft size={13} /> Back
@@ -147,7 +147,7 @@ export default function UserProfilePage() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
         {/* Avatar */}
         <div className="flex items-end justify-between -mt-12 mb-4">
-          <div className={`h-24 w-24 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center text-3xl font-semibold text-[var(--palette-white)] border-4 border-[var(--rgba-8-9-20-0_8)] shadow-xl`}>
+          <div className={`h-24 w-24 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center text-3xl font-semibold text-[var(--palette-white)] border-4 border-[var(--rgba-8-9-20-0_8)] shadow-[var(--shadow-lg)]`}>
             {initials}
           </div>
           {!isOwnProfile && status === "authenticated" && (
@@ -182,7 +182,7 @@ export default function UserProfilePage() {
             <span className="text-xs text-[var(--foreground-subtle)]">{xp.toLocaleString()} XP</span>
           </div>
           <div className="h-2 rounded-full bg-[var(--rgba-255-255-255-0_06)] overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)] transition-all" style={{ width: `${Math.min(100, (xp / levelXpRequired(level)) * 100)}%` }} />
+            <div className="h-full rounded-full bg-[var(--brand-600)] transition-all" style={{ width: `${Math.min(100, (xp / levelXpRequired(level)) * 100)}%` }} />
           </div>
         </div>
 

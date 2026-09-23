@@ -167,10 +167,10 @@ export default function FocusMusicPage() {
         <P>
           Put it all together with a <Link href="/pomodoro-guide" className="text-[var(--brand-400)] hover:underline">Pomodoro-style session</Link>: press play on your focus playlist <em>before</em> the timer starts (the sound cues "work mode"), keep it running through the work interval, and kill it during breaks — silence or a <Link href="/breathe" className="text-[var(--brand-400)] hover:underline">two-minute breathing reset</Link> — so the contrast between work and rest stays sharp. Over a couple of weeks, the playlist does half the focusing for you: it's the cue that tells your nervous system it's time to go deep. For structuring the sessions themselves, see the <Link href="/two-hour-study-method" className="text-[var(--brand-400)] hover:underline">2-hour study method</Link>.
         </P>
-        <div className="mt-8 rounded-2xl border border-[var(--brand-600)]/30 bg-gradient-to-br from-[var(--brand-600)]/10 to-transparent p-8 text-center">
+        <div className="mt-8 rounded-2xl border border-[var(--brand-600)]/30 bg-[var(--brand-soft)] to-transparent p-8 text-center">
           <h3 className="mb-2 text-xl font-semibold text-[var(--foreground)]">Press play, start the timer</h3>
           <p className="mb-6 text-sm text-[var(--foreground-muted)]">FocusArx pairs your sessions with streaks, scores, and an AI coach. Free forever.</p>
-          <Link href="/signup" className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]">
+          <Link href="/signup" className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] active:scale-[0.98]">
             Start focusing free <ArrowRight size={16} />
           </Link>
         </div>

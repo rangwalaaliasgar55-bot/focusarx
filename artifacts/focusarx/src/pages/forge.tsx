@@ -345,9 +345,8 @@ export default function ForgePage() {
     `${Math.floor(s / 3600).toString().padStart(2, "0")}:${Math.floor((s % 3600) / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
+    <div className="relative min-h-[100dvh] overflow-hidden">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute right-0 bottom-1/4 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-236-72-153-0_06),transparent_65%)] blur-3xl" />
       </div>
       <main className="relative z-[var(--z-content)] mx-auto max-w-4xl px-4 py-10">
         <PageTransition>
@@ -370,11 +369,7 @@ export default function ForgePage() {
                   return (
                     <motion.div
                       key={room.id}
-                      className={`rounded-2xl border p-4 backdrop-blur-xl transition-all ${
-                        joined
-                          ? "border-[var(--rgba-124-58-237-0_5)] bg-[var(--rgba-124-58-237-0_12)] shadow-[0_0_20px_var(--rgba-124-58-237-0_15)]"
-                          : "border-[var(--forge-border)] bg-[var(--card)] hover:border-[var(--rgba-124-58-237-0_3)]"
-                      }`}
+                      className={`rounded-2xl border p-4 transition-all ${ joined ? "border-[var(--rgba-124-58-237-0_5)] bg-[var(--rgba-124-58-237-0_12)]" : "border-[var(--forge-border)] bg-[var(--card)] hover:border-[var(--rgba-124-58-237-0_3)]" }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
@@ -444,11 +439,7 @@ export default function ForgePage() {
                               }
                             }
                           }}
-                          className={`flex-1 rounded-xl py-1.5 text-xs font-semibold transition-all ${
-                            joined
-                              ? "bg-[var(--rgba-239-68-68-0_15)] text-[var(--palette-f87171)] hover:bg-[var(--rgba-239-68-68-0_25)]"
-                              : "bg-[var(--brand-600)] hover:bg-[var(--brand-700)] text-[var(--palette-white)] shadow-[0_0_10px_var(--rgba-124-58-237-0_3)] hover:opacity-90"
-                          }`}
+                          className={`flex-1 rounded-xl py-1.5 text-xs font-semibold transition-all ${ joined ? "bg-[var(--rgba-239-68-68-0_15)] text-[var(--palette-f87171)] hover:bg-[var(--rgba-239-68-68-0_25)]" : "bg-[var(--brand-600)] hover:bg-[var(--brand-700)] text-[var(--palette-white)] hover:opacity-90" }`}
                         >
                           {joined ? "Leave Room" : "Join Room"}
                         </button>
@@ -471,11 +462,7 @@ export default function ForgePage() {
                   return (
                     <div
                       key={track.id}
-                      className={`rounded-2xl border p-4 backdrop-blur-xl transition-all ${
-                        isPlaying
-                          ? "border-[var(--forge-border-bright)] bg-[var(--rgba-124-58-237-0_08)]"
-                          : "border-[var(--forge-border)] bg-[var(--card)]"
-                      }`}
+                      className={`rounded-2xl border p-4 transition-all ${ isPlaying ? "border-[var(--forge-border-bright)] bg-[var(--rgba-124-58-237-0_08)]" : "border-[var(--forge-border)] bg-[var(--card)]" }`}
                     >
                       <div className="flex items-center gap-3">
                         {/* Animated waveform when playing */}
@@ -501,11 +488,7 @@ export default function ForgePage() {
                         </div>
                         <button
                           onClick={() => toggleTrack(track.id)}
-                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all ${
-                            isPlaying
-                              ? "bg-[var(--rgba-239-68-68-0_15)] text-[var(--palette-f87171)]"
-                              : "bg-[var(--rgba-124-58-237-0_15)] text-[var(--brand-400)] hover:bg-[var(--rgba-124-58-237-0_25)]"
-                          }`}
+                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all ${ isPlaying ? "bg-[var(--rgba-239-68-68-0_15)] text-[var(--palette-f87171)]" : "bg-[var(--rgba-124-58-237-0_15)] text-[var(--brand-400)] hover:bg-[var(--rgba-124-58-237-0_25)]" }`}
                         >
                           {isPlaying ? <Square size={10} fill="currentColor" /> : <Play size={10} fill="currentColor" />}
                         </button>

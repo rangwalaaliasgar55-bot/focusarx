@@ -118,7 +118,7 @@ export default function StudyMethodQuiz() {
                  </div>
               </header>
 
-              <motion.div variants={STAGGER_CHILD} className="rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-8 md:p-12 backdrop-blur-xl">
+              <motion.div variants={STAGGER_CHILD} className="rounded-[var(--radius-xl)] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-8 md:p-12">
                  <h2 className="text-2xl font-bold mb-8 text-center">{QUESTIONS[currentQuestion].text}</h2>
                  <div className="space-y-4">
                     {QUESTIONS[currentQuestion].options.map((opt, i) => (
@@ -136,7 +136,7 @@ export default function StudyMethodQuiz() {
             </motion.div>
           ) : (
             <motion.div key="result" variants={BLUR_IN} initial="initial" animate="animate" className="text-center py-12">
-               <div className="mx-auto mb-8 h-24 w-24 rounded-3xl bg-[var(--palette-white)]/5 border border-[var(--palette-white)]/10 flex items-center justify-center shadow-2xl">
+               <div className="mx-auto mb-8 h-24 w-24 rounded-[var(--radius-xl)] bg-[var(--palette-white)]/5 border border-[var(--palette-white)]/10 flex items-center justify-center shadow-[var(--shadow-lg)]">
                   {RESULTS[result].icon}
                </div>
                <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[var(--foreground-subtle)] mb-2">The Verdict</p>
@@ -147,7 +147,7 @@ export default function StudyMethodQuiz() {
 
                <div className="grid gap-4 sm:grid-cols-2">
                   <Link href="/signup">
-                    <button className="w-full h-16 rounded-2xl bg-gradient-to-r from-[var(--palette-purple-500)] to-[var(--palette-blue-500)] font-semibold text-lg shadow-xl hover:scale-105 transition-all">
+                    <button className="w-full h-16 rounded-2xl bg-[var(--palette-purple-500)] font-semibold text-lg shadow-[var(--shadow-lg)] transition-all">
                        Start with {RESULTS[result].title.split(' ')[2] || 'Flow'}
                     </button>
                   </Link>

@@ -69,7 +69,7 @@ export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isR
 
   if (tasks.length === 0) {
     return (
-      <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
+      <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5">
         <p className="text-[11px] uppercase tracking-widest text-[var(--foreground-subtle)] mb-1">Task Timeline</p>
         <p className="text-sm text-[var(--foreground-subtle)] text-center py-4">No pending tasks. Add tasks with time estimates to see the timeline.</p>
       </div>
@@ -81,7 +81,7 @@ export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isR
   const startMin = now.getMinutes();
 
   return (
-    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl space-y-4">
+    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 space-y-4">
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -105,7 +105,7 @@ export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isR
         <div className="space-y-1">
           <div className="relative h-2 rounded-full bg-[var(--rgba-124-58-237-0_08)] overflow-hidden">
             <motion.div
-              className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--palette-06b6d4)]"
+              className="absolute inset-y-0 left-0 rounded-full bg-[var(--brand-600)]"
               animate={{ width: `${totalElapsedPct}%` }}
               transition={{ duration: 0.25}}
             />
@@ -241,11 +241,7 @@ export default function TaskTimeline({ tasks: propTasks, elapsedSeconds = 0, isR
               ) : (
                 <button
                   onClick={() => { setEditingId(task.id); setEditVal(task.estimatedMinutes?.toString() ?? ""); }}
-                  className={`flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-[var(--radius-md)] px-1.5 py-0.5 text-[11px] transition-colors ${
-                    hasTime
-                      ? "font-semibold opacity-100"
-                      : "opacity-0 group-hover:opacity-100 text-[var(--foreground-subtle)] hover:text-[var(--brand-400)]"
-                  }`}
+                  className={`flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-[var(--radius-md)] px-1.5 py-0.5 text-[11px] transition-colors ${ hasTime ? "font-semibold opacity-100" : "opacity-0 group-hover:opacity-100 text-[var(--foreground-subtle)] hover:text-[var(--brand-400)]" }`}
                   style={hasTime ? { background: `color-mix(in srgb, ${color} 8%, transparent)`, color } : undefined}
                 >
                   {hasTime ? (
@@ -275,12 +271,12 @@ export function OverrunModal({ task, overrunMinutes, onReschedule, onDefer, onDr
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[var(--z-modal)] flex items-end justify-center bg-[var(--palette-black)]/50 pb-8 px-4 backdrop-blur-sm sm:items-center sm:pb-0"
+      className="fixed inset-0 z-[var(--z-modal)] flex items-end justify-center bg-[var(--palette-black)]/50 pb-8 px-4 sm:items-center sm:pb-0"
     >
       <motion.div
         initial={{ y: 40, scale: 0.95 }}
         animate={{ y: 0, scale: 1 }}
-        className="w-full max-w-sm rounded-2xl border border-[var(--rgba-255-184-0-0_3)] bg-[var(--rgba-8-12-28-0_98)] p-6 shadow-2xl"
+        className="w-full max-w-sm rounded-2xl border border-[var(--rgba-255-184-0-0_3)] bg-[var(--rgba-8-12-28-0_98)] p-6 shadow-[var(--shadow-lg)]"
       >
         <div className="mb-1 flex items-center gap-2">
           <span className="text-lg">⏱️</span>

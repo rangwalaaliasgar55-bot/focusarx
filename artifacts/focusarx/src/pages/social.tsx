@@ -196,7 +196,7 @@ function LeaderboardTable({ data, followingIds, onFollow, followBusy }: { data: 
                 onClick={() => onFollow(e.userId)}
                 disabled={followBusy}
                 aria-label={`Follow ${e.name}`}
-                className="shrink-0 rounded-xl border border-[var(--brand-teal)]/30 bg-[var(--brand-teal)]/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--brand-teal)] transition-all hover:bg-[var(--brand-teal)]/20 hover:scale-105 active:scale-95 disabled:opacity-50"
+                className="shrink-0 rounded-xl border border-[var(--brand-teal)]/30 bg-[var(--brand-teal)]/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--brand-teal)] transition-all hover:bg-[var(--brand-teal)]/20 active:scale-95 disabled:opacity-50"
               >
                 + Follow
               </button>
@@ -268,7 +268,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted, onFollow
     : null;
 
   return (
-    <motion.div variants={STAGGER_CHILD} className="rounded-[32px] border border-[var(--border)] bg-[var(--palette-white)]/[0.01] overflow-hidden hover:border-[var(--brand-600)]/20 transition-all glass-heavy group">
+    <motion.div variants={STAGGER_CHILD} className="rounded-[var(--radius-2xl)] border border-[var(--border)] bg-[var(--palette-white)]/[0.01] overflow-hidden hover:border-[var(--brand-600)]/20 transition-all glass-heavy group">
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-4">
@@ -289,7 +289,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted, onFollow
                 <button
                   onClick={() => post.userId && onFollow(post.userId)}
                   aria-label={`Follow ${post.author?.name || "this learner"}`}
-                  className="rounded-full border border-[var(--brand-teal)]/30 bg-[var(--brand-teal)]/10 px-2.5 py-1 text-[11px] font-semibold text-[var(--brand-teal)] transition-all hover:bg-[var(--brand-teal)]/20 hover:scale-105 active:scale-95"
+                  className="rounded-full border border-[var(--brand-teal)]/30 bg-[var(--brand-teal)]/10 px-2.5 py-1 text-[11px] font-semibold text-[var(--brand-teal)] transition-all hover:bg-[var(--brand-teal)]/20 active:scale-95"
                 >
                   + Follow
                 </button>
@@ -334,11 +334,11 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted, onFollow
                   initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
                   onMouseEnter={() => setShowReactions(true)}
                   onMouseLeave={() => setShowReactions(false)}
-                  className="absolute bottom-full left-0 mb-2 z-[var(--z-sticky)] flex gap-2 glass p-2 rounded-2xl shadow-2xl"
+                  className="absolute bottom-full left-0 mb-2 z-[var(--z-sticky)] flex gap-2 glass p-2 rounded-2xl shadow-[var(--shadow-lg)]"
                 >
                   {REACTIONS.map(r => (
                     <button key={r.key} onClick={() => react.mutate(r.key)} title={r.label}
-                      className={`text-xl hover:scale-125 transition-transform rounded-xl p-1.5 ${post.myReaction === r.key ? "bg-[var(--brand-600)]/30" : "hover:bg-[var(--palette-white)]/10"}`}>
+                      className={`text-xl transition-transform rounded-xl p-1.5 ${post.myReaction === r.key ? "bg-[var(--brand-600)]/30" : "hover:bg-[var(--palette-white)]/10"}`}>
                       {r.emoji}
                     </button>
                   ))}
@@ -367,7 +367,7 @@ function PostCard({ post, currentUserId, onReacted, onSaved, onDeleted, onFollow
                   className="flex-1 bg-[var(--muted)] border border-[var(--border)] rounded-xl px-4 py-2 text-sm text-[var(--palette-white)] focus:border-[var(--brand-600)] outline-none transition-all" />
                 <button disabled={!commentText.trim() || addComment.isPending}
                   onClick={() => addComment.mutate()}
-                  className="bg-[var(--brand-600)] text-[var(--palette-white)] p-2 rounded-xl hover:scale-105 active:scale-95 transition-all">
+                  className="bg-[var(--brand-600)] text-[var(--palette-white)] p-2 rounded-xl active:scale-95 transition-all">
                   <Send size={16} />
                 </button>
               </div>
@@ -493,7 +493,7 @@ export default function SocialPage() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen forge-bg-glow text-[var(--foreground)] px-6 py-12 max-w-4xl mx-auto">
+      <div className="min-h-screen text-[var(--foreground)] px-6 py-12 max-w-4xl mx-auto">
         <header className="mb-12 flex flex-col items-center text-center">
             <motion.div variants={BLUR_IN} initial="initial" animate="animate">
                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-teal)]/10 mb-6">
@@ -522,12 +522,12 @@ export default function SocialPage() {
           <input
             value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search learners by name or email..."
-            className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-3xl py-5 pl-12 pr-6 text-sm text-[var(--palette-white)] focus:border-[var(--brand-teal)] outline-none transition-all shadow-2xl"
+            className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-[var(--radius-xl)] py-5 pl-12 pr-6 text-sm text-[var(--palette-white)] focus:border-[var(--brand-teal)] outline-none transition-all shadow-[var(--shadow-lg)]"
           />
           <AnimatePresence>
             {search.length > 2 && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                className="absolute top-full inset-x-0 mt-2 z-[var(--z-float)] glass-heavy rounded-3xl overflow-hidden shadow-2xl p-2 border border-[var(--border)]">
+                className="absolute top-full inset-x-0 mt-2 z-[var(--z-float)] glass-heavy rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow-lg)] p-2 border border-[var(--border)]">
                 {searchResults.length === 0 ? (
                   <p className="text-center py-6 text-xs font-semibold uppercase text-[var(--foreground-subtle)] tracking-widest">No users found</p>
                 ) : (
@@ -576,7 +576,7 @@ export default function SocialPage() {
         <AnimatePresence mode="wait">
           {tab === "feed" && (
             <motion.div key="feed" variants={STAGGER} initial="initial" animate="animate" exit="exit" className="space-y-6">
-               <div className="rounded-[32px] border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-6 glass-heavy">
+               <div className="rounded-[var(--radius-2xl)] border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-6 glass-heavy">
                   <div className="flex gap-4">
                      <Avatar name={session?.user?.name || "U"} size={44} level={12} />
                      <div className="flex-1 space-y-4">
@@ -593,7 +593,7 @@ export default function SocialPage() {
                            <button
                              disabled={!newPost.trim() || createPost.isPending}
                              onClick={() => createPost.mutate()}
-                             className="rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] px-8 py-3 text-sm font-semibold hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                             className="rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] px-8 py-3 text-sm font-semibold active:scale-95 transition-all disabled:opacity-50"
                            >
                              Post
                            </button>
@@ -603,7 +603,7 @@ export default function SocialPage() {
                </div>
 
                {postsLoading ? (
-                 <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-48 animate-pulse rounded-[32px] bg-[var(--palette-white)]/[0.01] border border-[var(--border)]" />)}</div>
+                 <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-48 animate-pulse rounded-[var(--radius-2xl)] bg-[var(--palette-white)]/[0.01] border border-[var(--border)]" />)}</div>
                ) : (
                  posts.map((p: Post) => <PostCard key={p.id} post={p} currentUserId={session?.user?.id || ""} onReacted={() => refetchPosts()} onSaved={() => refetchPosts()} onDeleted={() => refetchPosts()} onFollow={(id) => followUser.mutate(id)} isFollowed={followingIds.has(p.userId ?? "")} />)
                )}
@@ -621,7 +621,7 @@ export default function SocialPage() {
             <motion.div key="leaderboard" variants={STAGGER} initial="initial" animate="animate">
                <div className="flex gap-2 mb-8 bg-[var(--palette-white)]/[0.01] border border-[var(--border)] p-1 rounded-2xl">
                   {(["daily", "weekly", "monthly", "alltime"] as const).map(p => (
-                    <button key={p} onClick={() => setPeriod(p)} className={`flex-1 rounded-xl py-3 text-[11px] font-semibold uppercase tracking-widest transition-all ${period === p ? "bg-[var(--palette-white)]/10 text-[var(--palette-white)] shadow-xl" : "text-[var(--foreground-subtle)] hover:text-[var(--palette-zinc-300)]"}`}>{p === "alltime" ? "Infinity" : p}</button>
+                    <button key={p} onClick={() => setPeriod(p)} className={`flex-1 rounded-xl py-3 text-[11px] font-semibold uppercase tracking-widest transition-all ${period === p ? "bg-[var(--palette-white)]/10 text-[var(--palette-white)] shadow-[var(--shadow-lg)]" : "text-[var(--foreground-subtle)] hover:text-[var(--palette-zinc-300)]"}`}>{p === "alltime" ? "Infinity" : p}</button>
                   ))}
                </div>
                <LeaderboardTable data={leaderboard} followingIds={followingIds} onFollow={(id) => followUser.mutate(id)} followBusy={followUser.isPending} />
@@ -633,7 +633,7 @@ export default function SocialPage() {
                {activity.map((a: ActivityItem) => (
                   <motion.div variants={STAGGER_CHILD} key={a.id} className="rounded-2xl border border-[var(--border)] bg-[var(--palette-white)]/[0.01] p-5 flex items-center justify-between glass group">
                      <div className="flex items-center gap-4">
-                        <div className="text-2xl h-12 w-12 rounded-xl bg-[var(--palette-white)]/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <div className="text-2xl h-12 w-12 rounded-xl bg-[var(--palette-white)]/5 flex items-center justify-center transition-transform">
                            {a.type === "session_complete" ? "🎯" : a.type === "badge_unlocked" ? "🏅" : "⚡"}
                         </div>
                         <div>
@@ -732,7 +732,7 @@ export default function SocialPage() {
                         {followingIds.has(u.id) ? (
                           <button onClick={() => unfollowUser.mutate(u.id)} disabled={unfollowUser.isPending} className="rounded-xl border border-[var(--border)] px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)] hover:text-[var(--palette-white)] disabled:opacity-50">Following ✓</button>
                         ) : (
-                          <button onClick={() => followUser.mutate(u.id)} disabled={followUser.isPending} aria-label={`Follow ${u.name} back`} className="rounded-xl bg-[var(--brand-teal)] px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--palette-black)] transition-all hover:scale-105 active:scale-95 disabled:opacity-50">Follow back</button>
+                          <button onClick={() => followUser.mutate(u.id)} disabled={followUser.isPending} aria-label={`Follow ${u.name} back`} className="rounded-xl bg-[var(--brand-teal)] px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--palette-black)] transition-all active:scale-95 disabled:opacity-50">Follow back</button>
                         )}
                       </motion.div>
                     ))}

@@ -79,7 +79,7 @@ function World({ cells, width, height, active, onPlot }: { cells: Record<string,
 
 export function CityWorld3D({ cells, width, height, active, onPlot }: { cells: Record<string, Cell>; width: number; height: number; active: boolean; onPlot: (x: number, y: number) => void }) {
   return (
-    <div className="h-[520px] overflow-hidden rounded-3xl border border-[var(--forge-border)] bg-gradient-to-b from-sky-300 to-sky-100" aria-label="3D city view">
+    <div className="h-[520px] overflow-hidden rounded-[var(--radius-xl)] border border-[var(--forge-border)] bg-gradient-to-b from-sky-300 to-sky-100" aria-label="3D city view">
       <Canvas shadows dpr={[1, 1.6]} gl={{ antialias: true }}>
         <color attach="background" args={["#b9e3ff"]} />
         <fog attach="fog" args={["#dbeafe", 12, 27]} />

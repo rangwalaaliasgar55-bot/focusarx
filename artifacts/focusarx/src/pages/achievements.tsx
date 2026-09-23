@@ -78,7 +78,7 @@ function BadgeCard({ badge, isCelebrating }: { badge: Badge; isCelebrating: bool
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.88 }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      className="relative flex flex-col items-center rounded-2xl p-4 text-center transition-all duration-[var(--duration-fast)] hover:scale-[1.02]"
+      className="relative flex flex-col items-center rounded-2xl p-4 text-center transition-all duration-[var(--duration-fast)]"
       style={
         badge.unlocked
           ? {
@@ -245,10 +245,8 @@ export default function AchievementsPage() {
     .sort((a, b) => (b.progress / b.threshold) - (a.progress / a.threshold))[0] ?? null;
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
+    <div className="relative min-h-[100dvh] overflow-hidden">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute left-1/4 top-0 h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-167-139-250-0_07),transparent_65%)] blur-3xl" />
-        <div className="absolute right-0 bottom-0 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-6-214-160-0_04),transparent_65%)] blur-3xl" />
       </div>
 
       <main id="main-content" className="relative z-[var(--z-content)] mx-auto max-w-3xl px-4 py-10">
@@ -285,7 +283,7 @@ export default function AchievementsPage() {
                   <div className="mt-1.5 flex items-center gap-2">
                     <div className="flex-1 h-1.5 rounded-full bg-[var(--rgba-124-58-237-0_15)] overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)] transition-all duration-[var(--duration-slow)]"
+                        className="h-full rounded-full bg-[var(--brand-600)] transition-all duration-[var(--duration-slow)]"
                         style={{ width: `${Math.min(99, Math.round((nextUnlock.progress / nextUnlock.threshold) * 100))}%` }}
                       />
                     </div>
@@ -307,7 +305,7 @@ export default function AchievementsPage() {
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-[var(--rgba-167-139-250-0_08)]">
                 <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] via-[var(--brand-400)] to-[var(--brand-300)]"
+                  className="h-full rounded-full bg-[var(--brand-600)]"
                   style={{ boxShadow: "0 0 8px var(--rgba-167-139-250-0_4)" }}
                   initial={{ width: 0 }}
                   animate={{ width: totalCount > 0 ? `${completionPct}%` : "0%" }}
@@ -349,7 +347,7 @@ export default function AchievementsPage() {
               {STAT_ITEMS(stats).map(({ label, value, suffix }) => (
                 <StaggerItem key={label}>
                   <TiltCard intensity={10} className="h-full">
-                    <div className="rounded-xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-16-23-50-0_5)] p-3 text-center backdrop-blur-xl shadow-3d-violet">
+                    <div className="rounded-xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-16-23-50-0_5)] p-3 text-center shadow-[var(--shadow-sm)]">
                       <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--foreground-subtle)]">{label}</p>
                       <p className="mt-1 text-sm font-bold text-[var(--foreground)]">{value}{suffix}</p>
                     </div>
@@ -373,11 +371,7 @@ export default function AchievementsPage() {
                     key={cat}
                     onClick={() => setFilter(cat)}
                     aria-pressed={active}
-                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-[var(--duration-fast)] ${
-                      active
-                        ? "bg-[var(--brand-600)] hover:bg-[var(--brand-700)] text-[var(--palette-white)] shadow-[0_0_12px_var(--rgba-124-58-237-0_3)]"
-                        : "border border-[var(--rgba-124-58-237-0_18)] text-[var(--muted-fg)] hover:border-[var(--rgba-124-58-237-0_4)] hover:text-[var(--foreground-muted)] hover:bg-[var(--rgba-124-58-237-0_06)]"
-                    }`}
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-[var(--duration-fast)] ${ active ? "bg-[var(--brand-600)] hover:bg-[var(--brand-700)] text-[var(--palette-white)]" : "border border-[var(--rgba-124-58-237-0_18)] text-[var(--muted-fg)] hover:border-[var(--rgba-124-58-237-0_4)] hover:text-[var(--foreground-muted)] hover:bg-[var(--rgba-124-58-237-0_06)]" }`}
                   >
                     <span aria-hidden>{cfg.icon}</span>
                     {cfg.label}
@@ -398,11 +392,7 @@ export default function AchievementsPage() {
                 <button
                   key={t}
                   onClick={() => setTierFilter(t)}
-                  className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold capitalize transition-all ${
-                    tierFilter === t
-                      ? "bg-[var(--rgba-124-58-237-0_3)] text-[var(--brand-400)]"
-                      : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"
-                  }`}
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold capitalize transition-all ${ tierFilter === t ? "bg-[var(--rgba-124-58-237-0_3)] text-[var(--brand-400)]" : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]" }`}
                 >
                   {t === "all" ? "All Tiers" : t}
                 </button>
@@ -414,11 +404,7 @@ export default function AchievementsPage() {
                 <button
                   key={s}
                   onClick={() => setShowUnlocked(s)}
-                  className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold capitalize transition-all ${
-                    showUnlocked === s
-                      ? "bg-[var(--rgba-124-58-237-0_3)] text-[var(--brand-400)]"
-                      : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"
-                  }`}
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold capitalize transition-all ${ showUnlocked === s ? "bg-[var(--rgba-124-58-237-0_3)] text-[var(--brand-400)]" : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]" }`}
                 >
                   {s === "all" ? "All" : s === "unlocked" ? "✓ Unlocked" : "🔒 Locked"}
                 </button>

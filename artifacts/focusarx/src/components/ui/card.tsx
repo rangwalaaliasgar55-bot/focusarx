@@ -1,28 +1,34 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Elevation is a *tone step plus a hairline*, not a light source.
+ *
+ * v4's `glow` elevation painted a violet shadow under the card and `pulsing`
+ * ran an infinite border animation; both are gone. `glow` survives as an
+ * alias of `elevated` for existing call sites and will be removed with the
+ * rest of the decorative vocabulary (docs/DESIGN.md).
+ */
 export type CardElevation = "default" | "elevated" | "flat" | "glow" | "ghost";
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   elevation?: CardElevation;
   interactive?: boolean;
-  pulsing?: boolean;
 }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, elevation = "default", interactive = false, pulsing = false, ...props }, ref) => (
+  ({ className, elevation = "default", interactive = false, ...props }, ref) => (
     <div
       ref={ref}
       data-elevation={elevation}
       className={cn(
         "rounded-[var(--radius-xl)] border text-[var(--foreground)]",
-        elevation === "default" && "border-[var(--border-subtle)] bg-[var(--surface)] shadow-[var(--shadow-sm)]",
-        elevation === "elevated" && "border-[var(--border-strong)] bg-[var(--surface-raised)] shadow-[var(--shadow-md)]",
-        elevation === "flat" && "border-[var(--border-subtle)] bg-[var(--surface-hover)]",
-        elevation === "glow" && "border-[var(--card-border)] bg-[var(--surface)] shadow-[var(--shadow-violet-md)]",
+        elevation === "default" && "border-[var(--border-subtle)] bg-[var(--surface-1)]",
+        elevation === "elevated" && "border-[var(--border)] bg-[var(--surface-2)] shadow-[var(--shadow-sm)]",
+        elevation === "flat" && "border-transparent bg-[var(--surface-2)]",
+        elevation === "glow" && "border-[var(--border)] bg-[var(--surface-2)] shadow-[var(--shadow-sm)]",
         elevation === "ghost" && "border-transparent bg-transparent hover:border-[var(--border-subtle)] hover:bg-[var(--surface-hover)]",
-        interactive && "cursor-pointer transition-[transform,border-color,box-shadow] duration-[var(--duration-normal)] ease-[var(--ease-out)] hover:-translate-y-0.5 hover:border-[var(--card-border)] hover:shadow-[var(--shadow-md)] active:translate-y-0 active:scale-[0.99]",
-        pulsing && "neon-border-pulse",
+        interactive && "cursor-pointer transition-[border-color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-2)]",
         className,
       )}
       {...props}

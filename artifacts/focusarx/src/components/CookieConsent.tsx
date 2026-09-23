@@ -57,7 +57,7 @@ export function CookieConsent() {
           role="region"
           aria-label="Cookie and consent preferences"
         >
-          <div className="rounded-2xl border border-[var(--palette-white)]/10 bg-[var(--palette-zinc-950)]/90 p-6 shadow-2xl backdrop-blur-xl md:flex md:items-center md:justify-between md:gap-8">
+          <div className="rounded-2xl border border-[var(--palette-white)]/10 bg-[var(--palette-zinc-950)]/90 p-6 shadow-[var(--shadow-lg)] md:flex md:items-center md:justify-between md:gap-8">
             <div className="flex items-start gap-4 md:items-center">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--palette-purple-500)]/10">
                 <ShieldCheck className="text-[var(--palette-purple-400)]" size={24} aria-hidden />

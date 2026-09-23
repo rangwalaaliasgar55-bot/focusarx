@@ -61,11 +61,7 @@ function NameBadges({ entry }: { entry: LeaderboardEntry }) {
       )}
       {isBot && (
         <span
-          className={`ml-1.5 inline-flex items-center gap-0.5 rounded-full border px-1.5 py-px text-[11px] font-semibold uppercase tracking-wider ${
-            botPremium
-              ? "border-[var(--brand-gold)]/40 bg-[var(--brand-gold)]/10 text-[var(--brand-gold)]"
-              : "border-[var(--border-subtle)] bg-[var(--surface-hover)] text-[var(--foreground-subtle)]"
-          }`}
+          className={`ml-1.5 inline-flex items-center gap-0.5 rounded-full border px-1.5 py-px text-[11px] font-semibold uppercase tracking-wider ${ botPremium ? "border-[var(--brand-gold)]/40 bg-[var(--brand-gold)]/10 text-[var(--brand-gold)]" : "border-[var(--border-subtle)] bg-[var(--surface-hover)] text-[var(--foreground-subtle)]" }`}
           title={botPremium ? "Premium AI rival — trains every day on the paid track" : "AI rival — a synthetic training partner"}
         >
           🤖 {botPremium ? "Premium rival" : "AI rival"}
@@ -146,7 +142,7 @@ function PodiumCard({ entry, podiumRank, filter }: { entry: LeaderboardEntry; po
       initial={{ opacity: 0, y: 20 + podiumRank * 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: podiumRank === 1 ? 0 : podiumRank === 2 ? 0.1 : 0.15, type: "spring", stiffness: 300, damping: 28 }}
-      className={`relative flex flex-col items-center rounded-2xl border bg-gradient-to-b p-4 text-center backdrop-blur-xl h-full ${entry.isCurrentUser ? "ring-2 ring-[var(--brand-600)]" : ""}`}
+      className={`relative flex flex-col items-center rounded-2xl border bg-gradient-to-b p-4 text-center h-full ${entry.isCurrentUser ? "ring-2 ring-[var(--brand-600)]" : ""}`}
       style={{
         background: `linear-gradient(to bottom, ${meta.bg.replace("from-", "").replace("to-", "").split("]")[0].trim()})`,
         borderColor: meta.border,
@@ -309,10 +305,8 @@ export default function LeaderboardPage() {
   const gapToNext = rowAbove ? Math.max(0, (filter === "weekly" ? rowAbove.weeklyXp : rowAbove.totalXp) - myXp) : 0;
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
+    <div className="relative min-h-[100dvh] overflow-hidden">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute right-0 top-0 h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-255-184-0-0_05),transparent_65%)] blur-3xl" />
-        <div className="absolute left-0 bottom-0 h-[300px] w-[300px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-124-58-237-0_06),transparent_65%)] blur-3xl" />
       </div>
 
       <main id="main-content" className="relative z-[var(--z-content)] mx-auto max-w-3xl px-4 py-10">
@@ -362,11 +356,7 @@ export default function LeaderboardPage() {
                   key={f}
                   onClick={() => setFilter(f)}
                   aria-pressed={filter === f}
-                  className={`rounded-lg px-5 py-1.5 text-xs font-semibold capitalize transition-all duration-[var(--duration-fast)] ${
-                    filter === f
-                      ? "bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[var(--palette-white)] shadow-[0_0_14px_var(--rgba-124-58-237-0_35)]"
-                      : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"
-                  }`}
+                  className={`rounded-lg px-5 py-1.5 text-xs font-semibold capitalize transition-all duration-[var(--duration-fast)] ${ filter === f ? "bg-[var(--brand-600)] text-[var(--palette-white)]" : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]" }`}
                 >
                   {f === "weekly" ? "🗓 This Week" : "🏆 All Time"}
                 </button>
@@ -378,11 +368,7 @@ export default function LeaderboardPage() {
                   key={s}
                   onClick={() => setScope(s)}
                   aria-pressed={scope === s}
-                  className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-semibold transition-all duration-[var(--duration-fast)] ${
-                    scope === s
-                      ? "bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[var(--palette-white)] shadow-[0_0_14px_var(--rgba-124-58-237-0_35)]"
-                      : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"
-                  }`}
+                  className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-semibold transition-all duration-[var(--duration-fast)] ${ scope === s ? "bg-[var(--brand-600)] text-[var(--palette-white)]" : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]" }`}
                 >
                   {s === "global" ? <Trophy size={11} /> : <Users size={11} />}
                   {s === "global" ? "Everyone" : "My friends"}
@@ -422,18 +408,14 @@ export default function LeaderboardPage() {
 
               {/* List rows (rank 4+) */}
               {rest.length > 0 && (
-                <div className="overflow-hidden rounded-2xl border border-[var(--rgba-124-58-237-0_12)] backdrop-blur-xl">
+                <div className="overflow-hidden rounded-2xl border border-[var(--rgba-124-58-237-0_12)]">
                   {rest.map((entry, i) => (
                     <motion.div
                       key={entry.userId}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.3 + i * 0.04 }}
-                      className={`flex items-center gap-3 px-4 py-3 transition-colors ${
-                        entry.isCurrentUser
-                          ? "bg-[var(--rgba-124-58-237-0_1)] border-l-2 border-[var(--brand-600)]"
-                          : "hover:bg-[var(--rgba-124-58-237-0_04)]"
-                      } ${i < rest.length - 1 ? "border-b border-[var(--rgba-124-58-237-0_07)]" : ""}`}
+                      className={`flex items-center gap-3 px-4 py-3 transition-colors ${ entry.isCurrentUser ? "bg-[var(--rgba-124-58-237-0_1)] border-l-2 border-[var(--brand-600)]" : "hover:bg-[var(--rgba-124-58-237-0_04)]" } ${i < rest.length - 1 ? "border-b border-[var(--rgba-124-58-237-0_07)]" : ""}`}
                     >
                       <span className="w-6 text-center text-xs font-semibold text-[var(--foreground-subtle)]">{entry.rank}</span>
                       <div

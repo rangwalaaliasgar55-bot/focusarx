@@ -7,22 +7,27 @@ import { cn } from "@/lib/utils";
 const buttonVariants = cva(
   [
     "relative inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap",
-    "rounded-[var(--radius-lg)] border border-transparent px-4",
+    "rounded-[var(--radius-md)] border border-transparent px-4",
     "text-sm font-semibold tracking-[-0.01em] select-none",
-    "transition-[transform,background-color,border-color,color,box-shadow] duration-[var(--duration-fast)] ease-[var(--ease-out)]",
+    "transition-[background-color,border-color,color] duration-[var(--duration-fast)] ease-[var(--ease-out)]",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
-    "active:scale-[0.96] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45",
+    "active:scale-[0.98] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45",
     "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   ].join(" "),
   {
     variants: {
       variant: {
-        default: "bg-[var(--brand-600)] text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] hover:bg-[var(--brand-700)] hover:shadow-[var(--shadow-violet-md)]",
-        secondary: "border-[var(--card-border)] bg-[var(--brand-soft)] text-[var(--brand-strong)] hover:bg-[var(--brand-soft-hover)]",
-        outline: "border-[var(--border-strong)] bg-[var(--surface)] text-[var(--foreground)] hover:border-[var(--brand-500)] hover:bg-[var(--brand-soft)] hover:text-[var(--brand-strong)]",
+        /* The fill is the only thing that changes between rest and hover:
+           v5 dropped the tinted shadows that used to make a button look lit
+           from behind, because a shadow cannot be a state. */
+        default: "bg-[var(--brand-600)] text-[var(--neutral-0)] hover:bg-[var(--brand-700)]",
+        secondary: "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--foreground)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-3)]",
+        outline: "border-[var(--border-strong)] bg-transparent text-[var(--foreground)] hover:bg-[var(--surface-hover)]",
         ghost: "bg-transparent text-[var(--foreground-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]",
-        destructive: "bg-[var(--danger)] text-[var(--neutral-0)] shadow-[var(--shadow-sm)] hover:brightness-110",
-        glow: "bg-[var(--brand-600)] text-[var(--neutral-0)] shadow-[var(--shadow-violet-md)] hover:bg-[var(--brand-700)] hover:shadow-[var(--shadow-violet-lg)]",
+        destructive: "bg-[var(--danger)] text-[var(--neutral-0)] hover:brightness-110",
+        /* Deprecated alias for `default` — kept so existing `variant="glow"`
+           call sites keep compiling. Nothing should glow; see docs/DESIGN.md. */
+        glow: "bg-[var(--brand-600)] text-[var(--neutral-0)] hover:bg-[var(--brand-700)]",
         link: "min-h-0 border-0 bg-transparent p-0 text-[var(--brand-strong)] underline-offset-4 hover:underline",
       },
       size: {

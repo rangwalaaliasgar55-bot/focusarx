@@ -395,7 +395,7 @@ function ResultsTable({ result }: { result: StatementResult }) {
 
       <div className="overflow-auto max-h-96 border border-white/10 rounded-lg">
         <table className="w-full text-xs">
-          <thead className="sticky top-0 bg-zinc-900/90 backdrop-blur">
+          <thead className="sticky top-0 bg-zinc-900/90">
             <tr>
               <th className="px-2 py-1.5 text-left text-[11px] text-white/30 font-medium">#</th>
               {result.columns.map((col) => (
@@ -605,7 +605,7 @@ export function SqlEditor() {
       if (!textarea) return;
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
-      const newValue = query.substring(0, start) + "  " + query.substring(end);
+      const newValue = query.substring(0, start) + " " + query.substring(end);
       setQuery(newValue);
       requestAnimationFrame(() => {
         textarea.selectionStart = textarea.selectionEnd = start + 2;

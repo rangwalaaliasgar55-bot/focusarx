@@ -99,18 +99,18 @@ export default function FeedbackModal({ open, onClose, onSubmit }: FeedbackModal
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="absolute inset-0 bg-[var(--palette-black)]/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-[var(--palette-black)]/60"
             onClick={onClose}
           />
           <motion.div
-            className="relative w-full max-w-md rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--palette-0e0c1a)] shadow-2xl overflow-hidden"
+            className="relative w-full max-w-md rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--palette-0e0c1a)] shadow-[var(--shadow-lg)] overflow-hidden"
             initial={{ y: 40, opacity: 0, scale: 0.96 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 40, opacity: 0, scale: 0.96 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
           >
             {/* Gradient header */}
-            <div className="bg-gradient-to-r from-[var(--brand-600)]/20 to-[var(--palette-4f46e5)]/10 border-b border-[var(--rgba-124-58-237-0_2)] px-6 pt-6 pb-5">
+            <div className="bg-[var(--brand-soft)] border-b border-[var(--rgba-124-58-237-0_2)] px-6 pt-6 pb-5">
               <button onClick={onClose} className="absolute top-4 right-4 rounded-lg p-1.5 text-[var(--palette-zinc-500)] hover:bg-[var(--palette-zinc-800)] hover:text-[var(--palette-white)] transition-colors">
                 <X size={16} />
               </button>
@@ -151,7 +151,7 @@ export default function FeedbackModal({ open, onClose, onSubmit }: FeedbackModal
                         onMouseEnter={() => setHovered(s)}
                         onMouseLeave={() => setHovered(0)}
                         onClick={() => setRating(s)}
-                        className="transition-transform hover:scale-125 active:scale-110"
+                        className="transition-transform active:scale-110"
                       >
                         <Star
                           size={32}
@@ -182,11 +182,7 @@ export default function FeedbackModal({ open, onClose, onSubmit }: FeedbackModal
                       <button
                         key={c.id}
                         onClick={() => setCategory(c.id)}
-                        className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all border ${
-                          category === c.id
-                            ? "border-[var(--brand-600)] bg-[var(--rgba-124-58-237-0_2)] text-[var(--brand-400)]"
-                            : "border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/50 text-[var(--palette-zinc-500)] hover:border-[var(--palette-zinc-700)]"
-                        }`}
+                        className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all border ${ category === c.id ? "border-[var(--brand-600)] bg-[var(--rgba-124-58-237-0_2)] text-[var(--brand-400)]" : "border-[var(--border-subtle)] bg-[var(--palette-zinc-900)]/50 text-[var(--palette-zinc-500)] hover:border-[var(--palette-zinc-700)]" }`}
                       >
                         {c.emoji} {c.label}
                       </button>
@@ -202,14 +198,14 @@ export default function FeedbackModal({ open, onClose, onSubmit }: FeedbackModal
                     onChange={e => setMessage(e.target.value.slice(0, 500))}
                     placeholder={rating <= 2 ? "What should we improve?" : rating >= 4 ? "What do you love?" : "What's on your mind?"}
                     rows={3}
-                    className="w-full rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/60 px-3 py-2.5 text-sm text-[var(--foreground)] placeholder:text-[var(--palette-zinc-600)] focus:border-[var(--brand-600)]/50 focus:outline-none resize-none transition-colors"
+                    className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--palette-zinc-900)]/60 px-3 py-2.5 text-sm text-[var(--foreground)] placeholder:text-[var(--palette-zinc-600)] focus:border-[var(--brand-600)]/50 focus:outline-none resize-none transition-colors"
                   />
                   <p className="text-[11px] text-[var(--palette-zinc-700)] text-right mt-0.5">{message.length}/500</p>
                 </div>
 
                 {/* Submit */}
                 <div className="flex gap-3 pt-1">
-                  <button onClick={onClose} className="flex-1 rounded-xl border border-[var(--palette-zinc-800)] py-2.5 text-sm text-[var(--palette-zinc-500)] hover:bg-[var(--palette-zinc-800)]/50 hover:text-[var(--palette-zinc-300)] transition-colors">
+                  <button onClick={onClose} className="flex-1 rounded-xl border border-[var(--border-subtle)] py-2.5 text-sm text-[var(--palette-zinc-500)] hover:bg-[var(--palette-zinc-800)]/50 hover:text-[var(--palette-zinc-300)] transition-colors">
                     Not now
                   </button>
                   <button

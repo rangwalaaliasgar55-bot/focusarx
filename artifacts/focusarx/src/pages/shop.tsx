@@ -51,7 +51,7 @@ export default function ShopPage() {
   const filtered = activeCategory === "all" ? items : items.filter((i) => i.category === activeCategory);
 
   return (
-    <div className="min-h-screen forge-bg-glow text-[var(--foreground)] px-4 sm:px-6 py-8 max-w-3xl mx-auto">
+    <div className="min-h-screen text-[var(--foreground)] px-4 sm:px-6 py-8 max-w-3xl mx-auto">
       <PageHeader
         icon={<ShoppingBag size={18} className="text-[var(--palette-amber-400)]" />}
         badgeColor="var(--color-warning)"

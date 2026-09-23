@@ -75,17 +75,26 @@ describe("buildAccentScale", () => {
 describe("buildAccentOverrides", () => {
   it("emits the full brand scale and semantic tokens", () => {
     const overrides = buildAccentOverrides("#10B981", false);
-    const scale = buildAccentScale("#10B981");
-    const c600 = hexToRgb(scale[600])!;
     for (const step of [50, 100, 200, 300, 400, 500, 600, 700, 800, 900]) {
       expect(overrides[`--brand-${step}`]).toBeDefined();
     }
     expect(overrides["--brand-500"]).toBe("#10B981");
     expect(overrides["--brand-violet"]).toBe("#10B981");
     expect(overrides["--ring"]).toMatch(/^rgba\(16, 185, 129, 0\.55\)$/);
-    expect(overrides["--card-border"]).toMatch(/^rgba\(16, 185, 129, 0\.2\)$/);
-    expect(overrides["--shadow-violet-md"]).toContain(`rgba(${c600.r}, ${c600.g}, ${c600.b}, 0.25)`);
-    expect(overrides["--glow-violet"]).toContain("rgba(16, 185, 129");
+    // v5 softened the tinted hairline: a card edge is a separator first.
+    expect(overrides["--card-border"]).toMatch(/^rgba\(16, 185, 129, 0\.16\)$/);
+  });
+
+  it("never emits glow or tinted-shadow tokens, whatever colour is picked", () => {
+    // v5 removed the accent's depth layer: a custom colour changes the fill,
+    // the ring and the active rail — not the lighting. If this fails, some
+    // card, button or hero is about to glow in the user's accent again.
+    for (const color of ["#10B981", "#F59E0B", "#6366F1"]) {
+      const overrides = buildAccentOverrides(color, false);
+      for (const key of ["--glow-violet", "--glow-teal", "--glow-gold", "--shadow-violet-sm", "--shadow-violet-md", "--shadow-violet-lg"]) {
+        expect(overrides[key], `${key} is emitted for ${color}`).toBeUndefined();
+      }
+    }
   });
 
   it("uses softer alpha grading in light mode", () => {

@@ -55,7 +55,7 @@ async function fetchForgeRooms(): Promise<ForgeRoom[]> {
 
 function ParticipantSkeleton() {
   return (
-    <div className="rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-6 backdrop-blur-xl">
+    <div className="rounded-[var(--radius-xl)] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-6">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
           <Skeleton className="h-12 w-12 rounded-2xl" />
@@ -134,7 +134,7 @@ function RoomChat({ roomId, canChat }: { roomId: string | null; canChat: boolean
   };
 
   return (
-    <div className="rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-6 backdrop-blur-xl">
+    <div className="rounded-[var(--radius-xl)] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-6">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-bold">Room chat</h2>
         <span className="text-[11px] text-[var(--foreground-subtle)]">AI members chat along</span>
@@ -273,7 +273,7 @@ export default function ForgeRoomPage() {
                   {Array.from({ length: 4 }).map((_, index) => <ParticipantSkeleton key={index} />)}
                 </div>
               </div>
-              <Skeleton className="hidden h-64 rounded-3xl lg:block" />
+              <Skeleton className="hidden h-64 rounded-[var(--radius-xl)] lg:block" />
             </div>
           ) : roomsQuery.isError ? (
             <ErrorState
@@ -282,13 +282,13 @@ export default function ForgeRoomPage() {
               onRetry={() => { void roomsQuery.refetch(); }}
             />
           ) : rooms.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] py-16 text-center backdrop-blur-xl">
+            <div className="flex flex-col items-center gap-3 rounded-[var(--radius-xl)] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] py-16 text-center">
               <Users size={40} className="text-[var(--foreground-subtle)]" />
               <p className="text-sm text-[var(--foreground-subtle)]">No rooms are live right now</p>
               <p className="max-w-sm text-xs text-[var(--foreground-subtle)]">Be the first to open one, or browse the rooms that are already running.</p>
               <Link
                 href="/study-rooms"
-                className="mt-2 inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-[var(--brand-teal)] px-6 text-sm font-bold text-[var(--palette-black)] transition-transform hover:scale-105"
+                className="mt-2 inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-[var(--brand-teal)] px-6 text-sm font-bold text-[var(--palette-black)] transition-transform"
               >
                 Browse study rooms
               </Link>
@@ -303,11 +303,7 @@ export default function ForgeRoomPage() {
                     type="button"
                     onClick={() => setSelectedId(room.id)}
                     aria-pressed={selected?.id === room.id}
-                    className={`min-h-[44px] rounded-2xl border px-4 py-2 text-xs font-bold transition-colors ${
-                      selected?.id === room.id
-                        ? "border-[var(--brand-teal)]/40 bg-[var(--brand-teal)]/10 text-[var(--brand-teal)]"
-                        : "border-[var(--palette-white)]/10 bg-[var(--palette-white)]/[0.02] text-[var(--foreground-muted)] hover:border-[var(--brand-teal)]/25"
-                    }`}
+                    className={`min-h-[44px] rounded-2xl border px-4 py-2 text-xs font-bold transition-colors ${ selected?.id === room.id ? "border-[var(--brand-teal)]/40 bg-[var(--brand-teal)]/10 text-[var(--brand-teal)]" : "border-[var(--palette-white)]/10 bg-[var(--palette-white)]/[0.02] text-[var(--foreground-muted)] hover:border-[var(--brand-teal)]/25" }`}
                   >
                     {room.name}
                     {room.isLive && (
@@ -329,19 +325,11 @@ export default function ForgeRoomPage() {
                           initial="initial"
                           animate="animate"
                           transition={{ delay: Math.min(i, 5) * 0.05 }}
-                          className={`relative rounded-3xl border p-6 backdrop-blur-xl ${
-                            p.userId === myId
-                              ? "border-[var(--brand-teal)]/40 bg-[var(--brand-teal)]/5"
-                              : "border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02]"
-                          }`}
+                          className={`relative rounded-[var(--radius-xl)] border p-6 ${ p.userId === myId ? "border-[var(--brand-teal)]/40 bg-[var(--brand-teal)]/5" : "border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02]" }`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex min-w-0 items-center gap-4">
-                              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-lg font-semibold ${
-                                p.userId === myId
-                                  ? "bg-[var(--brand-teal)] text-[var(--palette-black)]"
-                                  : "bg-[var(--palette-white)]/5 text-[var(--foreground-subtle)]"
-                              }`}>
+                              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-lg font-semibold ${ p.userId === myId ? "bg-[var(--brand-teal)] text-[var(--palette-black)]" : "bg-[var(--palette-white)]/5 text-[var(--foreground-subtle)]" }`}>
                                 {p.name.charAt(0).toUpperCase()}
                               </div>
                               <div className="min-w-0">
@@ -362,7 +350,7 @@ export default function ForgeRoomPage() {
                   </div>
 
                   {participants.length === 0 && selected && (
-                    <div className="rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-8 text-center backdrop-blur-xl">
+                    <div className="rounded-[var(--radius-xl)] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-8 text-center">
                       <p className="text-sm text-[var(--foreground-subtle)]">
                         {iAmHere
                           ? `“${selected.name}” is open but nobody else has joined yet.`
@@ -382,7 +370,7 @@ export default function ForgeRoomPage() {
 
                 {/* Sidebar: Group Goals */}
                 <div className="space-y-6">
-                  <div className="rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-6 backdrop-blur-xl sm:p-8">
+                  <div className="rounded-[var(--radius-xl)] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-6 sm:p-8">
                     <h2 className="mb-6 flex items-center gap-3 text-xl font-bold">
                       <Target size={18} className="text-[var(--palette-rose-400)]" /> Room Objectives
                     </h2>
@@ -441,7 +429,7 @@ export default function ForgeRoomPage() {
                     )}
                   </div>
 
-                  <div className="rounded-3xl border border-[var(--brand-400)]/20 bg-[var(--brand-400)]/5 p-6 backdrop-blur-xl sm:p-8">
+                  <div className="rounded-[var(--radius-xl)] border border-[var(--brand-400)]/20 bg-[var(--brand-400)]/5 p-6 sm:p-8">
                     <h2 className="mb-4 text-xl font-bold">{iAmHere ? "You're in the room" : "Join the Flow"}</h2>
                     <p className="mb-6 text-sm leading-relaxed text-[var(--foreground-muted)]">
                       {iAmHere
@@ -450,7 +438,7 @@ export default function ForgeRoomPage() {
                     </p>
                     <Link
                       href={iAmHere ? "/" : "/study-rooms"}
-                      className="flex min-h-[44px] w-full items-center justify-center rounded-2xl bg-[var(--palette-white)] px-4 py-4 text-center text-lg font-semibold text-[var(--palette-black)] transition-transform hover:scale-105"
+                      className="flex min-h-[44px] w-full items-center justify-center rounded-2xl bg-[var(--palette-white)] px-4 py-4 text-center text-lg font-semibold text-[var(--palette-black)] transition-transform"
                     >
                       {iAmHere ? "Start a session" : "Browse rooms"}
                     </Link>

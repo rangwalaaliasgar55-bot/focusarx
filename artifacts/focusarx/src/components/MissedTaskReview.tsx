@@ -78,12 +78,12 @@ export default function MissedTaskReview({ open, tasks, onDone }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/70 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/70 p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 16 }}
-        className="w-full max-w-md rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] shadow-2xl overflow-hidden"
+        className="w-full max-w-md rounded-2xl border border-[var(--rgba-255-255-255-0_06)] bg-[var(--rgba-255-255-255-0_025)] shadow-[var(--shadow-lg)] overflow-hidden"
       >
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-[var(--rgba-255-255-255-0_06)]">

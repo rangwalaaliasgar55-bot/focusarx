@@ -85,10 +85,9 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="relative min-h-[100dvh] forge-bg-glow">
+    <div className="relative min-h-[100dvh]">
       <PageSEO {...PAGE_SEO.pricing} structuredData={productSchema} />
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute left-1/2 top-0 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-124-58-237-0_08),transparent_65%)] blur-3xl" />
       </div>
 
       <main id="main-content" className="relative z-[var(--z-content)] mx-auto max-w-4xl px-4 py-10">
@@ -113,7 +112,7 @@ export default function PricingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
-              className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-16-23-50-0_5)] p-7 backdrop-blur-xl flex flex-col"
+              className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-16-23-50-0_5)] p-7 flex flex-col"
             >
               <div className="mb-6">
                 <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--rgba-124-58-237-0_12)]">
@@ -150,11 +149,11 @@ export default function PricingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.12 }}
-              className="relative rounded-2xl border border-[var(--rgba-124-58-237-0_5)] bg-[var(--rgba-16-23-50-0_6)] p-7 backdrop-blur-xl flex flex-col shadow-[0_0_40px_var(--rgba-124-58-237-0_15)]"
+              className="relative rounded-2xl border border-[var(--rgba-124-58-237-0_5)] bg-[var(--rgba-16-23-50-0_6)] p-7 flex flex-col"
             >
               {/* Badge */}
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <span className="rounded-full bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-4 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--palette-white)] shadow-[0_0_14px_var(--rgba-124-58-237-0_5)]">
+                <span className="rounded-full bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-4 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--palette-white)]">
                   Earn It
                 </span>
               </div>
@@ -199,7 +198,7 @@ export default function PricingPage() {
               actually have are "what does this cost me in rupees" and "does
               this know my exam". Both get a direct answer here rather than a
               keyword-stuffed heading. */}
-          <section className="mx-auto mt-14 max-w-3xl rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-16-23-50-0_5)] p-7 backdrop-blur-xl">
+          <section className="mx-auto mt-14 max-w-3xl rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-16-23-50-0_5)] p-7">
             <h2 className="text-xl font-bold text-[var(--foreground)]">For students in India</h2>
             <p className="mt-3 text-sm leading-relaxed text-[var(--foreground-muted)]">
               FocusArx costs ₹0. There is no rupee price for Premium because Premium is not for

@@ -37,7 +37,7 @@ function CardFace({
 }) {
   return (
     <motion.div
-      className="absolute inset-0 rounded-3xl overflow-hidden"
+      className="absolute inset-0 rounded-[var(--radius-xl)] overflow-hidden"
       style={{ backfaceVisibility: "hidden" }}
       animate={{ rotateY: flipped ? 0 : 180 }}
       transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
@@ -173,7 +173,7 @@ export default function FocusDnaPage() {
   const sessionsUntilUpgrade = dna ? 10 - ((totalSessions - dna.sessionCountAtGeneration) % 10) : 0;
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
+    <div className="relative min-h-[100dvh] overflow-hidden">
       <main className="relative z-[var(--z-content)] mx-auto max-w-2xl px-4 py-10">
         <PageTransition>
           <header className="mb-8">
@@ -210,7 +210,7 @@ export default function FocusDnaPage() {
               </div>
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/20 p-12 text-center">
+            <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--palette-zinc-900)]/20 p-12 text-center">
                <Dna size={40} className="mx-auto mb-4 text-[var(--foreground-subtle)]" />
                <p className="text-[var(--foreground-muted)]">{sessionsNeeded > 0 ? `Complete ${sessionsNeeded} more sessions to unlock.` : "Your DNA is ready to be analyzed."}</p>
                {sessionsNeeded === 0 && (

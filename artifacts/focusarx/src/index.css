@@ -1,246 +1,300 @@
-/* ─── Self-hosted modern type pair: Manrope display + Geist body ───────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   FocusArx — design system v5 "Quiet Tools"
+   ═══════════════════════════════════════════════════════════════════════════
+   The interface is a focus timer. Whatever else the product does, the thing in
+   front of the user has to be the calmest object on the screen, so the system
+   is built out of five rules and nothing else:
+
+     1. One accent. `--brand-500` marks the primary action, the active
+        destination and the focus ring — nothing else. Scarcity is what keeps
+        the accent meaning "press this".
+     2. Flat surfaces, hairline separation. Depth is one tone step plus a 1px
+        border. No glow, no blur, no gradient-as-material.
+     3. No decorative motion. Only the countdown is allowed to move on its own.
+     4. Motion is short: 150–250ms, transform/opacity, reduced-motion escape.
+     5. Type carries the design.
+
+   The file reads top to bottom in eight numbered layers, and a component may
+   only reach *up*: a component reads ② semantics, never ① primitives.
+
+     ① TAILWIND WIRING      framework bridge only
+     ② SEMANTIC TOKENS      the tokens components actually read (per theme)
+     ③ BASE                 reset, focus ring, scrollbars, selection
+     ④ TYPE SCALE           sizes, tracking, metric numerals
+     ⑤ MATERIALS            panels and surfaces
+     ⑥ LEGACY VOCABULARY    deprecated aliases, kept quiet (see below)
+     ⑦ COMPONENTS           app chrome, page rhythm, tables, motion utilities
+     ⑧ MOTION               the keyframes that still earn their keep
+
+   ⑥ is a comma in the middle of a sentence, not a place to live. Roughly 120
+   files still carry pre-v5 class names — `text-gradient`, `glow-violet`,
+   `shadow-3d`, `glass-heavy`, the whole `.animate-sparkle` family. They are
+   redefined here as quiet equivalents so those call sites keep rendering, but
+   the names are now misleading on purpose: delete the call site, then the
+   rule, then ⑥. The migration path and the rules behind it are written out in
+   `docs/DESIGN.md`; `pnpm test` holds the contrast, motion and focus gates.
+
+   Anything that cannot be justified by the five rules does not ship.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Type: two families, self-hosted, no third for marketing ──────────────
+   Manrope carries the display sizes, Geist the interface and the numerals.
+   Marketing pages speak the product's own voice: the previous build loaded
+   Instrument Serif and DM Sans for the landing page alone, and a serif-italic
+   hero is the visual signature of every generated landing page. Latin-subset
+   preload for Manrope is injected by `preloadDisplayFont()` in vite.config.ts
+   and asserted by scripts/seo-validate.mjs. */
 @import "@fontsource-variable/geist/wght.css";
 @import "@fontsource-variable/manrope/wght.css";
-/* Marketing pairing adopted from the focusarx-resource "professional website"
-   redesign (DM Sans body + Instrument Serif display). Declared globally like
-   the app fonts so the CSS stays in the single entry stylesheet; the woff2
-   files are unicode-range subsets and only download when `.landing-body` /
-   `.font-display-serif` actually render — app pages never fetch them. */
-@import "@fontsource-variable/dm-sans";
-@import "@fontsource/instrument-serif/400.css";
-@import "@fontsource/instrument-serif/400-italic.css";
-
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   ① TAILWIND WIRING
+   Names Tailwind's utilities onto the semantic layer. Nothing here invents a
+   colour; every value points at a token that ② declares for both themes.
+   ═══════════════════════════════════════════════════════════════════════════ */
 @theme inline {
-  --color-background:        var(--background);
-  --color-foreground:        var(--foreground);
-  --color-card:              var(--card);
-  --color-card-foreground:   var(--foreground);
-  --color-muted:             var(--muted);
-  --color-muted-foreground:  var(--muted-fg);
-  --color-border:            var(--border);
-  --color-input:             var(--input-border);
-  --color-ring:              var(--brand-500);
-  --color-primary:           var(--brand-600);
-  --color-primary-foreground: var(--neutral-0);
-  --color-secondary:         var(--surface-raised);
-  --color-secondary-foreground: var(--foreground);
-  --color-accent:            var(--brand-soft);
-  --color-accent-foreground: var(--brand-strong);
-  --color-popover:           var(--surface-overlay);
-  --color-popover-foreground: var(--foreground);
-  --color-destructive:       var(--danger);
-  --color-destructive-foreground: var(--neutral-0);
-  --font-sans:               -apple-system, 'SF Pro Text', 'SF Pro Display', 'Geist Variable', system-ui, sans-serif;
-  --font-display:            -apple-system, 'SF Pro Display', 'Manrope Variable', 'Geist Variable', system-ui, sans-serif;
-  --font-mono:               ui-monospace, 'SF Mono', 'SFMono-Regular', Consolas, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+
+  --font-sans: 'Geist Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
+  --font-display: 'Manrope Variable', 'Geist Variable', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Consolas, monospace;
+
+  --animate-fade-in: fade-in var(--duration-normal) var(--ease-out) both;
+  --animate-rise-in: rise-in var(--duration-normal) var(--ease-out) both;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   DARK MODE (default)
+   ② SEMANTIC TOKENS — DARK (the default theme)
+   Warm graphite, not blue-black: the page is #0B0B0C and the four surface
+   steps climb by about one visible tone each. Anything reading these tokens
+   is themed by construction, which is the whole point of the layer — the
+   earlier build hardcoded near-black panels in a dozen components and they
+   stayed dark in Daylight.
    ═══════════════════════════════════════════════════════════════════════════ */
 :root {
-  /* Native controls (scrollbars, form fields, date pickers) follow the theme. */
   color-scheme: dark;
 
-  /* ── Base colors ──────────────────────────────────────────────────────── */
-  --background:        #030308;
-  --foreground:        #F8FAFC;
-  --foreground-muted:  #A8B3C5;
-  --foreground-subtle: #75839A;  /* lifted for WCAG AA (>=4.5:1 on --background) */
+  /* ── ① Primitives ───────────────────────────────────────────────────────
+     Raw values. Components never read these — they reach for ② semantics —
+     but the ramp stays exposed (and completed) for three reasons: the tail's
+     light-theme mapping resolves through it, ~30 call sites use `--neutral-0`
+     as the ink that sits on an accent fill, and an undefined token makes the
+     whole declaration invalid rather than merely unstyled. */
+  --neutral-0:   #FFFFFF;
+  --neutral-50:  #F7F7F8;
+  --neutral-100: #EDEDEF;
+  --neutral-200: #DCDCE0;
+  --neutral-300: #BFC0C6;
+  --neutral-400: #97989F;
+  --neutral-500: #71727A;
+  --neutral-600: #56575E;
+  --neutral-700: #3D3E44;
+  --neutral-800: #26272B;
+  --neutral-900: #17181B;
+  --neutral-950: #0B0B0C;
 
-  /* ── Surface scale ────────────────────────────────────────────────────── */
-  --surface-0:   #030308;           /* Page background */
-  --surface-1:   rgba(8, 12, 28, 0.96); /* Cards (elevation 1) */
-  --surface-2:   rgba(14, 18, 44, 0.92); /* Popovers (elevation 2) */
-  --surface-3:   rgba(26, 31, 65, 0.97); /* Modals / toasts (elevation 3) */
+  /* ── Type ─────────────────────────────────────────────────────────────── */
+  --font-body:    'Geist Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
+  --font-display: 'Manrope Variable', 'Geist Variable', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 
-  /* ── Semantic color aliases ───────────────────────────────────────────── */
-  --card:          var(--surface-1);
-  --card-border:   rgba(124, 58, 237, 0.20);
-  --border:        rgba(255, 255, 255, 0.07);
-  --muted:         rgba(255, 255, 255, 0.04);
-  /* #6E7D93, not #64748B: the darker grey cleared 4.09:1 against a card and
-     4.32:1 against the page, which is under the 4.5:1 AA bar for body text.
-     This token reaches `--color-muted-foreground`, i.e. every shadcn
-     `text-muted-foreground`, so it was app-wide small-text mush. The
-     `design-tokens.contrast.test.ts` gate holds the line now. */
-  --muted-fg:      #75839A;  /* AA headroom on the dark background */
-  --input-bg:      rgba(255, 255, 255, 0.04);
-  --input-border:  rgba(255, 255, 255, 0.10);
+  /* ── Surfaces ─────────────────────────────────────────────────────────── */
+  --surface-0: #0B0B0C;  /* page */
+  --surface-1: #121214;  /* cards, panels */
+  --surface-2: #17181B;  /* popovers, raised rows */
+  --surface-3: #1D1E22;  /* modals, toasts */
+  --surface-hover:  rgba(255, 255, 255, 0.045);
+  --surface-active: rgba(255, 255, 255, 0.075);
 
-  /* ── Focus / ring colors ──────────────────────────────────────────────── */
-  --ring:          rgba(124, 58, 237, 0.55);
-  --ring-focus:    rgba(124, 58, 237, 0.50);
-  --ring-break:    rgba(6,  214, 160, 0.45);
-  --ring-long:     rgba(59, 130, 246, 0.45);
-  --ring-error:    rgba(239, 68, 68, 0.55);
-  --ring-success:  rgba(34, 197, 94, 0.50);
+  --background: var(--surface-0);
+  --foreground:          #F4F4F6;
+  --foreground-muted:    #B4B6BE;
+  --foreground-subtle:   #8E9199;
+  --muted-fg:            #A2A5AD;
 
-  /* ── Brand palette ────────────────────────────────────────────────────── */
-  --brand-violet:       #7C3AED;
-  --brand-violet-light: #A78BFA;
-  --brand-violet-dim:   rgba(124, 58, 237, 0.15);
-  --brand-pink:         #F472B6;
-  --brand-blue:         #3B82F6;
-  --brand-teal:         #06D6A0;
-  --brand-teal-dim:     rgba(6, 214, 160, 0.12);
-  --brand-gold:         #FFB800;
-  --brand-gold-dim:     rgba(255, 184, 0, 0.12);
-  --brand-navy:         #030308;
+  --card:             var(--surface-1);
+  --card-foreground:  var(--foreground);
+  --card-border:      rgba(255, 255, 255, 0.07);
+  --surface:          var(--surface-1);
+  --surface-raised:   var(--surface-2);
+  --surface-overlay:  var(--surface-3);
 
-  /* Keep --forge-* for backward compatibility */
-  --forge-violet:        var(--brand-violet);
-  --forge-violet-light:  var(--brand-violet-light);
+  --popover:            var(--surface-2);
+  --popover-foreground: var(--foreground);
+  --primary:            var(--brand-600);
+  --primary-foreground: #FFFFFF;
+  --secondary:          var(--surface-2);
+  --secondary-foreground: var(--foreground);
+  --muted:              rgba(255, 255, 255, 0.06);
+  --muted-foreground:   var(--muted-fg);
+  --accent:             var(--brand-soft);
+  --accent-foreground:  var(--brand-strong);
+  --destructive:        var(--danger);
+  --destructive-foreground: #FFFFFF;
+  --border:             rgba(255, 255, 255, 0.09);
+  --border-subtle:      rgba(255, 255, 255, 0.06);
+  --border-strong:      rgba(255, 255, 255, 0.16);
+  --input:              rgba(255, 255, 255, 0.09);
+  --input-bg:           #131315;
+  --input-border:       rgba(255, 255, 255, 0.12);
+  --scrim:              rgba(8, 8, 10, 0.68);
+  --backdrop:           rgba(11, 11, 12, 0.92);
+
+  /* ── Accent ramp ────────────────────────────────────────────────────────
+     `src/lib/accent.ts` regenerates this ramp from whatever colour the user
+     picks in Settings → Appearance. Indigo is the default because it marks an
+     action without announcing a mood; `--brand-500` must equal
+     DEFAULT_ACCENT (asserted in AppearanceSettings.test.tsx). */
+  --brand-50:  #EEF0FF;
+  --brand-100: #E0E3FF;
+  --brand-200: #C7CBFF;
+  --brand-300: #A5ABFF;
+  --brand-400: #8A8DF8;
+  --brand-500: #6366F1;
+  --brand-600: #4F46E5;
+  --brand-700: #4338CA;
+  --brand-800: #3730A3;
+  --brand-900: #312E81;
+  --brand-violet: var(--brand-500);
+
+  /* Accent as *text* is `--brand-strong`: the darker `--brand-400`-equivalent
+     passes AA on both the page and a card. Fills use 600 with a white label. */
+  --brand-strong:     var(--brand-400);
+  --brand-soft:       rgba(99, 102, 241, 0.14);
+  --brand-soft-hover: rgba(99, 102, 241, 0.22);
+  /* Literal one-off accents. Kept because pages already reference them;
+     new work should use the ramp above or a status hue. */
+  --brand-pink:          #E879A8;
+  --brand-violet-light:  #A78BFA;
+  --brand-teal:       #2DD4BF;
+  --brand-teal-dim:   rgba(45, 212, 191, 0.14);
+  --brand-gold:       #E5B454;
+  --brand-gold-dim:   rgba(229, 180, 84, 0.14);
+  --brand-navy:       var(--surface-0);
+
+  /* ── Focus rings ────────────────────────────────────────────────────────
+     A ring is a state, not a decoration: one accent ring, plus semantic
+     variants for break, long-session and error/locked states. */
+  --ring:         rgba(99, 102, 241, 0.55);
+  --ring-focus:   rgba(99, 102, 241, 0.45);
+  --ring-break:   rgba(45, 212, 191, 0.45);
+  --ring-long:    rgba(96, 165, 250, 0.45);
+  --ring-error:   rgba(244, 63, 94, 0.45);
+  --ring-success: rgba(52, 211, 153, 0.45);
+
+  /* ── Status ─────────────────────────────────────────────────────────────
+     Colour that carries meaning is content; colour as atmosphere is not.
+     These five are the only semantic hues in the system. */
+  --success:      #4ADE80;
+  --success-soft: rgba(74, 222, 128, 0.12);
+  --warning:      #FBBF24;
+  --warning-soft: rgba(251, 191, 36, 0.12);
+  --danger:       #FB7185;
+  --danger-soft:  rgba(251, 113, 133, 0.12);
+  --info:         #60A5FA;
+  --info-soft:    rgba(96, 165, 250, 0.12);
+  /* Aliases used by `text-[var(--color-*)]` in forms and tables. */
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error:   var(--danger);
+
+  /* ── Ranks, rarity, exam phases ─────────────────────────────────────────
+     Inherited vocabulary from the game layer. Kept as a restrained ladder —
+     the colours are the status hues above at label weight, not six new
+     saturated accents. */
+  --rank-beginner:    #9CA0AA;
+  --rank-apprentice:  #60A5FA;
+  --rank-scholar:     #8A8DF8;
+  --rank-expert:      #E5B454;
+  --rank-master:      #FB7185;
+  --rank-grandmaster: #D08BE8;
+  --rank-legend:      #E3C46A;
+  --rarity-common:    #9CA0AA;
+  --rarity-rare:      #60A5FA;
+  --rarity-epic:      #8A8DF8;
+  --rarity-legendary: #E3C46A;
+
+  /* ── Forge (kept for the forge surfaces) ──────────────────────────────── */
+  --forge-border:        var(--border-subtle);
+  --forge-border-bright: var(--border-strong);
+  --forge-violet:        var(--brand-500);
+  --forge-violet-light:  var(--brand-400);
   --forge-teal:          var(--brand-teal);
   --forge-gold:          var(--brand-gold);
-  --forge-navy:          var(--brand-navy);
-  --forge-surface:       var(--surface-1);
-  --forge-surface-light: var(--surface-2);
-  --forge-border:        var(--card-border);
-  --forge-border-bright: rgba(124, 58, 237, 0.45);
 
-  /* ── Rank colors ──────────────────────────────────────────────────────── */
-  --rank-beginner:    #6B7280;
-  --rank-apprentice:  #3B82F6;
-  --rank-scholar:     #8B5CF6;
-  --rank-expert:      #F59E0B;
-  --rank-master:      #EF4444;
-  --rank-grandmaster: #EC4899;
-  --rank-legend:      #FFD700;
+  /* ── Elevation ──────────────────────────────────────────────────────────
+     Neutral, never tinted, and used sparingly: a border plus one tone step
+     separates a card from the page. Shadows are for things that float above
+     the flow — menus, modals, toasts, drag state. */
+  --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.28);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.32);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.42);
+  --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.50);
 
-  /* ── Rarity colors ────────────────────────────────────────────────────── */
-  --rarity-common:    #9CA3AF;
-  --rarity-rare:      #3B82F6;
-  --rarity-epic:      #8B5CF6;
-  --rarity-legendary: #F59E0B;
+  /* Deprecated depth aliases. They resolve to neutral elevation on purpose:
+     picking an accent must not change the lighting. `src/lib/accent.test.ts`
+     asserts the accent overrides never emit these. */
+  --shadow-violet-sm: var(--shadow-xs);
+  --shadow-violet-md: var(--shadow-sm);
+  --shadow-violet-lg: var(--shadow-md);
 
-  /* ── Session mode colors ──────────────────────────────────────────────── */
-  --mode-focus:     #7C3AED;
-  --mode-deep_work: #1E40AF;
-  --mode-sprint:    #DC2626;
-  --mode-exam:      #D97706;
-  --mode-flow:      #059669;
-  --mode-reading:   #7C3AED;
-  --mode-coding:    #2563EB;
-  --mode-revision:  #9333EA;
-
-  /* ── Status colors ────────────────────────────────────────────────────── */
-  --color-success: #22C55E;
-  --color-warning: #F59E0B;
-  --color-error:   #EF4444;
-  --color-info:    #3B82F6;
-
-  /* ── Elevation / shadow scale ─────────────────────────────────────────────
-     Apple-style ambient shadows: soft, diffuse, low-opacity — depth comes
-     from blur radius, not from stacking hard multi-layer drop shadows. */
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.18);
-  --shadow-sm: 0 2px 8px rgba(0,0,0,0.22);
-  --shadow-md: 0 8px 24px rgba(0,0,0,0.28);
-  --shadow-lg: 0 16px 40px rgba(0,0,0,0.32);
-  --shadow-xl: 0 24px 64px rgba(0,0,0,0.38);
-  --shadow-violet-sm: 0 4px 16px rgba(124,58,237,0.16);
-  --shadow-violet-md: 0 12px 32px rgba(124,58,237,0.20);
-  --shadow-violet-lg: 0 20px 48px rgba(124,58,237,0.24);
-  --shadow-teal-sm:   0 4px 16px rgba(6,214,160,0.16);
-  --shadow-gold-sm:   0 4px 16px rgba(255,184,0,0.18);
-
-  /* ── Glow effects (kept for compat) ───────────────────────────────────── */
-  --glow-violet: 0 0 20px rgba(124, 58, 237, 0.4), 0 0 60px rgba(124, 58, 237, 0.1);
-  --glow-teal:   0 0 20px rgba(6, 214, 160, 0.4),  0 0 60px rgba(6, 214, 160, 0.1);
-  --glow-gold:   0 0 20px rgba(255, 184, 0, 0.4),   0 0 60px rgba(255, 184, 0, 0.1);
-
-  /* ── Radius scale ─────────────────────────────────────────────────────── */
-  --radius-xs: 6px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 22px;
-  --radius-2xl: 28px;
+  /* ── Shape ──────────────────────────────────────────────────────────────
+     Small on purpose: 8px for controls, 12–16px for panels, 20px maximum. A
+     28px card radius is a marketing tile, not an interface. */
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  20px;
   --radius-full: 9999px;
-  --radius: var(--radius-md);
+  --radius:      var(--radius-md);
 
-  /* ── Control target scale ─────────────────────────────────────────────── */
-  --control-sm: 2.25rem;
-  --control-md: 2.75rem;
-  --control-lg: 3rem;
-
-  /* ── Type scale ───────────────────────────────────────────────────────── */
-  --text-xs:    0.75rem;   /* 12px */
-  --text-sm:    0.8125rem; /* 13px */
-  --text-base:  0.9375rem; /* 15px */
-  --text-lg:    1.0625rem; /* 17px */
-  --text-xl:    1.25rem;   /* 20px */
-  --text-2xl:   1.5rem;    /* 24px */
-  --text-3xl:   1.875rem;  /* 30px */
-  --text-4xl:   2.25rem;   /* 36px */
-  --text-5xl:   3rem;      /* 48px */
-  --text-6xl:   3.75rem;   /* 60px */
-
-  /* ── Motion tokens ────────────────────────────────────────────────────── */
-  --duration-instant: 150ms; /* WS5 motion budget floor */
-  --duration-fast:   180ms;
-  --duration-normal: 240ms;
-  --duration-slow:   250ms;  /* WS5 motion budget: interactive motion stays 150-250ms */
-  --duration-slower: 250ms;
-  --ease-spring:  cubic-bezier(0.32, 0.72, 0, 1);
-  --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in-out:  cubic-bezier(0.45, 0, 0.55, 1);
-  --ease-bounce:  cubic-bezier(0.34, 1.56, 0.64, 1);
-
-  /* ── Neutral and semantic aliases (UI v3) ────────────────────────────── */
-  --neutral-0: #FFFFFF;
-  --neutral-50: #F8FAFC;
-  --neutral-100: #F1F5F9;
-  --neutral-200: #E2E8F0;
-  --neutral-300: #CBD5E1;
-  --neutral-400: #94A3B8;
-  --neutral-500: #64748B;
-  --neutral-600: #475569;
-  --neutral-700: #334155;
-  --neutral-800: #1E293B;
-  --neutral-900: #0F172A;
-  --neutral-950: #070A12;
-
-  --brand-50: #F5F3FF;
-  --brand-100: #EDE9FE;
-  --brand-200: #DDD6FE;
-  --brand-300: #C4B5FD;
-  --brand-400: #A78BFA;
-  --brand-500: #8B5CF6;
-  --brand-600: #7C3AED;
-  --brand-700: #6D28D9;
-  --brand-800: #5B21B6;
-  --brand-900: #4C1D95;
-  --brand-soft: rgba(139, 92, 246, 0.14);
-  --brand-soft-hover: rgba(139, 92, 246, 0.22);
-  --brand-strong: var(--brand-300);
-
-  --success: #34D399;
-  --success-soft: rgba(52, 211, 153, 0.12);
-  --warning: #FBBF24;
-  --warning-soft: rgba(251, 191, 36, 0.12);
-  --danger: #FB7185;
-  --danger-soft: rgba(251, 113, 133, 0.12);
-  --info: #60A5FA;
-  --info-soft: rgba(96, 165, 250, 0.12);
-
-  --surface: var(--surface-1);
-  --surface-raised: var(--surface-2);
-  --surface-overlay: var(--surface-3);
-  --surface-hover: rgba(255, 255, 255, 0.055);
-  --surface-active: rgba(139, 92, 246, 0.14);
-  --border-subtle: rgba(255, 255, 255, 0.055);
-  --border-strong: rgba(255, 255, 255, 0.13);
-  --scrim: rgba(3, 3, 8, 0.72);
-  --backdrop: rgba(7, 10, 18, 0.82);
-
-  /* ── Spacing scale ───────────────────────────────────────────────────── */
+  /* ── Space ──────────────────────────────────────────────────────────── */
   --space-0: 0;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -255,7 +309,43 @@
   --space-20: 5rem;
   --space-24: 6rem;
 
-  /* ── Z-index scale ───────────────────────────────────────────────────── */
+  /* Control heights. The admin console keeps a touch-sized target in dense
+     operational views; the app's own controls set their own height. */
+  --control-sm: 2.25rem;
+  --control-md: 2.75rem;
+  --control-lg: 3rem;
+
+  /* ── Type scale ─────────────────────────────────────────────────────── */
+  --text-xs:    0.75rem;   /* 12px */
+  --text-sm:    0.8125rem; /* 13px */
+  --text-base:  0.9375rem; /* 15px */
+  --text-lg:    1.0625rem; /* 17px */
+  --text-xl:    1.25rem;   /* 20px */
+  --text-2xl:   1.5rem;    /* 24px */
+  --text-3xl:   1.875rem;  /* 30px */
+  --text-4xl:   2.25rem;   /* 36px */
+  --text-5xl:   3rem;      /* 48px */
+  --text-6xl:   3.75rem;   /* 60px */
+
+  /* ── Motion ─────────────────────────────────────────────────────────────
+     Every interactive duration sits in 150–250ms; `styles.tokens.test.ts`
+     fails the build outside that window. */
+  --duration-instant: 150ms;
+  --duration-fast:    180ms;
+  --duration-normal:  240ms;
+  --duration-slow:    250ms;
+  --duration-slower:  250ms;
+  --ease-spring:  cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:  cubic-bezier(0.45, 0, 0.55, 1);
+  --ease-bounce:  cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Layout ─────────────────────────────────────────────────────────── */
+  --sidebar-width:  15rem;
+  --topbar-height:  3.5rem;
+  --content-max:    78rem;
+
+  /* ── Stacking ───────────────────────────────────────────────────────── */
   --z-background: -1;
   --z-base: 0;
   --z-raised: 1;
@@ -270,342 +360,475 @@
   --z-focus-overlay: 140;
   --z-focus-content: 141;
   --z-max: 160;
-
-  /* ── Layout ───────────────────────────────────────────────────────────── */
-  --sidebar-width: 16rem;
-  --topbar-height: 4.5rem;
-  --content-max: 90rem;
-}
-
-/* ── Custom Scrollbar (Master Polish) ──────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--rgba-124-58-237-0_1);
-  border-radius: 10px;
-  transition: background 0.3s;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--rgba-124-58-237-0_3);
-}
-
-/* ── Global Utilities ────────────────────────────────────────────────── */
-.glass {
-  background: rgba(8, 12, 28, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-.glass-heavy {
-  background: rgba(3, 3, 8, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--rgba-124-58-237-0_15);
-}
-
-.text-gradient {
-  background: linear-gradient(to right, var(--brand-400), var(--brand-pink));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   LIGHT MODE
+   ② SEMANTIC TOKENS — LIGHT ("Daylight")
+   The same ② layer, restated. Half the product is read in daylight, so this
+   is not an afterthought: the page is warm white, surfaces step by hairline
+   and shadow rather than by tone (there is nothing lighter than the page),
+   and every text token keeps AA on both the page and a card.
    ═══════════════════════════════════════════════════════════════════════════ */
 html.light {
   color-scheme: light;
 
-  --background:        #F5F7FA;
-  --foreground:        #0F172A;
-  --foreground-muted:  #475569;
-  /* #627188 rather than the dark theme's #64748B: 4.43:1 on #F5F7FA is a hair
-     under AA, and `text-[var(--foreground-subtle)]` is used 727 times, so that
-     shortfall is the light theme's default body-text colour everywhere. */
-  --foreground-subtle: #5B6A80;  /* lifted for WCAG AA (>=4.5:1 on --background) */
+  --foreground:        #14151A;
+  --foreground-muted:  #4C4E57;
+  --foreground-subtle: #63656E;
+  --muted-fg:          #5F616A;
 
-  --surface-0:   #F5F7FA;
-  --surface-1:   rgba(255, 255, 255, 0.95);
-  --surface-2:   rgba(255, 255, 255, 0.98);
-  --surface-3:   rgba(255, 255, 255, 1.00);
+  --surface-0: #FAFAFA;
+  --background: var(--surface-0);
+  --surface-1: #FFFFFF;
+  /* White-on-white has no tone step, so a hovered row or an interactive panel
+     used to give no feedback in Daylight at all. A raised surface is a *well*
+     in light mode: marginally darker than the card it sits on. */
+  --surface-2: #F4F4F6;
+  /* Modals and toasts float on a shadow here, not on a lighter tone — there is
+     nothing lighter than the page. */
+  --surface-3: #FFFFFF;
+  --surface-hover:  rgba(20, 21, 26, 0.04);
+  --surface-active: rgba(20, 21, 26, 0.06);
 
-  --card:          var(--surface-1);
-  --card-border:   rgba(124, 58, 237, 0.15);
-  --border:        rgba(0, 0, 0, 0.07);
-  --muted:         rgba(0, 0, 0, 0.04);
-  /* The `--color-*` status trio is defined once, for the dark theme, and the
-     light theme inherits it verbatim: #F59E0B on a white card is 2.1:1 and
-     #EF4444 is 3.3:1 — the validation and failure copy on the auth pages, the
-     quiz results and the admin tables was amber-on-white. Pointed at the
-     status colours the light theme already tunes (`--success`, `--warning`,
-     `--danger`), which is what `text-[var(--color-warning)]` should have meant
-     all along. */
+  --card:            var(--surface-1);
+  --surface:         var(--surface-1);
+  --surface-raised:  var(--surface-2);
+  --surface-overlay: var(--surface-3);
+
+  --border:        rgba(20, 21, 26, 0.10);
+  --border-subtle: rgba(20, 21, 26, 0.08);
+  --border-strong: rgba(20, 21, 26, 0.16);
+  --card-border:   rgba(20, 21, 26, 0.10);
+  --muted:         rgba(20, 21, 26, 0.04);
+
+  --input-bg:     #FFFFFF;
+  --input-border: rgba(20, 21, 26, 0.14);
+
+  --scrim:    rgba(20, 21, 26, 0.40);
+  --backdrop: rgba(250, 250, 250, 0.92);
+
+  --ring:         rgba(79, 70, 229, 0.40);
+  --ring-focus:   rgba(79, 70, 229, 0.35);
+  --ring-break:   rgba(5, 150, 105, 0.35);
+  --ring-long:    rgba(37, 99, 235, 0.35);
+  --ring-error:   rgba(190, 18, 60, 0.40);
+  --ring-success: rgba(5, 150, 105, 0.40);
+
+  --brand-soft:       rgba(79, 70, 229, 0.09);
+  --brand-soft-hover: rgba(79, 70, 229, 0.16);
+  --brand-strong:     var(--brand-700);
+
+  --brand-teal-dim: rgba(13, 148, 136, 0.10);
+  --brand-gold-dim: rgba(180, 130, 40, 0.12);
+  --brand-navy:     var(--surface-0);
+
+  --success:      #05694B;
+  --success-soft: rgba(5, 150, 105, 0.10);
+  --warning:      #8A5A12;
+  --warning-soft: rgba(180, 120, 20, 0.10);
+  --danger:       #B01F42;
+  --danger-soft:  rgba(190, 18, 60, 0.09);
+  --info:         #1D4ED8;
+  --info-soft:    rgba(37, 99, 235, 0.09);
+
+  --rank-beginner:    #63656E;
+  --rank-apprentice:  #1D4ED8;
+  --rank-scholar:     #4F46E5;
+  --rank-expert:      #8A5A12;
+  --rank-master:      #B01F42;
+  --rank-grandmaster: #A21CAF;
+  --rank-legend:      #8A6512;
+
+  --rarity-common:    #63656E;
+  --rarity-rare:      #1D4ED8;
+  --rarity-epic:      #4F46E5;
+  --rarity-legendary: #8A6512;
+
+  --forge-border:        var(--border-subtle);
+  --forge-border-bright: var(--border-strong);
+  --forge-gold:          #8A6512;
+
+  /* Light-mode depth is a whisper: shadows do the work, nothing is tinted. */
+  --shadow-xs: 0 1px 1px rgba(20, 21, 26, 0.05);
+  --shadow-sm: 0 1px 2px rgba(20, 21, 26, 0.07);
+  --shadow-md: 0 2px 8px rgba(20, 21, 26, 0.09);
+  --shadow-lg: 0 8px 24px rgba(20, 21, 26, 0.11);
+  --shadow-xl: 0 20px 48px rgba(20, 21, 26, 0.14);
+
+  /* Status trio used by `text-[var(--color-*)]` in forms and tables. The
+     dark values are tuned for a near-black page and would be invisible
+     here. */
   --color-success: var(--success);
   --color-warning: var(--warning);
-  --color-error: var(--danger);
+  --color-error:   var(--danger);
 
-  /* #677180, not #94A3B8 — the slate the light theme inherited reads at
-     2.39:1 on #F5F7FA, i.e. effectively invisible for any secondary label in
-     Settings, the dashboard and the admin tables that use
-     `text-muted-foreground`. */
-  --muted-fg:      #5C6B7A;  /* AA headroom on the light background */
-  --input-bg:      rgba(255, 255, 255, 0.95);
-  --input-border:  rgba(0, 0, 0, 0.12);
-
-  --ring:          rgba(124, 58, 237, 0.45);
-  --ring-focus:    rgba(124, 58, 237, 0.40);
-  --ring-break:    rgba(6, 214, 160, 0.35);
-  --ring-long:     rgba(59, 130, 246, 0.35);
-  --ring-error:    rgba(239, 68, 68, 0.45);
-  --ring-success:  rgba(34, 197, 94, 0.40);
-
-  --brand-violet-dim: rgba(124, 58, 237, 0.08);
-  --brand-teal-dim:   rgba(6, 214, 160, 0.08);
-  --brand-gold-dim:   rgba(255, 184, 0, 0.08);
-  --brand-navy:        #F5F7FA;
-
-  --forge-navy:          var(--brand-navy);
-  --forge-surface:       var(--surface-1);
-  --forge-surface-light: var(--surface-2);
-  --forge-border:        var(--card-border);
-  --forge-border-bright: rgba(124, 58, 237, 0.35);
-
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
-  --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
-  --shadow-lg: 0 16px 40px rgba(0,0,0,0.10);
-  --shadow-xl: 0 24px 64px rgba(0,0,0,0.12);
-  --shadow-violet-sm: 0 4px 16px rgba(124,58,237,0.10);
-  --shadow-violet-md: 0 12px 32px rgba(124,58,237,0.14);
-  --shadow-violet-lg: 0 20px 48px rgba(124,58,237,0.16);
-
-  --brand-soft: rgba(124, 58, 237, 0.09);
-  --brand-soft-hover: rgba(124, 58, 237, 0.15);
-  --brand-strong: var(--brand-700);
-  --success: #047857;
-  --success-soft: rgba(5, 150, 105, 0.10);
-  --warning: #B45309;
-  --warning-soft: rgba(217, 119, 6, 0.10);
-  --danger: #BE123C;
-  --danger-soft: rgba(225, 29, 72, 0.09);
-  --info: #1D4ED8;
-  --info-soft: rgba(37, 99, 235, 0.09);
-  --surface: var(--surface-1);
-  --surface-raised: var(--surface-2);
-  --surface-overlay: var(--surface-3);
-  --surface-hover: rgba(15, 23, 42, 0.045);
-  --surface-active: rgba(124, 58, 237, 0.09);
-  --border-subtle: rgba(15, 23, 42, 0.07);
-  --border-strong: rgba(15, 23, 42, 0.14);
-  --scrim: rgba(15, 23, 42, 0.42);
-  --backdrop: rgba(248, 250, 252, 0.86);
+  /* ── Re-inked washes ──────────────────────────────────────────────────────
+     The v4 compatibility ramp (⑦) is a set of brush strokes measured against a
+     black page: near-white at low alpha. Painted over white they are nothing at
+     all — a "5% white overlay" separator, hover fill or inset highlight
+     disappeared entirely in Daylight, which is why light mode read as flat and
+     unfinished. Rather than rewrite the sixty call sites mid-migration, the
+     same alphas are re-inked here, so a wash is always a wash in the direction
+     the surface needs. The names still describe their dark-theme value; they
+     are part of the deprecated vocabulary in §5 of docs/DESIGN.md. */
+  --rgba-255-255-255-0_02:  rgba(20, 21, 26, 0.03);
+  --rgba-255-255-255-0_025: rgba(20, 21, 26, 0.04);
+  --rgba-255-255-255-0_03:  rgba(20, 21, 26, 0.04);
+  --rgba-255-255-255-0_04:  rgba(20, 21, 26, 0.05);
+  --rgba-255-255-255-0_05:  rgba(20, 21, 26, 0.06);
+  --rgba-255-255-255-0_06:  rgba(20, 21, 26, 0.07);
+  --rgba-255-255-255-0_07:  rgba(20, 21, 26, 0.08);
+  --rgba-255-255-255-0_08:  rgba(20, 21, 26, 0.09);
+  --rgba-255-255-255-0_1:   rgba(20, 21, 26, 0.10);
+  --rgba-255-255-255-0_10:  rgba(20, 21, 26, 0.10);
+  --rgba-255-255-255-0_12:  rgba(20, 21, 26, 0.12);
+  --rgba-255-255-255-0_15:  rgba(20, 21, 26, 0.14);
+  --rgba-255-255-255-0_20:  rgba(20, 21, 26, 0.16);
 }
 
-html.light body {
-  background: var(--background);
-  color: var(--foreground);
-}
-
-html.light .app-sidebar,
-html.light .app-bottom-nav {
-  background: rgba(255, 252, 255, 0.97);
-  border-color: var(--rgba-124-58-237-0_12);
-}
-
-html.light .forge-bg-glow {
-  background: radial-gradient(ellipse 80% 50% at 50% -20%, var(--rgba-124-58-237-0_06), transparent) #F5F7FA;
-}
-
-/* ── Light mode overrides ─────────────────────────────────────────────── */
-html.light .rounded-2xl[class*="border"],
-html.light .rounded-xl[class*="border"],
-html.light .rounded-lg[class*="border"] {
-  background-color: rgba(255, 255, 255, 0.90);
-}
-html.light input,
-html.light select,
-html.light textarea {
-  background-color: var(--input-bg) !important;
-  color: var(--foreground) !important;
-  border-color: var(--input-border) !important;
-}
-html.light input::placeholder,
-html.light textarea::placeholder {
-  color: var(--foreground-subtle) !important;
-}
-html.light .admin-input {
-  background: rgba(255,255,255,0.95) !important;
-  color: #1E293B !important;
-  border-color: var(--rgba-124-58-237-0_18) !important;
-}
-html.light thead {
-  background: rgba(241,245,249,0.9) !important;
-}
-html.light tbody tr:hover {
-  background: var(--rgba-124-58-237-0_04) !important;
-}
 /* ═══════════════════════════════════════════════════════════════════════════
-   BASE RESET & TYPOGRAPHY
+   ③ BASE
    ═══════════════════════════════════════════════════════════════════════════ */
+* { box-sizing: border-box; }
+
 html {
   min-height: 100%;
   min-height: 100dvh;
   overscroll-behavior: none;
   -webkit-text-size-adjust: 100%;
-  /* Apple-smooth anchor jumps (See how it works → #product). The global
-     reduced-motion block below forces this back to `auto`. */
   scroll-behavior: smooth;
 }
 
-/* Anchor targets. A jump link from a table of contents should land with
-   breathing room above the heading instead of flush against the viewport edge,
-   and clear any sticky header. Scoped to headings that actually carry an id, so
-   nothing else in the app picks up an offset. */
-:where(h1, h2, h3, h4, h5, h6)[id] {
-  scroll-margin-top: 88px;
-}
-
 body {
-  min-height: 100%;
-  min-height: 100dvh;
-  overflow-x: hidden;
-  overscroll-behavior-y: none;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-}
-
-/* Numerals for data/metrics: SF Pro with tabular (fixed-width) figures, the
-   way iOS renders timers, scores and prices. Digits line up without falling
-   back to a monospace face — `.font-metric` keeps the display stack. */
-.font-metric,
-.tabular-nums {
-  font-variant-numeric: tabular-nums lining-nums;
-  font-feature-settings: 'tnum' 1, 'lnum' 1, 'cv02', 'cv03', 'cv04', 'cv11';
-  letter-spacing: -0.01em;
-}
-.font-metric { font-family: var(--font-display); }
-
-/* Apple-style text selection + caret */
-::selection { background: color-mix(in srgb, var(--brand-500) 32%, transparent); color: inherit; }
-:root { caret-color: var(--brand-500); }
-
-/* Overlay scrollbars that stay out of the way (WebKit / Chromium) */
-@media (pointer: fine) {
-  ::-webkit-scrollbar { width: 10px; height: 10px; }
-  ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--foreground) 18%, transparent); border: 3px solid transparent; background-clip: padding-box; border-radius: 999px; }
-  ::-webkit-scrollbar-thumb:hover { background-color: color-mix(in srgb, var(--foreground) 32%, transparent); }
-  ::-webkit-scrollbar-track { background: transparent; }
-}
-
-/* Type scale utilities */
-h1, h2, h3, .font-display, .text-display, .text-h1, .text-h2, .text-h3 {
-  font-family: var(--font-display);
-}
-.text-display { font-size: var(--text-5xl); font-weight: 700; letter-spacing: -0.03em; line-height: 1.05; }
-.text-h1      { font-size: var(--text-4xl); font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; }
-.text-h2      { font-size: var(--text-3xl); font-weight: 600; letter-spacing: -0.02em;  line-height: 1.15; }
-.text-h3      { font-size: var(--text-2xl); font-weight: 600; letter-spacing: -0.015em; line-height: 1.2; }
-.text-h4      { font-size: var(--text-xl);  font-weight: 600; letter-spacing: -0.01em;  line-height: 1.3; }
-.text-body    { font-size: var(--text-base); font-weight: 400; line-height: 1.6; }
-.text-caption { font-size: var(--text-xs);  font-weight: 400; line-height: 1.4; color: var(--muted-fg); }
-
-/* Apple-style optical rendering for large display text: tighter tracking,
-   contextual ligatures, and no synthetic bolding. */
-h1, h2, .text-display, .text-h1 {
   text-rendering: optimizeLegibility;
-  font-synthesis-weight: none;
-  font-optical-sizing: auto;
+}
+
+/* Anchor targets land with breathing room instead of flush against a sticky
+   header. Scoped to headings that actually carry an id. */
+:where(h1, h2, h3, h4, h5, h6)[id] { scroll-margin-top: 88px; }
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+h6 { letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; }
+
+p, li { text-wrap: pretty; }
+
+/* Tabular figures wherever a number is part of a column or a countdown: digits
+   that reflow while you read them are a bug you can see. */
+.tabular-nums { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+.font-metric { font-family: var(--font-display); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.font-mono   { font-family: var(--font-mono); }
+
+::selection { background: var(--brand-soft-hover); color: var(--foreground); }
+
+/* One focus ring for the whole application, drawn outside the box so it never
+   changes a layout. `:focus-visible` means a mouse click does not leave a ring
+   behind. */
+*:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.skip-to-content {
+  position: absolute;
+  left: var(--space-2);
+  top: var(--space-2);
+  z-index: var(--z-max);
+  transform: translateY(-200%);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--foreground);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+.skip-to-content:focus-visible { transform: translateY(0); }
+
+/* Buttons inherit the type system instead of the browser's; each component
+   decides its own size. */
+button, a, [role="button"] { touch-action: manipulation; }
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+input, select, textarea {
+  font: inherit;
+  color: inherit;
+}
+input[type="range"] { accent-color: var(--brand-600); }
+
+/* Scrollbars: thin, neutral, visible on hover only. Filled with a token so
+   they do not stay black in Daylight. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover { background-color: var(--foreground-subtle); background-clip: content-box; }
+.scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ④ TYPE SCALE
+   Utilities rather than per-component font sizes. Display sizes take negative
+   tracking, labels take positive tracking, and 11px is the floor — asserted by
+   src/legibility.test.ts.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.text-display {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 6vw, 4.25rem);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  font-weight: 600;
+}
+.text-h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.875rem, 3.4vw, 2.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.028em;
+  font-weight: 600;
+}
+.text-h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.375rem, 2.2vw, 1.75rem);
+  line-height: 1.18;
+  letter-spacing: -0.022em;
+  font-weight: 600;
+}
+.text-h3 {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  font-weight: 600;
+}
+.text-h4 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+.text-body { font-size: var(--text-base); line-height: 1.6; }
+.text-caption { font-size: var(--text-sm); line-height: 1.45; color: var(--foreground-muted); }
+.tracking-display { letter-spacing: -0.03em; }
+.tracking-label { letter-spacing: 0.1em; text-transform: uppercase; font-size: 0.6875rem; font-weight: 600; }
+
+/* ── Deprecated type aliases ──────────────────────────────────────────────
+   `.font-display-serif` was the marketing headline face. The serif is gone —
+   one voice everywhere is the point — so the class now resolves to the
+   product's own display face, which keeps ~120 headline call sites rendering
+   while the migration runs. */
+.font-display-serif {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.landing-body {
+  font-family: var(--font-body);
+  font-size: var(--text-lg);
+  line-height: 1.65;
+  color: var(--foreground-muted);
+}
+.landing-body strong { color: var(--foreground); font-weight: 600; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ⑤ MATERIALS
+   A panel is a tone step and a hairline. The pre-v5 glass family (translucent
+   fills over a 28px backdrop blur) lowered the contrast of everything sitting
+   on it and cost a compositor layer per card, so the names survive as flat
+   panels while the call sites are migrated away.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.surface-1 { background: var(--surface-1); }
+.surface-2 { background: var(--surface-2); }
+.surface-3 { background: var(--surface-3); }
+
+.ui-panel {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--surface-1);
+}
+.ui-panel-interactive {
+  transition: border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
+}
+.ui-panel-interactive:hover { border-color: var(--border-strong); background: var(--surface-2); }
+
+.glass,
+.glass-card,
+.glass-subtle,
+.glass-chip {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+}
+.glass-strong,
+.glass-heavy {
+  background: var(--surface-3);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-lg);
+}
+/* Sticky chrome is opaque; a blurred translucent header costs a compositor
+   layer on every scroll tick and makes the text under it illegible. */
+.glass-chrome {
+  background: var(--surface-0);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MARKETING GRAPHICS — subtle retro texture layers
-   Pure CSS (inline SVG noise + radial dot grid): zero network requests,
-   zero layout cost. Both layers are decorative only (pointer-events none)
-   and quiet enough to keep the Apple-calm look while adding analog warmth.
+   ⑥ LEGACY VOCABULARY — deprecated, quiet, delete on sight
+   Each rule below exists only so a pre-v5 call site keeps rendering something
+   sane. None of them add colour, depth or motion. When the last call site is
+   gone, delete the rule; when this layer is empty, delete ⑥.
    ═══════════════════════════════════════════════════════════════════════════ */
-.texture-grain {
-  position: relative;
-  isolation: isolate;
+.text-gradient,
+.gradient-text-shimmer {
+  color: var(--foreground);
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
 }
-.texture-grain::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0.5;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
-  background-size: 160px 160px;
+.gradient-violet,
+.gradient-teal,
+.gradient-gold { background: var(--surface-2); }
+
+.glow-violet,
+.glow-teal,
+.glow-gold { box-shadow: none; }
+
+.shadow-3d,
+.shadow-3d-violet { box-shadow: var(--shadow-sm); }
+
+.radial-glow-violet,
+.radial-glow-teal,
+.radial-glow-gold,
+.glow-aurora,
+.sidebar-ambient::before,
+.forge-bg-glow { background: none; }
+
+.texture-grain::after,
+.texture-dotgrid { background-image: none; }
+
+.neon-border-pulse,
+.logo-pulse,
+.animate-border-glow,
+.animate-shimmer-sweep,
+.animate-sparkle,
+.animate-fire,
+.animate-scan,
+.animate-float-orb,
+.animate-breathe,
+.animate-liquid-fill,
+.animate-marquee,
+.animate-orbit,
+.animate-slow-rotate,
+.animate-slow-rotate-reverse {
+  animation: none;
+  text-shadow: none;
+  box-shadow: none;
 }
 
-.texture-dotgrid {
-  background-image: radial-gradient(color-mix(in srgb, var(--foreground) 7%, transparent) 1px, transparent 1px);
-  background-size: 24px 24px;
-  /* Fade the grid out toward the edges so it reads as a soft field,
-     not wallpaper. */
-  -webkit-mask-image: radial-gradient(ellipse 70% 65% at 50% 40%, black 30%, transparent 75%);
-  mask-image: radial-gradient(ellipse 70% 65% at 50% 40%, black 30%, transparent 75%);
+/* HUD framing (reticles, corner brackets, scan lines) around the timer. The
+   timer is the last thing on screen that should look like a video game. */
+.hud-reticle,
+.hud-corner,
+.hud-scanline { display: none; }
+
+.magnetic-hover,
+.perspective-card {
+  transform: none;
+  transition: none;
+  perspective: none;
 }
 
-/* Soft conic "aurora" ring for hero glows — slow drift, GPU-composited. */
-.glow-aurora {
-  background:
-    conic-gradient(from 180deg at 50% 50%,
-      color-mix(in srgb, var(--brand-500) 22%, transparent),
-      color-mix(in srgb, var(--brand-teal) 12%, transparent),
-      color-mix(in srgb, var(--brand-700) 20%, transparent),
-      color-mix(in srgb, var(--brand-500) 22%, transparent));
-  filter: blur(72px);
-  animation: aurora-spin 36s linear infinite;
-}
-@keyframes aurora-spin { to { transform: rotate(360deg); } }
+/* Platform fixes: the Tailwind zinc ramp is remapped onto the token surfaces
+   for the application surfaces (the admin console keeps its own literal
+   `--palette-*` material — see the ADMIN CONSOLE section below). */
+.bg-zinc-950 { background: var(--surface-0); }
+.bg-zinc-950\/95 { background: var(--surface-0); }
+.bg-zinc-950\/60 { background: var(--surface-1); }
+.bg-zinc-900 { background: var(--surface-1); }
+.bg-zinc-900\/95 { background: var(--surface-1); }
+.bg-zinc-900\/60 { background: var(--surface-1); }
+.bg-zinc-900\/20 { background: var(--surface-2); }
+.text-zinc-100 { color: var(--foreground); }
+.text-zinc-200 { color: var(--foreground); }
+.text-zinc-300 { color: var(--foreground-muted); }
+.text-zinc-400 { color: var(--foreground-muted); }
+.text-zinc-500 { color: var(--foreground-subtle); }
+.text-zinc-600 { color: var(--foreground-subtle); }
+.text-zinc-700 { color: var(--foreground-subtle); }
+.border-zinc-700 { border-color: var(--border-strong); }
+.border-zinc-800 { border-color: var(--border-subtle); }
+.border-zinc-800\/80 { border-color: var(--border-subtle); }
+.border-zinc-800\/60 { border-color: var(--border-subtle); }
 
-/* ── Quick Launch orb geometry ──────────────────────────────────────────────
-   The bottom-right corner is a deliberate FAB column, bottom to top:
-     coach orb (h-12, AI) → quick-launch orb (h-14, Explore FocusArx).
-   Both used to anchor independently to the same corner and overlapped on
-   every viewport; now the quick-launch orb is pinned exactly one gap above
-   the coach orb on both breakpoints (the coach orb itself does not move).
+/* ═══════════════════════════════════════════════════════════════════════════
+   ⑦ COMPONENTS — app chrome, page rhythm, data display
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-   Mobile: nav 4.5rem+safe · coach orb 7–10rem · gap 0.75 · QL orb 10.75–14.25rem.
-   md+:    coach orb 2.5–5.5rem (bottom-10 right-6) · gap 0.75 · QL orb 6.25–9.75rem,
-   right-aligned with the coach orb's right-6 edge instead of right-4.
-   The panel opens above its own orb (orb top + 0.75rem gap), is inset from
-   both edges on phones, and scrolls internally via a viewport-derived
-   max-height, so short screens get a scrollable panel, never one that runs
-   under the header. The coach orb positions itself without env(safe-area),
-   so the stack does too — otherwise the gap between them would drift on
-   notched devices.
-
-   When the coach chat panel is open it occupies exactly the band the orb
-   sits in, so CoachPanel flags <html data-coach-open> and the orb steps
-   aside (visibility, not display, so the exit transition stays cheap). */
+/* ── Quick launch ────────────────────────────────────────────────────────
+   The floating coach button clears the mobile tab bar (172px) and the
+   desktop rail; `QuickLaunchOrb.test.tsx` pins both offsets. */
 .quicklaunch-orb {
+  position: fixed;
+  right: var(--space-4);
   bottom: 10.75rem;
+  z-index: var(--z-float);
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--foreground);
+  box-shadow: var(--shadow-lg);
+  transition: background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
 }
+.quicklaunch-orb:hover { background: var(--surface-3); border-color: var(--border-strong); }
+html[data-coach-open] .quicklaunch-orb { opacity: 0; pointer-events: none; }
+
+/* The panel opens *above* the orb and never under the header: the offsets are
+   the orb's own bottom edge plus its 3.5rem of height, plus a gap. */
 .quicklaunch-panel {
+  position: fixed;
   inset-inline: 1rem;
   bottom: 15rem;
   max-height: calc(100dvh - 16rem);
+  z-index: var(--z-nav);
+  overflow-y: auto;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-xl);
 }
+
+/* One 768px block for the whole floating-corner geometry: the tests read the
+   first `min-width: 768px` block in the file, and keeping the orb and its
+   panel together is also the only way to see that they cannot collide. */
 @media (min-width: 768px) {
-  .quicklaunch-orb {
-    bottom: 6.25rem;
-    right: 1.5rem;
-  }
+  .quicklaunch-orb { bottom: 6.25rem; right: 1.5rem; }
   .quicklaunch-panel {
     inset-inline: auto 1.5rem;
     width: 22rem;
@@ -613,529 +836,409 @@ h1, h2, .text-display, .text-h1 {
     max-height: calc(100dvh - 12rem);
   }
 }
-html[data-coach-open] .quicklaunch-orb {
-  visibility: hidden;
-  pointer-events: none;
+
+/* ── Application frame ─────────────────────────────────────────────────── */
+.app-frame,
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--background);
 }
-
-/* Display serif for marketing headlines — adopted from the focusarx-resource
-   "professional website" redesign, which pairs DM Sans body copy with
-   Instrument Serif headlines. Instrument Serif ships a single 400 weight and
-   is drawn for large sizes, so headings drop `font-semibold` when using it:
-   the faux-bold a browser would synthesize muddies the serifs. */
-.font-display-serif {
-  font-family: "Instrument Serif", Georgia, "Times New Roman", serif;
-  font-weight: 400;
-  letter-spacing: -0.02em;
-}
-
-/* DM Sans body copy for the marketing surface — the same pairing as the
-   resource design. Scoped to `.landing-body` so the timer/app pages keep the
-   established Geist/Manrope stacks. */
-.landing-body {
-  font-family: "DM Sans Variable", var(--font-sans);
-}
-@media (prefers-reduced-motion: reduce) {
-  .glow-aurora { animation: none; }
-}
-
-button, a, [role="button"] { touch-action: manipulation; }
-input, select, textarea { font-size: 16px; }
-
-.skip-to-content {
-  position: fixed;
-  left: var(--space-2);
-  top: -5rem;
-  z-index: var(--z-max);
-  min-height: var(--control-md);
-  border-radius: var(--radius-md);
-  background: var(--brand-600);
-  color: var(--neutral-0);
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  text-decoration: none;
-  transition: top var(--duration-fast) var(--ease-out);
-}
-.skip-to-content:focus-visible { top: var(--space-2); }  /* keyboard-only reveal (WS5 focus gate) */
-
-* { box-sizing: border-box; }
-
-::selection {
-  background: var(--rgba-124-58-237-_28);
-  color: inherit;
-}
-
-/* ── Focus rings ────────────────────────────────────────────────────────── */
-*:focus-visible {
-  outline: 2px solid var(--brand-violet);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
-}
-
-/* ── Scrollbar ──────────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--rgba-124-58-237-0_22); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: var(--rgba-124-58-237-0_4); }
-.scrollbar-none { scrollbar-width: none; }
-.scrollbar-none::-webkit-scrollbar { display: none; }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   GLASS & SURFACE UTILITIES
-   ═══════════════════════════════════════════════════════════════════════════ */
-.glass {
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-}
-/* Alias for old code */
-.glass-card {
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-}
-
-.glass-subtle {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-html.light .glass-subtle {
-  background: rgba(255,255,255,0.70);
-  border: 1px solid rgba(0,0,0,0.06);
-}
-
-/* ── Surface elevation classes ──────────────────────────────────────────── */
-.surface-1 { background: var(--surface-1); }
-.surface-2 { background: var(--surface-2); }
-.surface-3 { background: var(--surface-3); }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   GLOW & GRADIENT UTILITIES
-   ═══════════════════════════════════════════════════════════════════════════ */
-.glow-violet { box-shadow: var(--glow-violet); }
-.glow-teal   { box-shadow: var(--glow-teal); }
-.glow-gold   { box-shadow: var(--glow-gold); }
-
-.gradient-violet { background: linear-gradient(135deg, var(--brand-400), var(--brand-600)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.gradient-teal   { background: linear-gradient(135deg, #06D6A0, #0EA5E9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.gradient-gold   { background: linear-gradient(135deg, #FFB800, #FF6B35); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-
-.gradient-text-shimmer {
-  background: linear-gradient(90deg, var(--brand-400), var(--brand-600), var(--brand-teal), var(--brand-400));
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: shimmer-sweep 3s linear infinite;
-}
-
-.radial-glow-violet { background: radial-gradient(circle at center, var(--rgba-124-58-237-0_18) 0%, transparent 70%); }
-.radial-glow-teal   { background: radial-gradient(circle at center, rgba(6,214,160,0.14) 0%, transparent 70%); }
-.radial-glow-gold   { background: radial-gradient(circle at center, rgba(255,184,0,0.14) 0%, transparent 70%); }
-
-/* ── Tier colors ────────────────────────────────────────────────────────── */
-.tier-bronze    { color: #CD7F32; }
-.tier-silver    { color: #C0C0C0; }
-.tier-gold      { color: #FFB800; }
-.tier-legendary { color: #A78BFA; }
-.tier-bronze-bg    { background: linear-gradient(135deg, rgba(205,127,50,0.18), rgba(205,127,50,0.04)); border-color: rgba(205,127,50,0.32); }
-.tier-silver-bg    { background: linear-gradient(135deg, rgba(192,192,192,0.18), rgba(192,192,192,0.04)); border-color: rgba(192,192,192,0.32); }
-.tier-gold-bg      { background: linear-gradient(135deg, rgba(255,184,0,0.18),  rgba(255,184,0,0.04));  border-color: rgba(255,184,0,0.32); }
-.tier-legendary-bg { background: linear-gradient(135deg, rgba(167,139,250,0.22), rgba(167,139,250,0.04)); border-color: rgba(167,139,250,0.40); }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   LAYOUT COMPONENTS
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-/* ── Sidebar ────────────────────────────────────────────────────────────── */
 .app-sidebar {
-  position: fixed;
-  left: 0;
+  position: sticky;
   top: 0;
-  bottom: 0;
+  z-index: var(--z-nav);
+  display: none;
   width: var(--sidebar-width);
-  /* Token-driven (was a hardcoded near-black gradient that the light theme had
-     to fight with !important). The V3 block below sets the final surface. */
-  background: var(--surface-1);
-  border-right: 1px solid var(--border-subtle);
-  z-index: var(--z-nav);
+  flex-shrink: 0;
+  height: 100vh;
+  height: 100dvh;
   flex-direction: column;
-  overflow: hidden;
+  border-right: 1px solid var(--border-subtle);
+  background: var(--surface-0);
 }
-.app-sidebar-content { margin-left: var(--sidebar-width); }
-
-/* ── Bottom nav (mobile) ────────────────────────────────────────────────── */
-.app-bottom-nav {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  height: 60px;
-  background: var(--backdrop);
-  border-top: 1px solid var(--border-subtle);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+@media (min-width: 1024px) { .app-sidebar { display: flex; } }
+.app-sidebar-content { flex: 1; overflow-y: auto; padding: var(--space-4) var(--space-3); }
+.app-workspace { display: flex; min-width: 0; flex: 1; flex-direction: column; }
+.app-topbar {
+  position: sticky;
+  top: 0;
   z-index: var(--z-nav);
-}
-
-/* ── Ambient background gradient ────────────────────────────────────────── */
-.forge-bg-glow {
-  background:
-    radial-gradient(ellipse 55% 45% at 10% 15%, var(--rgba-124-58-237-0_1) 0%, transparent 60%),
-    radial-gradient(ellipse 45% 55% at 92% 85%, rgba(6,214,160,0.07) 0%, transparent 60%),
-    var(--background);
-}
-
-/* ── Focus Chamber ──────────────────────────────────────────────────────── */
-.focus-chamber {
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 30%, var(--rgba-124-58-237-0_07), transparent 70%),
-    radial-gradient(ellipse 40% 40% at 80% 80%, rgba(6,214,160,0.04), transparent 60%),
-    #07080F;
-}
-
-/* ── Stat pill ──────────────────────────────────────────────────────────── */
-.stat-pill {
   display: flex;
   align-items: center;
-  gap: 6px;
-  border-radius: var(--radius-full);
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.025);
-  padding: 5px 12px;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--foreground-subtle);
-  transition: border-color var(--duration-fast) var(--ease-out);
+  gap: var(--space-3);
+  height: var(--topbar-height);
+  padding-inline: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-0);
 }
-.stat-pill:hover { border-color: rgba(255,255,255,0.10); }
-.stat-pill .value { color: var(--foreground-muted); }
+.app-main {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 1024px) { .app-main { padding-bottom: var(--space-8); } }
 
-/* ── Command card ───────────────────────────────────────────────────────── */
+/* ── Brand ───────────────────────────────────────────────────────────────
+   A flat accent tile. The iris gradient stays in the logo asset and in
+   docs/BRAND.md; a glowing gradient squircle in the chrome was the first
+   thing on screen and the loudest. `BrandMark` sizes it. */
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: var(--brand-600);
+  color: #FFFFFF;
+  box-shadow: none;
+}
+.brand-mark svg { width: 60%; height: 60%; }
+
+/* ── Navigation ──────────────────────────────────────────────────────────
+   One rail, one hover wash, one active marker. The active item is a 2px
+   accent bar plus a tone step — no glow, no lift, no gradient. */
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--foreground-muted);
+  text-decoration: none;
+  transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+.nav-item:hover { background: var(--surface-2); color: var(--foreground); }
+.nav-item:active { background: var(--surface-3); }
+.nav-item-active {
+  background: var(--surface-2);
+  color: var(--foreground);
+  font-weight: 600;
+}
+.nav-item-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2px;
+  height: 1.25rem;
+  transform: translateY(-50%);
+  border-radius: var(--radius-full);
+  background: var(--brand-500);
+}
+
+/* ── Topbar controls ────────────────────────────────────────────────────── */
+.global-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  max-width: 22rem;
+  flex: 1;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+  color: var(--foreground-subtle);
+  font-size: var(--text-sm);
+  transition: border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+.global-search:hover { border-color: var(--border-strong); color: var(--foreground-muted); }
+.global-search span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.global-search kbd {
+  margin-left: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+  padding: 0.05rem 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--foreground-subtle);
+}
+
+.streak-pill,
+.stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+  padding: 0.25rem var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--foreground-muted);
+  transition: border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+.stat-pill:hover { border-color: var(--border-strong); color: var(--foreground); }
+.stat-pill .value { color: var(--foreground); font-family: var(--font-display); font-variant-numeric: tabular-nums; }
+.streak-pill svg { color: var(--brand-strong); }
+
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+  padding: 0.25rem var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--foreground-muted);
+  transition: border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+.live-pill:hover { border-color: var(--border-strong); color: var(--foreground); }
+/* A live session is the one place a pulsing dot earns its keep: it says
+   "this is still running" without a number. */
+.live-pill-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--success);
+  animation: live-pill-pulse 2s var(--ease-in-out) infinite;
+}
+.live-pill-paused { color: var(--foreground-subtle); }
+.live-pill-paused .live-pill-dot { background: var(--foreground-subtle); animation: none; }
+
+.notification-dot {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: var(--radius-full);
+  background: var(--danger);
+}
+
+/* ── Mobile navigation ───────────────────────────────────────────────────── */
+.app-bottom-nav,
+.bottom-nav {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: var(--z-nav);
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-0);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@media (min-width: 1024px) { .app-bottom-nav, .bottom-nav { display: none; } }
+.mobile-tab {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 3.25rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  padding: var(--space-2) 0;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--foreground-subtle);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.mobile-tab-icon { display: grid; place-items: center; }
+.mobile-tab-active { color: var(--brand-strong); font-weight: 600; }
+.mobile-tab-active .mobile-tab-icon { color: var(--brand-strong); }
+.mobile-tab-indicator {
+  position: absolute;
+  top: 0;
+  width: 1.5rem;
+  height: 2px;
+  border-radius: var(--radius-full);
+  background: var(--brand-500);
+}
+.mobile-tab-primary .mobile-tab-icon {
+  border-radius: var(--radius-full);
+  background: var(--brand-600);
+  color: #FFFFFF;
+  padding: var(--space-1);
+}
+
+/* ── Page rhythm ──────────────────────────────────────────────────────── */
+.page-container {
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-5) var(--space-4) var(--space-10);
+}
+@media (min-width: 768px) { .page-container { padding: var(--space-8) var(--space-6) var(--space-12); } }
+
+.page-header-v3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.page-header-v3 > :last-child { flex-shrink: 0; }
+.page-eyebrow {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--foreground-subtle);
+}
+.page-title-v3 {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  line-height: 1.15;
+  letter-spacing: -0.028em;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.page-subtitle-v3 {
+  margin-top: var(--space-1);
+  max-width: 46rem;
+  font-size: var(--text-base);
+  color: var(--foreground-muted);
+}
+
+/* ── Data display ─────────────────────────────────────────────────────── */
+.data-table-shell {
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+}
+.data-table-shell table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.data-table-shell thead { background: var(--surface-2); }
+.data-table-shell th {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--foreground-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.data-table-shell td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--foreground-muted);
+  font-variant-numeric: tabular-nums;
+}
+.data-table-shell tbody tr { transition: background var(--duration-fast) var(--ease-out); }
+.data-table-shell tbody tr:hover { background: var(--surface-2); }
+.data-table-shell tbody tr:last-child td { border-bottom: none; }
+
 .command-card {
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(255,255,255,0.055);
-  background: rgba(255,255,255,0.022);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  transition:
-    border-color var(--duration-fast) var(--ease-out),
-    background var(--duration-fast) var(--ease-out),
-    box-shadow var(--duration-fast) var(--ease-out);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+  transition: border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
 }
-.command-card:hover {
-  border-color: var(--rgba-124-58-237-0_18);
-  background: rgba(255,255,255,0.03);
-  box-shadow: var(--shadow-violet-sm);
-}
+.command-card:hover { border-color: var(--border-strong); background: var(--surface-2); }
 
-/* ── Sidebar nav scroll fade ────────────────────────────────────────────── */
+/* A sticky rail that fades its own overflow instead of cutting items off. */
 .nav-scroll-fade {
-  -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
-  mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
 }
 
-/* ── Sidebar ambient glow ───────────────────────────────────────────────── */
-.sidebar-ambient::before {
-  content: '';
-  position: absolute;
-  top: 20%; left: -20px;
-  width: 60px; height: 40%;
-  background: radial-gradient(ellipse, var(--rgba-124-58-237-0_3) 0%, transparent 70%);
-  filter: blur(20px);
-  pointer-events: none;
-  z-index: var(--z-background);
-  animation: float-orb 6s ease-in-out infinite;
+/* Dense console forms. The console keeps its own palette material; this is
+   only the shared control shape. */
+.admin-input {
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--foreground);
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+.admin-input:focus-visible { border-color: var(--brand-500); }
+.admin-input::placeholder { color: var(--foreground-subtle); }
+.admin-input option { background: var(--surface-2); color: var(--foreground); }
+
+/* Entry motion: a short fade and a 6px rise. Anything longer reads as a
+   loading state rather than a transition. */
+.animate-fade-in { animation: fade-in var(--duration-normal) var(--ease-out) both; }
+.animate-rise-in { animation: rise-in var(--duration-normal) var(--ease-out) both; }
+.animate-pulse-once { animation: pulse-once var(--duration-slow) var(--ease-out) 1; }
+.animate-spin-slow { animation: spin-slow 1.1s linear infinite; }
+.animate-wave-bar { animation: wave-bar 900ms var(--ease-in-out) infinite; }
+
+.stagger-1 { animation-delay: 40ms; }
+.stagger-2 { animation-delay: 80ms; }
+.stagger-3 { animation-delay: 120ms; }
+.stagger-4 { animation-delay: 160ms; }
+.stagger-5 { animation-delay: 200ms; }
+.stagger-6 { animation-delay: 240ms; }
+
+/* ── Responsive rhythm ───────────────────────────────────────────────────
+   Below md the rail is gone, so the content runs full-bleed and the search
+   collapses to its icon; the tablet band trims the rail rather than hiding
+   it, because a 15rem rail plus a data table is one column too many. */
+@media (max-width: 767px) {
+  .app-workspace { margin-left: 0; }
+  .app-topbar { height: 3.25rem; padding-inline: var(--space-3); }
+  .global-search { width: 2.5rem; max-width: 2.5rem; flex: none; justify-content: center; padding: 0; }
+  .global-search span { display: none; }
+  .page-header-v3 { align-items: flex-start; flex-direction: column; }
+  .page-header-v3 > :last-child { width: 100%; }
 }
 
-/* ── 3D shadow depths ───────────────────────────────────────────────────── */
-.shadow-3d {
-  box-shadow: 0 1px 1px rgba(0,0,0,0.22), 0 2px 2px rgba(0,0,0,0.18),
-              0 4px 4px rgba(0,0,0,0.14), 0 8px 8px rgba(0,0,0,0.09),
-              0 16px 16px rgba(0,0,0,0.05);
-}
-.shadow-3d-violet {
-  box-shadow: 0 4px 8px rgba(0,0,0,0.30), 0 8px 16px rgba(0,0,0,0.20),
-              0 0 0 1px var(--rgba-124-58-237-0_18), 0 0 20px var(--rgba-124-58-237-0_1);
+@media (min-width: 768px) and (max-width: 1024px) {
+  :root { --sidebar-width: 13.5rem; }
+  .page-container { padding: var(--space-6); }
+  .page-header-v3 { margin-bottom: var(--space-5); }
+  .global-search { max-width: min(16rem, 30vw); }
 }
 
-/* ── Magnetic hover ─────────────────────────────────────────────────────── */
-.magnetic-hover {
-  transition: transform var(--duration-fast) var(--ease-spring),
-              box-shadow var(--duration-fast) var(--ease-out);
+@media (max-width: 360px) {
+  .page-container { padding-inline: var(--space-3); }
+  .streak-pill { padding-inline: var(--space-2); }
+  .mobile-tab { min-width: 0; }
 }
-.magnetic-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-violet-sm);
-}
-
-/* ── Perspective card ───────────────────────────────────────────────────── */
-.perspective-card {
-  perspective: 1000px;
-  transform-style: preserve-3d;
-}
-[data-tilt] {
-  transform-style: preserve-3d;
-  will-change: transform;
-}
-
-/* ── Logo pulse ─────────────────────────────────────────────────────────── */
-@keyframes logo-pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 2px var(--rgba-124-58-237-0_3), 0 0 12px var(--rgba-124-58-237-0_18); }
-  50%       { box-shadow: 0 0 0 3px var(--rgba-124-58-237-0_5), 0 0 20px var(--rgba-124-58-237-0_3); }
-}
-.logo-pulse { animation: logo-pulse-glow 3s ease-in-out infinite; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   ANIMATION KEYFRAMES
+   ⑧ MOTION
+   Every frame below communicates state. Decorative loops — orbit, marquee,
+   shimmer sweeps, sparkles, fire, scanlines, floating orbs, breathing halos —
+   were removed with the glass layer; the names remain in ⑥ as no-ops.
    ═══════════════════════════════════════════════════════════════════════════ */
-
-/* Page entrance */
-@keyframes pageIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes live-pill-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(0.86); }
 }
-
-/* Float orb */
-@keyframes float-orb {
-  0%, 100% { transform: translateY(0) scale(1);      opacity: 0.65; }
-  50%       { transform: translateY(-12px) scale(1.04); opacity: 0.95; }
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
-.animate-float-orb { animation: float-orb 6s ease-in-out infinite; }
-
-/* Shimmer sweep */
-@keyframes shimmer-sweep {
-  0%   { background-position: -200% center; }
-  100% { background-position: 200% center; }
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
 }
-.animate-shimmer-sweep {
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.11) 50%, transparent 100%);
-  background-size: 200% 100%;
-  animation: shimmer-sweep 1.8s ease-in-out forwards;
-}
-
-/* Skeleton shimmer */
-@keyframes skeleton-shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-/* Neon border pulse */
-@keyframes neon-border-pulse {
-  0%, 100% { border-color: var(--rgba-124-58-237-0_2); box-shadow: none; }
-  50%       { border-color: var(--rgba-124-58-237-0_5); box-shadow: 0 0 16px 2px var(--rgba-124-58-237-0_16); }
-}
-.neon-border-pulse { animation: neon-border-pulse 2.8s ease-in-out infinite; }
-
-/* XP bar fill */
-@keyframes xp-bar-fill {
-  from { width: 0%; }
-  to   { width: var(--xp-pct, 100%); }
-}
-.animate-xp-fill { animation: xp-bar-fill 0.9s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
-
-/* Pop-in */
-@keyframes pop-in {
-  0%   { transform: scale(0.60); opacity: 0; }
-  60%  { transform: scale(1.10); opacity: 1; }
-  100% { transform: scale(1); }
-}
-.animate-pop-in { animation: pop-in 0.42s var(--ease-bounce) forwards; }
-
-/* Drift-up-fade */
-@keyframes drift-up-fade {
-  0%   { transform: translateY(0)  scale(1);    opacity: 1; }
-  100% { transform: translateY(-52px) scale(0.85); opacity: 0; }
-}
-.animate-drift-up { animation: drift-up-fade 1s ease-out forwards; }
-.coin-float { animation: drift-up-fade 0.9s ease-out forwards; }
-
-/* Slow rotate */
-@keyframes slow-rotate {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-.animate-slow-rotate         { animation: slow-rotate 30s linear infinite; }
-.animate-slow-rotate-reverse { animation: slow-rotate 20s linear infinite reverse; }
-
-/* Fire flicker */
-@keyframes fire-flicker {
-  0%, 100% { transform: scaleY(1)    rotate(-2deg); filter: brightness(1); }
-  25%       { transform: scaleY(1.10) rotate(2deg);  filter: brightness(1.2); }
-  75%       { transform: scaleY(0.95) rotate(-1deg); filter: brightness(0.9); }
-}
-.animate-fire { animation: fire-flicker 0.7s ease-in-out infinite; }
-
-/* Scan line */
-@keyframes scan-line {
-  0%   { transform: translateY(-100%); opacity: 0; }
-  10%  { opacity: 0.55; }
-  90%  { opacity: 0.55; }
-  100% { transform: translateY(100%); opacity: 0; }
-}
-.animate-scan { animation: scan-line 3s ease-in-out infinite; }
-
-/* Fade-up */
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-up { animation: fade-up var(--duration-slow) var(--ease-spring) both; }
-
-/* Card rise */
-@keyframes card-rise {
-  from { opacity: 0; transform: translateY(20px) scale(0.97) rotateX(3deg); filter: blur(3px); }
-  to   { opacity: 1; transform: translateY(0)  scale(1)    rotateX(0deg);   filter: blur(0px); }
-}
-.animate-card-rise { animation: card-rise 0.5s var(--ease-spring) both; }
-
-/* Sparkle */
-@keyframes sparkle {
-  0%   { transform: scale(0) rotate(0deg);    opacity: 0; }
-  50%  { transform: scale(1.3) rotate(180deg); opacity: 1; }
-  100% { transform: scale(0) rotate(360deg);  opacity: 0; }
-}
-.animate-sparkle { animation: sparkle 0.65s ease-in-out forwards; }
-
-/* Wave progress bar */
-@keyframes wave-progress {
-  0%   { background-position: 0% 0; }
-  100% { background-position: 100% 0; }
-}
-.animate-wave-bar {
-  background: linear-gradient(90deg, var(--brand-600) 0%, var(--brand-400) 40%, var(--brand-teal) 60%, var(--brand-600) 100%);
-  background-size: 200% 100%;
-  animation: wave-progress 3s linear infinite;
-}
-
-/* Breathing glow (timer) */
-@keyframes breathe-glow {
-  0%, 100% { box-shadow: 0 0 20px var(--rgba-124-58-237-0_18), 0 0 60px var(--rgba-124-58-237-0_04); }
-  50%       { box-shadow: 0 0 40px var(--rgba-124-58-237-0_4), 0 0 80px var(--rgba-124-58-237-0_12); }
-}
-.animate-breathe { animation: breathe-glow 4s ease-in-out infinite; }
-
-/* Timer running glow */
-@keyframes timer-glow-pulse {
-  0%, 100% { box-shadow: 0 24px 80px -24px rgba(0,0,0,0.55), 0 0 0 1px var(--rgba-124-58-237-0); }
-  50%       { box-shadow: 0 24px 80px -24px rgba(0,0,0,0.55), 0 0 32px 2px var(--rgba-124-58-237-0_2); }
-}
-.timer-running-glow { animation: timer-glow-pulse 2.5s ease-in-out infinite; }
-
-/* Pulse once */
 @keyframes pulse-once {
-  0%   { transform: scale(1); }
-  40%  { transform: scale(1.10); color: var(--brand-400); }
-  100% { transform: scale(1); }
+  0%   { opacity: 1; }
+  40%  { opacity: 0.6; }
+  100% { opacity: 1; }
 }
-.animate-pulse-once { animation: pulse-once 0.4s var(--ease-bounce) both; }
-
-/* Border glow sweep */
-@keyframes border-glow-sweep {
-  0%   { box-shadow: 0 0 0 1px var(--rgba-124-58-237-0_18), -2px 0 12px var(--rgba-124-58-237-0_12); }
-  50%  { box-shadow: 0 0 0 1px var(--rgba-124-58-237-0_45), 2px 0 20px var(--rgba-124-58-237-0_25); }
-  100% { box-shadow: 0 0 0 1px var(--rgba-124-58-237-0_18), -2px 0 12px var(--rgba-124-58-237-0_12); }
-}
-.animate-border-glow { animation: border-glow-sweep 3s ease-in-out infinite; }
-
-/* Aurora sweep */
-@keyframes aurora-sweep {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-.aurora-bg {
-  background: linear-gradient(-45deg, var(--rgba-124-58-237-0_14), rgba(79,70,229,0.09), rgba(6,214,160,0.07), var(--rgba-124-58-237-0_1));
-  background-size: 400% 400%;
-  animation: aurora-sweep 12s ease infinite;
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+@keyframes wave-bar {
+  0%, 100% { transform: scaleY(0.35); }
+  50%      { transform: scaleY(1); }
 }
 
-/* flip reveal etc above ... */
-
-/* Marquee ticker */
-@keyframes marquee {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-.animate-marquee {
-  animation: marquee 40s linear infinite;
-}
-
-/* Flip reveal */
-@keyframes flip-reveal {
-  0%   { transform: perspective(800px) rotateY(-90deg); opacity: 0; }
-  100% { transform: perspective(800px) rotateY(0deg);   opacity: 1; }
-}
-.animate-flip-reveal { animation: flip-reveal 0.5s var(--ease-spring) both; }
-
-/* Orbit */
-@keyframes orbit {
-  from { transform: rotate(0deg)   translateX(14px) rotate(0deg); }
-  to   { transform: rotate(360deg) translateX(14px) rotate(-360deg); }
-}
-.animate-orbit { animation: orbit 4s linear infinite; }
-
-/* Liquid fill */
-@keyframes liquid-fill {
-  0%   { height: 0%; }
-  100% { height: var(--fill-pct, 50%); }
-}
-.animate-liquid-fill { animation: liquid-fill 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
-
-/* Cursor blink */
-@keyframes cursor-blink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
-}
-.animate-cursor { animation: cursor-blink 1s step-end infinite; }
-
-/* Particle burst */
-@keyframes particle-burst {
-  0%   { transform: translate(0, 0) scale(1); opacity: 1; }
-  100% { transform: translate(var(--tx, 20px), var(--ty, -30px)) scale(0); opacity: 0; }
-}
-.animate-particle { animation: particle-burst 0.8s ease-out forwards; }
-
-/* Stagger delay helpers */
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.10s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.20s; }
-.stagger-5 { animation-delay: 0.25s; }
-.stagger-6 { animation-delay: 0.30s; }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   REACTIVE SCENE (Focus Core meanings, all tiers)
-   Minimal Ring + hidden-tab penalty + one-shot completion burst.
-   Tier C uses opacity fades only; no springs, no loops here.
-   ═══════════════════════════════════════════════════════════════════════════ */
-.scene-stale {
-  filter: saturate(0.25) brightness(0.85);
-  transition: filter 600ms;
-}
-/* One-shot burst: ~40 echo dots scale out and fade once. */
-@keyframes scene-burst-out {
-  0%   { transform: scale(0.55); opacity: 0.9; }
-  100% { transform: scale(1.35); opacity: 0; }
-}
-.scene-burst {
-  border-radius: 50%;
-  border: 2px solid var(--brand-400);
-  animation: scene-burst-out 900ms ease-out forwards;
-}
-@media (prefers-reduced-motion: reduce) {
-  .scene-burst { animation: none; opacity: 0; }
-  .scene-stale { transition: none; }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   PRINT — weekly report (Phase 6.4)
-   Ink-first: hide chrome, nav, actions and GPU layers; cards become plain
-   bordered blocks; never split a card across pages.
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* Print: ink-first. Chrome, navigation and GPU layers are hidden and panels
+   become plain bordered blocks. */
 @media print {
   :root { color-scheme: light; }
   body { background: #fff !important; color: #111 !important; }
@@ -1164,467 +1267,42 @@ html.light .glass-subtle {
   .glass,
   .glass-card,
   .glass-subtle,
-  .command-card {
-    backdrop-filter: none !important;
+  .glass-strong,
+  .command-card,
+  .ui-panel {
     background: #fff !important;
     border: 1px solid #ddd !important;
   }
   .card,
-  section {
-    break-inside: avoid;
-  }
+  section { break-inside: avoid; }
   * {
     box-shadow: none !important;
     text-shadow: none !important;
     animation: none !important;
     transition: none !important;
   }
-  a { color: #111 !important; text-decoration: underline; }
+  a[href]::after { content: " (" attr(href) ")"; font-size: 0.7em; color: #555; }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   PREFERS-REDUCED-MOTION — disable all animations
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* Vestibular safety, and a WCAG 2.3.3 expectation: every animation above
+   collapses to its end state. */
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  .animate-fade-in,
+  .animate-rise-in,
+  .animate-pulse-once,
+  .animate-spin-slow,
+  .animate-wave-bar { animation: none !important; }
 }
-
 /* ═══════════════════════════════════════════════════════════════════════════
-   ADMIN PANEL
+   ADMIN CONSOLE — dense tool settings, shared palette overrides
    ═══════════════════════════════════════════════════════════════════════════ */
-.admin-input {
-  width: 100%;
-  background: rgba(9, 9, 18, 0.80);
-  border: 1px solid rgba(63, 63, 70, 0.75);
-  border-radius: var(--radius-md);
-  padding: 0.375rem 0.625rem;
-  font-size: var(--text-xs);
-  color: #e4e4e7;
-  outline: none;
-  transition: border-color var(--duration-fast) var(--ease-out);
-}
-.admin-input:focus-visible { border-color: var(--rgba-124-58-237-0_55); }  /* text fields match :focus-visible on every focus */
-.admin-input::placeholder { color: #52525b; }
-.admin-input option { background: #18181b; color: #e4e4e7; }
-
-/* ── Landing mobile ─────────────────────────────────────────────────────── */
-@media (max-width: 640px) {
-  .landing-hero-title { font-size: 2.6rem !important; }
-  .landing-hero-sub   { font-size: 0.875rem !important; }
-}
-
-/* ── Cockpit HUD reticle ─────────────────────────────────────────────────── */
-.hud-reticle {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: var(--z-base);
-}
-.hud-corner {
-  position: absolute;
-  width: 28px;
-  height: 28px;
-  border: 2px solid var(--rgba-167-139-250-0_35);
-  opacity: 0.5;
-}
-.hud-corner.tl { top: 12px; left: 12px; border-right: 0; border-bottom: 0; border-top-left-radius: 6px; }
-.hud-corner.tr { top: 12px; right: 12px; border-left: 0; border-bottom: 0; border-top-right-radius: 6px; }
-.hud-corner.bl { bottom: 12px; left: 12px; border-right: 0; border-top: 0; border-bottom-left-radius: 6px; }
-.hud-corner.br { bottom: 12px; right: 12px; border-left: 0; border-top: 0; border-bottom-right-radius: 6px; }
-
-/* Subtle cockpit scanline sweep across the hero */
-@keyframes hud-scan {
-  0%   { top: -10%; opacity: 0; }
-  10%  { opacity: 0.5; }
-  90%  { opacity: 0.5; }
-  100% { top: 110%; opacity: 0; }
-}
-.hud-scanline {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--rgba-167-139-250-0_5), transparent);
-  animation: hud-scan 7s linear infinite;
-  pointer-events: none;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   UI V3 APPLICATION FRAME AND SHARED PATTERNS
-   Keep this layer last while legacy routes migrate onto semantic primitives.
-   ═══════════════════════════════════════════════════════════════════════════ */
-.app-frame {
-  min-height: 100dvh;
-  color: var(--foreground);
-  background:
-    radial-gradient(60rem 40rem at 35% -10%, var(--brand-soft), transparent 65%),
-    var(--background);
-}
-
-.app-sidebar {
-  width: var(--sidebar-width);
-  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
-  border-right: 1px solid var(--border-subtle);
-  backdrop-filter: blur(24px);
-  z-index: var(--z-nav);
-}
-
-.app-workspace {
-  min-width: 0;
-  min-height: 100dvh;
-  margin-left: var(--sidebar-width);
-}
-
-.app-topbar {
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
-  display: flex;
-  height: var(--topbar-height);
-  align-items: center;
-  gap: var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--backdrop);
-  padding: 0 clamp(var(--space-4), 3vw, var(--space-8));
-  backdrop-filter: blur(24px) saturate(150%);
-}
-
-.app-main {
-  width: 100%;
-  min-width: 0;
-  min-height: calc(100dvh - var(--topbar-height));
-  padding-bottom: var(--space-12);
-}
-
-.brand-mark {
-  /* The "iris tile": liquid-glass squircle carrying the focus reticle glyph.
-     Brand v2 — gradient and geometry kept in lockstep with
-     public/brand/focusarx-mark.svg (stops #8A5CFF → #4E7CFF, rx 22.3% at
-     full-bleed). Radius uses % so overrides of the box size stay squircle-ish
-     at every scale. */
-  display: inline-flex;
-  width: 2.25rem;
-  height: 2.25rem;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  border-radius: 27%;
-  color: var(--neutral-0);
-  background: linear-gradient(150deg, #8A5CFF 0%, #6A57FF 48%, #4E7CFF 100%);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--neutral-0) 26%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, #241A66 24%, transparent),
-    var(--shadow-violet-sm);
-}
-
-/* Keep the new mark legible on the flat brand chips that used the old glyph
-   (admin pills, auth page). */
-.brand-mark svg {
-  filter: drop-shadow(0 1px 1px color-mix(in srgb, #1B1148 28%, transparent));
-}
-
-.nav-item {
-  position: relative;
-  display: flex;
-  min-height: 2.75rem;
-  align-items: center;
-  gap: var(--space-3);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  color: var(--foreground-muted);
-  font-size: var(--text-sm);
-  font-weight: 520;
-  transition:
-    color var(--duration-fast) var(--ease-out),
-    background var(--duration-fast) var(--ease-out),
-    transform var(--duration-fast) var(--ease-out);
-}
-
-.nav-item:hover {
-  color: var(--foreground);
-  background: var(--surface-hover);
-}
-
-.nav-item:active { transform: scale(0.985); }
-
-.nav-item-active {
-  color: var(--brand-strong);
-  background: var(--surface-active);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-500) 16%, transparent);
-}
-
-.nav-item-active::before {
-  position: absolute;
-  left: 0;
-  width: 3px;
-  height: 1.25rem;
-  border-radius: 0 var(--radius-full) var(--radius-full) 0;
-  background: var(--brand-500);
-  content: "";
-}
-
-.global-search {
-  display: flex;
-  width: min(30rem, 50vw);
-  min-height: 2.75rem;
-  align-items: center;
-  gap: var(--space-3);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--surface-hover);
-  padding: 0 var(--space-3);
-  color: var(--foreground-subtle);
-  font-size: var(--text-sm);
-  text-align: left;
-  transition: border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
-}
-
-.global-search:hover {
-  border-color: var(--border-strong);
-  background: var(--surface-raised);
-  color: var(--foreground-muted);
-}
-
-.streak-pill {
-  display: flex;
-  min-height: 2.75rem;
-  align-items: center;
-  gap: var(--space-2);
-  border: 1px solid color-mix(in srgb, var(--warning) 24%, transparent);
-  border-radius: var(--radius-full);
-  background: var(--warning-soft);
-  padding: 0 var(--space-3);
-  color: var(--warning);
-  font-size: var(--text-xs);
-  font-weight: 650;
-}
-
-/* Live block pill — shown in the topbar on every non-timer page while a
-   session runs. Colour follows the block: brand while focusing, success on a
-   break, warning while paused. */
-.live-pill {
-  display: inline-flex;
-  min-height: 2.25rem;
-  align-items: center;
-  gap: var(--space-2);
-  border: 1px solid color-mix(in srgb, var(--brand-500) 32%, transparent);
-  border-radius: var(--radius-full);
-  background: var(--brand-soft);
-  padding: 0 var(--space-3);
-  color: var(--brand-strong);
-  font-size: var(--text-xs);
-  font-weight: 650;
-  transition: background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
-}
-.live-pill:hover { background: var(--brand-soft-hover); }
-.live-pill-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: var(--radius-full);
-  background: currentColor;
-  animation: live-pill-pulse 1.6s var(--ease-in-out) infinite;
-}
-.live-pill-paused {
-  border-color: color-mix(in srgb, var(--warning) 32%, transparent);
-  background: var(--warning-soft);
-  color: var(--warning);
-}
-.live-pill-paused .live-pill-dot { animation: none; opacity: 0.7; }
-@keyframes live-pill-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.45; transform: scale(0.8); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .live-pill-dot { animation: none; }
-}
-
-.notification-dot {
-  position: absolute;
-  top: 0.55rem;
-  right: 0.55rem;
-  width: 0.45rem;
-  height: 0.45rem;
-  border: 2px solid var(--surface-1);
-  border-radius: var(--radius-full);
-  background: var(--danger);
-}
-
-.app-bottom-nav {
-  height: calc(4.5rem + env(safe-area-inset-bottom));
-  align-items: flex-start;
-  justify-content: space-around;
-  border-top-color: var(--border-subtle);
-  background: var(--backdrop);
-  padding: var(--space-1) var(--space-2) env(safe-area-inset-bottom);
-  backdrop-filter: blur(24px) saturate(150%);
-  z-index: var(--z-nav);
-}
-
-.mobile-tab {
-  position: relative;
-  display: flex;
-  min-width: 3.5rem;
-  min-height: 3.75rem;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.2rem;
-  color: var(--foreground-subtle);
-  font-size: 0.625rem;
-  font-weight: 600;
-}
-
-.mobile-tab-icon {
-  display: grid;
-  width: 2rem;
-  height: 2rem;
-  place-items: center;
-  border-radius: var(--radius-md);
-}
-
-.mobile-tab-active { color: var(--brand-strong); }
-.mobile-tab-active .mobile-tab-icon { background: var(--brand-soft); }
-.mobile-tab-indicator {
-  position: absolute;
-  top: -0.25rem;
-  width: 1.5rem;
-  height: 2px;
-  border-radius: var(--radius-full);
-  background: var(--brand-500);
-}
-.mobile-tab-primary .mobile-tab-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  color: var(--neutral-0);
-  background: linear-gradient(145deg, var(--brand-500), var(--brand-700));
-  box-shadow: var(--shadow-violet-sm);
-}
-
-/* Universal screen rhythm */
-.page-container {
-  width: min(100%, var(--content-max));
-  margin-inline: auto;
-  padding: clamp(var(--space-5), 3vw, var(--space-10));
-}
-
-.page-header-v3 {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-6);
-  margin-bottom: var(--space-8);
-}
-
-.page-eyebrow {
-  margin-bottom: var(--space-2);
-  color: var(--brand-strong);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.page-title-v3 {
-  color: var(--foreground);
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
-  font-weight: 680;
-  letter-spacing: -0.035em;
-  line-height: 1.08;
-  text-wrap: balance;
-}
-
-.page-subtitle-v3 {
-  max-width: 44rem;
-  margin-top: var(--space-2);
-  color: var(--foreground-muted);
-  font-size: var(--text-sm);
-  line-height: 1.6;
-}
-
-.ui-panel {
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xl);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
-}
-
-.ui-panel-interactive {
-  transition:
-    transform var(--duration-normal) var(--ease-out),
-    border-color var(--duration-normal) var(--ease-out),
-    box-shadow var(--duration-normal) var(--ease-out);
-}
-.ui-panel-interactive:hover {
-  border-color: color-mix(in srgb, var(--brand-500) 24%, var(--border-subtle));
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-
-.data-table-shell {
-  overflow: auto;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xl);
-  background: var(--surface);
-}
-.data-table-shell table { width: 100%; border-collapse: separate; border-spacing: 0; }
-.data-table-shell thead { position: sticky; top: 0; z-index: var(--z-raised); background: var(--surface-raised); }
-.data-table-shell th {
-  color: var(--foreground-subtle);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.data-table-shell th,
-.data-table-shell td { min-height: 3rem; border-bottom: 1px solid var(--border-subtle); padding: var(--space-3) var(--space-4); }
-.data-table-shell tbody tr { transition: background var(--duration-fast) var(--ease-out); }
-.data-table-shell tbody tr:hover { background: var(--surface-hover); }
-
-/* Token-driven compatibility: old utility aliases inherit the active theme. */
-.bg-zinc-950, .bg-zinc-950\/95, .bg-zinc-950\/60 { background-color: var(--surface-0) !important; }
-.bg-zinc-900, .bg-zinc-900\/95, .bg-zinc-900\/60, .bg-zinc-900\/20 { background-color: var(--surface-raised) !important; }
-.text-zinc-100, .text-zinc-200 { color: var(--foreground) !important; }
-.text-zinc-300, .text-zinc-400, .text-zinc-500 { color: var(--foreground-muted) !important; }
-.text-zinc-600, .text-zinc-700 { color: var(--foreground-subtle) !important; }
-.border-zinc-700, .border-zinc-800, .border-zinc-800\/80, .border-zinc-800\/60 { border-color: var(--border-subtle) !important; }
-
-@media (max-width: 767px) {
-  .app-workspace { margin-left: 0; }
-  .app-main { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); }
-  .app-topbar { height: 3.75rem; padding-inline: var(--space-3); }
-  .global-search { width: 2.75rem; justify-content: center; padding: 0; }
-  .page-container { padding: var(--space-5) var(--space-4); }
-  .page-header-v3 { align-items: flex-start; flex-direction: column; margin-bottom: var(--space-6); }
-  .page-header-v3 > :last-child { width: 100%; }
-}
-
-@media (min-width: 768px) and (max-width: 1024px) {
-  :root {
-    --sidebar-width: 13.5rem;
-  }
-  .page-container {
-    padding: var(--space-4) var(--space-4);
-  }
-  .page-header-v3 {
-    margin-bottom: var(--space-5);
-  }
-  .global-search {
-    width: min(16rem, 30vw);
-  }
-}
-
-@media (max-width: 360px) {
-  .page-container { padding-inline: var(--space-3); }
-  .streak-pill { padding-inline: var(--space-2); }
-  .mobile-tab { min-width: 0; }
-}
-
 .admin-shell table {
   width: 100%;
   border-collapse: separate;
@@ -1655,6 +1333,13 @@ html.light .glass-subtle {
 }
 
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LEGACY PALETTE RAMP + PLATFORM FIXES
+   The named palette tokens and the rgba channel tokens are generated data:
+   900+ call sites (most of the admin console) reference them directly.
+   Treat this section as read-only and regenerate it wholesale.
+   ═══════════════════════════════════════════════════════════════════════════ */
 /* Legacy-compatible named palette tokens. UI code references these values; this file is the only color-value source. */
 :root {
   --palette-020c14: #020C14;
@@ -2125,6 +1810,7 @@ html.light .glass-subtle {
   --palette-sky-600: oklch(58.8% 0.158 241.966);
   --palette-sky-700: oklch(50% 0.134 242.749);
   --palette-slate-300: oklch(86.9% 0.022 252.894);
+  --palette-slate-400: oklch(70.4% 0.04 256.788);
   --palette-slate-900: oklch(20.8% 0.042 265.755);
   --palette-teal-100: oklch(95.3% 0.051 180.801);
   --palette-teal-200: oklch(91% 0.096 180.426);
@@ -2145,6 +1831,7 @@ html.light .glass-subtle {
   /* ── Previously referenced but undefined — styles silently failed ──
      Defined here so every var() reference resolves. Audited via a
      used-vs-defined scan across src/ (see arena/01a06806 audit). */
+  --palette-sky-900: oklch(39.1% 0.09 240.876);
   --palette-sky-300: oklch(82.8% 0.111 230.318);
   --palette-blue-300: oklch(80.9% 0.105 251.813);
   --palette-orange-300: oklch(83.7% 0.128 66.29);
@@ -2208,6 +1895,7 @@ html.light {
   --palette-zinc-800: var(--neutral-200);
   --palette-zinc-900: var(--neutral-100);
   --palette-slate-300: var(--neutral-700);
+  --palette-slate-400: var(--neutral-500);
   --palette-slate-900: var(--neutral-100);
 
   /* `zinc-950` was the one step of that ramp left out, so every
@@ -2279,6 +1967,7 @@ html.light {
   --palette-orange-600: color-mix(in srgb, var(--warning) 86%, #000);
   --palette-orange-950: color-mix(in srgb, var(--warning) 30%, var(--neutral-0));
   /* sky → --info */
+  --palette-sky-900: color-mix(in srgb, var(--info) 68%, #000);
   --palette-sky-300: color-mix(in srgb, var(--info) 55%, #000);
   --palette-sky-400: color-mix(in srgb, var(--info) 55%, #000);
   --palette-sky-500: var(--info);
@@ -2477,162 +2166,6 @@ html.light {
 .fx-range::-moz-range-track { background: transparent; }
 .fx-range:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand-400) 40%, transparent); }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   DESIGN SYSTEM v4 — LIQUID GLASS MATERIALS
-   ═══════════════════════════════════════════════════════════════════════════
-   Apple-style adaptive glass: translucent fills, real backdrop blur with a
-   saturation boost, a hairline specular edge on the lit side and soft depth.
-   Every material is theme-aware through tokens, degrades to an opaque
-   surface when backdrop-filter is unavailable, and respects
-   prefers-reduced-transparency.
-
-   Layering rules used across the UI:
-     glass          — page-level panels & cards that float over content
-     glass-strong   — sheets, dialogs, palettes (needs legibility first)
-     glass-chrome   — fixed navigation & bars (thinnest, most transparent)
-   ─────────────────────────────────────────────────────────────────────────── */
-
-/* ── Material tokens (dark default) ─────────────────────────────────────── */
-:root {
-  --glass-blur: 28px;
-  --glass-saturate: 175%;
-  --glass-tint-dark: color-mix(in srgb, #0B0E1A 46%, transparent);
-  --glass-tint-light: color-mix(in srgb, #FFFFFF 58%, transparent);
-  --glass-fill: var(--glass-tint-dark);
-  --glass-fill-strong: color-mix(in srgb, #0D1020 72%, transparent);
-  --glass-border: color-mix(in srgb, #FFFFFF 11%, transparent);
-  --glass-specular: inset 0 1px 0 color-mix(in srgb, #FFFFFF 10%, transparent);
-  --glass-shadow: 0 1px 0 rgba(0, 0, 0, 0.14), 0 16px 48px -16px rgba(0, 0, 0, 0.45);
-}
-
-html.light {
-  --glass-fill: var(--glass-tint-light);
-  --glass-fill-strong: color-mix(in srgb, #FFFFFF 84%, transparent);
-  --glass-border: color-mix(in srgb, #0B0E1A 12%, transparent);
-  --glass-specular: inset 0 1px 0 #FFFFFF;
-  --glass-shadow: 0 1px 0 rgba(11, 14, 26, 0.04), 0 16px 40px -20px rgba(11, 14, 26, 0.22);
-}
-
-/* ── Materials ───────────────────────────────────────────────────────────── */
-.glass,
-.glass-card {
-  background: var(--glass-fill);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-specular), var(--glass-shadow);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-}
-
-.glass-strong {
-  background: var(--glass-fill-strong);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-specular), var(--glass-shadow);
-  -webkit-backdrop-filter: blur(36px) saturate(180%);
-  backdrop-filter: blur(36px) saturate(180%);
-}
-
-.glass-chrome {
-  background: var(--glass-fill);
-  border-bottom: 1px solid var(--glass-border);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
-}
-
-.glass-chip {
-  background: var(--glass-fill);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-specular);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  backdrop-filter: blur(16px) saturate(160%);
-}
-
-/* Specular highlight strip for large glass panels (top edge light catch). */
-.glass-sheen::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 1px;
-  background: linear-gradient(90deg,
-    transparent,
-    color-mix(in srgb, #FFFFFF 34%, transparent) 18%,
-    color-mix(in srgb, #FFFFFF 10%, transparent) 50%,
-    transparent);
-  pointer-events: none;
-}
-
-/* ── Adaptive app chrome (sidebar + mobile nav + top bars) ─────────────── */
-.app-sidebar {
-  background: var(--glass-fill-strong);
-  border-right-color: var(--glass-border);
-  -webkit-backdrop-filter: blur(32px) saturate(180%);
-  backdrop-filter: blur(32px) saturate(180%);
-  box-shadow: inset -1px 0 0 color-mix(in srgb, #FFFFFF 4%, transparent);
-}
-
-.app-bottom-nav {
-  background: var(--glass-fill-strong);
-  border-top-color: var(--glass-border);
-  box-shadow: 0 -12px 32px -20px rgba(0, 0, 0, 0.4);
-}
-
-/* Sidebar light-mode body override (the .app-sidebar light rule further up
-   uses an opaque wash; the v4 material replaces it there too). */
-html.light .app-sidebar {
-  background: color-mix(in srgb, #FBFBFE 82%, transparent);
-  border-right-color: color-mix(in srgb, #0B0E1A 9%, transparent);
-}
-
-html.light .app-bottom-nav {
-  background: color-mix(in srgb, #FBFBFE 82%, transparent);
-  border-top-color: color-mix(in srgb, #0B0E1A 9%, transparent);
-}
-
-/* App header bars that use `bg-[var(--backdrop)]` in markup now lean glassier
-   while the component classes switch over in code. */
-:root {
-  --backdrop: rgba(10, 13, 22, 0.66);
-}
-html.light {
-  --backdrop: rgba(250, 250, 253, 0.72);
-}
-
-/* ── Fallback + preference handling ─────────────────────────────────────── */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass, .glass-card { background: var(--surface-1); }
-  .glass-strong { background: var(--surface-3); }
-  .glass-chrome, .glass-chip { background: var(--surface-1); }
-  .app-sidebar { background: var(--surface-1); }
-  .app-bottom-nav { background: var(--surface-1); }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .glass, .glass-card, .glass-strong, .glass-chrome, .glass-chip {
-    background: var(--surface-1);
-    box-shadow: var(--shadow-sm);
-  }
-  .app-sidebar { background: var(--surface-1); }
-  .app-bottom-nav { background: var(--surface-1); }
-}
-
-/* ── Refined focus ring (Apple-style, always visible, never doubled) ───── */
-:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--brand-500);
-  outline-offset: 2px;
-  border-radius: calc(var(--radius-md, 0.5rem) * 0.9);
-}
-
-/* Data density: admin & settings tables inherit refined row rhythm. */
-.data-table-shell tbody tr {
-  transition: background-color 120ms var(--ease-out, ease-out);
-}
-
-/* Spring-based micro-interaction tokens (surfaces that animate on hover). */
-.ui-panel-interactive {
-  transition:
-    transform 320ms cubic-bezier(0.34, 1.4, 0.64, 1),
-    border-color var(--duration-normal, 180ms) var(--ease-out, ease-out),
-    box-shadow var(--duration-normal, 180ms) var(--ease-out, ease-out);
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DEVELOPER CONSOLE — dark tools material (both app themes)

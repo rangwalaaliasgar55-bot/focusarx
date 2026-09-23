@@ -59,8 +59,7 @@ export function RewardToastProvider({ children }: { children: React.ReactNode })
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
                 transition={{ duration: 0.25, ease: "easeOut" }}
-                className={cn(
-                  "flex items-center gap-2 rounded-2xl px-4 py-2.5 shadow-2xl bg-gradient-to-r text-[var(--palette-white)] text-sm font-semibold backdrop-blur-sm",
+                className={cn( "flex items-center gap-2 rounded-2xl px-4 py-2.5 shadow-[var(--shadow-lg)] bg-gradient-to-r text-[var(--palette-white)] text-sm font-semibold",
                   style.bg
                 )}
               >

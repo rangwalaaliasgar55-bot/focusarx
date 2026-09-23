@@ -112,7 +112,7 @@ export function StatCard({ label, value, accent, sub }: { label: string; value: 
     <motion.div
       whileHover={{ y: -2 }}
       transition={{ duration: 0.15 }}
-      className={`rounded-[var(--radius-xl)] border ${config.border} ${config.bg} p-4 shadow-[var(--shadow-sm)] backdrop-blur-xl transition-all sm:p-5`}
+      className={`rounded-[var(--radius-xl)] border ${config.border} ${config.bg} p-4 shadow-[var(--shadow-sm)] transition-all sm:p-5`}
     >
       <p className="mb-2 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)]">{label}</p>
       <p className={`text-2xl font-bold ${config.text} tracking-tight tabular-nums sm:text-3xl`}>{value}</p>

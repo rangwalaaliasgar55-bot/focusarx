@@ -319,7 +319,7 @@ function CoinXPBar({ focusSessionsToday }: { focusSessionsToday: number }) {
           <span className="text-[11px] font-semibold leading-none tabular-nums text-[var(--brand-strong)]">{wallet.weeklyXp.toLocaleString()} <span className="text-[var(--foreground-subtle)]">wk XP</span></span>
           <div className="h-1 w-full overflow-hidden rounded-full bg-[var(--surface-hover)]">
             <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)]"
+              className="h-full rounded-full bg-[var(--brand-600)]"
               animate={{ width: `${Math.round(progress * 100)}%` }}
               transition={{ duration: 0.25, ease: "easeOut" }}
             />
@@ -424,7 +424,7 @@ function MobileSidePanelDrawer() {
       <button
         aria-label="Open tasks & stats"
         onClick={() => setOpen(true)}
-        className="fixed bottom-[76px] left-4 z-[var(--z-nav)] flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface-overlay)] px-4 py-2.5 text-xs font-semibold text-[var(--brand-strong)] shadow-[var(--shadow-lg)] backdrop-blur-xl transition-colors active:bg-[var(--surface-hover)] md:bottom-5 lg:hidden"
+        className="fixed bottom-[76px] left-4 z-[var(--z-nav)] flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface-overlay)] px-4 py-2.5 text-xs font-semibold text-[var(--brand-strong)] shadow-[var(--shadow-lg)] transition-colors active:bg-[var(--surface-hover)] md:bottom-5 lg:hidden"
       >
         <ClipboardList size={14} />
         Tasks & Stats
@@ -449,7 +449,7 @@ function MobileSidePanelDrawer() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 300 }}
-              className="fixed inset-x-0 bottom-0 z-[var(--z-modal)] flex max-h-[85dvh] flex-col rounded-t-[var(--radius-2xl)] border-t border-[var(--border-subtle)] bg-[var(--surface-overlay)] shadow-[var(--shadow-xl)] backdrop-blur-2xl lg:hidden"
+              className="fixed inset-x-0 bottom-0 z-[var(--z-modal)] flex max-h-[85dvh] flex-col rounded-t-[var(--radius-2xl)] border-t border-[var(--border-subtle)] bg-[var(--surface-overlay)] shadow-[var(--shadow-[var(--shadow-lg)])] lg:hidden"
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}

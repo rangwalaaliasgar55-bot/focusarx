@@ -64,7 +64,7 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
     <nav
       className={cn(
         "app-bottom-nav fixed inset-x-0 bottom-0 z-[var(--z-nav)] flex md:hidden",
-        "border-t border-[var(--border-subtle)] bg-[var(--backdrop)] backdrop-blur-[24px] saturate-[150%]",
+        "border-t border-[var(--border-subtle)] bg-[var(--backdrop)]",
         "transition-transform duration-300 ease-out motion-reduce:transition-none",
         shouldHide ? "translate-y-full pointer-events-none" : "translate-y-0"
       )}
@@ -109,7 +109,7 @@ export function MobileBottomNav({ onMoreClick, hidden }: MobileBottomNavProps) {
                 active && "bg-[var(--brand-soft)]",
                 tab.primary && active && "bg-transparent",
                 tab.primary
-                  ? "h-10 w-10 rounded-[1.1rem] bg-gradient-to-br from-[var(--brand-500)] to-[var(--brand-700)] text-white shadow-[var(--shadow-violet-sm)]"
+                  ? "h-10 w-10 rounded-[1.1rem] bg-[var(--brand-500)] text-white"
                   : ""
               )}
             >

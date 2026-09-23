@@ -46,6 +46,28 @@ function token(block: string, name: string): string {
   return m![1].trim();
 }
 
+/**
+ * Resolve `var(--x)` aliases before the contrast maths runs.
+ *
+ * The theme is layered on purpose — `--background` is an alias for the page
+ * surface step, and `--brand-strong` points at a light ramp step — so the
+ * gate has to follow the same cascade a browser does rather than demanding a
+ * hex value in the block it happens to read. Lookup order is the block under
+ * test first, then `:root` (the default theme), which is what the cascade
+ * produces for a token the light theme does not restate.
+ */
+function resolveColor(block: string, value: string, depth = 0): string {
+  if (depth > 8) throw new Error("token alias cycle");
+  const alias = /^var\(--([\w-]+)\)$/.exec(value.trim());
+  if (!alias) return value.trim();
+  const name = alias[1]!;
+  const inBlock = new RegExp(`--${name}:\\s*([^;]+);`).exec(block);
+  if (inBlock) return resolveColor(block, inBlock[1]!, depth + 1);
+  const inRoot = new RegExp(`--${name}:\\s*([^;]+);`).exec(themeBlock(":root {"));
+  expect(inRoot, `--${name} is not declared in this theme or in :root`).toBeTruthy();
+  return resolveColor(themeBlock(":root {"), inRoot![1]!, depth + 1);
+}
+
 function luminance(hex: string): number {
   const h = hex.replace("#", "");
   const channels = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
@@ -91,8 +113,8 @@ describe("text contrast (WCAG AA, 4.5:1)", () => {
   for (const c of cases) {
     it.each(c.pairs)(`%s on background passes in the ${c.theme} theme`, (name) => {
       const block = themeBlock(c.selector);
-      const bg = token(block, "background");
-      const fg = token(block, name);
+      const bg = resolveColor(block, token(block, "background"));
+      const fg = resolveColor(block, token(block, name));
       const ratio = contrast(fg, bg);
       expect(
         ratio,

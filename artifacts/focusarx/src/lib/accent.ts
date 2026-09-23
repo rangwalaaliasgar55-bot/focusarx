@@ -2,8 +2,16 @@ import { useEffect, useState } from "react";
 
 const LS_KEY = "focusarx-accent";
 
-/** Default brand violet — must match `--brand-500` in index.css. */
-export const DEFAULT_ACCENT = "#8B5CF6";
+/**
+ * Default brand indigo — must match `--brand-500` in index.css.
+ *
+ * v5 moved the default off #8B5CF6: a saturated violet on a near-black page
+ * was the house style of every AI product of the last two years, and it also
+ * failed as *text* at the step the chrome used it. Indigo keeps the iris
+ * family (the brand mark is still violet → azure, see docs/BRAND.md) while
+ * reading as an interface colour rather than a neon sign.
+ */
+export const DEFAULT_ACCENT = "#6366F1";
 
 export interface AccentPreset {
   id: string;
@@ -13,8 +21,9 @@ export interface AccentPreset {
 
 /** Curated presets, all tuned to grade well across dark and light surfaces. */
 export const ACCENT_PRESETS: AccentPreset[] = [
-  { id: "violet", label: "Violet", color: "#8B5CF6" },
+  /* Indigo leads because it is the default; the rest are user choices. */
   { id: "indigo", label: "Indigo", color: "#6366F1" },
+  { id: "violet", label: "Violet", color: "#8B5CF6" },
   { id: "blue", label: "Blue", color: "#3B82F6" },
   { id: "sky", label: "Sky", color: "#0EA5E9" },
   { id: "teal", label: "Teal", color: "#14B8A6" },
@@ -267,18 +276,24 @@ export function buildAccentOverrides(hex: string, lightMode: boolean): Record<st
     "--brand-violet-light": c400,
     "--brand-violet-dim": rgba(c500, lightMode ? 0.08 : 0.15),
     "--brand-soft": rgba(c500, lightMode ? 0.09 : 0.14),
-    "--brand-soft-hover": rgba(c500, lightMode ? 0.15 : 0.22),
+    "--brand-soft-hover": rgba(c500, lightMode ? 0.16 : 0.22),
     "--surface-active": rgba(c500, lightMode ? 0.09 : 0.14),
 
     "--ring": rgba(c500, lightMode ? 0.45 : 0.55),
     "--ring-focus": rgba(c500, lightMode ? 0.4 : 0.5),
-    "--card-border": rgba(c500, lightMode ? 0.15 : 0.2),
+    /* A card edge is a separator first: the tinted hairline was the last
+       accent-coloured depth signal left, so it was pulled back to a whisper
+       that reads as a border rather than as a light source. */
+    "--card-border": rgba(c500, lightMode ? 0.12 : 0.16),
     "--forge-border-bright": rgba(c600, lightMode ? 0.35 : 0.45),
 
-    "--glow-violet": `0 0 20px ${rgba(c500, 0.4)}, 0 0 60px ${rgba(c500, 0.1)}`,
-    "--shadow-violet-sm": `0 4px 16px ${rgba(c600, lightMode ? 0.14 : 0.2)}`,
-    "--shadow-violet-md": `0 8px 32px ${rgba(c600, lightMode ? 0.18 : 0.25)}, 0 0 0 1px ${rgba(c600, lightMode ? 0.14 : 0.2)}`,
-    "--shadow-violet-lg": `0 16px 48px ${rgba(c600, lightMode ? 0.22 : 0.3)}, 0 0 0 1px ${rgba(c600, lightMode ? 0.18 : 0.25)}`,
+    /* Deliberately absent: `--glow-violet` and `--shadow-violet-*`.
+       This function used to re-emit them with accent-tinted values, so
+       choosing a colour also bought the user a lighting rig — every panel,
+       button and hero in the app glowed in their accent, in both themes.
+       Colour is now a property of *interaction* (fill, ring, active rail)
+       and depth stays neutral, so these keep the flat values declared in
+       index.css. `src/lib/accent.test.ts` pins the omission. */
   };
 
   for (const [suffix, alpha] of LEGACY_RGBA_600) overrides[`--rgba-124-58-237-${suffix}`] = rgba(c600, alpha);
@@ -332,7 +347,7 @@ export function getAccent(): AccentState {
   } catch {
     // Storage unavailable (private mode / prerender) — run with defaults.
   }
-  return { id: "violet", color: DEFAULT_ACCENT, customized: false };
+  return { id: "indigo", color: DEFAULT_ACCENT, customized: false };
 }
 
 function applyColor(color: string) {
@@ -371,7 +386,7 @@ export function resetAccent() {
   } catch {}
   clearOverrides();
   window.dispatchEvent(
-    new CustomEvent("focusarx:accent", { detail: { id: "violet", color: DEFAULT_ACCENT } }),
+    new CustomEvent("focusarx:accent", { detail: { id: "indigo", color: DEFAULT_ACCENT } }),
   );
 }
 

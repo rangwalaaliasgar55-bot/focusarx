@@ -153,9 +153,8 @@ export default function BreathePage() {
   };
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow flex flex-col">
+    <div className="relative min-h-[100dvh] overflow-hidden flex flex-col">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle_at_center,var(--rgba-124-58-237-0_06),transparent_68%)] blur-3xl" />
       </div>
 
       <main className="relative z-[var(--z-content)] mx-auto max-w-xl px-4 py-10 flex-1 flex flex-col">
@@ -195,7 +194,7 @@ export default function BreathePage() {
             <div className="flex gap-3 mt-2">
               <button
                 onClick={() => running ? stop() : setRunning(true)}
-                className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-8 py-3 text-sm font-semibold text-[var(--palette-white)] shadow-[0_0_20px_var(--rgba-124-58-237-0_3)] transition-all hover:shadow-[0_0_30px_var(--rgba-124-58-237-0_5)]"
+                className="rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-8 py-3 text-sm font-semibold text-[var(--palette-white)] transition-all"
               >
                 {running ? "Stop" : "Start"}
               </button>

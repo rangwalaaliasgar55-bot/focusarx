@@ -109,7 +109,7 @@ export default function CoinXPBar() {
       {/* Level badge + XP bar */}
       <div className="flex items-center gap-2" title={`Level ${level} — ${wallet.totalXp.toLocaleString()} XP total`}>
         <div
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[11px] font-semibold text-[var(--palette-white)]"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--brand-600)] text-[11px] font-semibold text-[var(--palette-white)]"
           style={{ boxShadow: "0 0 8px var(--rgba-124-58-237-0_55)" }}
           aria-label={`Level ${level}`}
         >
@@ -118,7 +118,7 @@ export default function CoinXPBar() {
         <div className="hidden sm:flex flex-col gap-0.5">
           <div className="h-1.5 w-20 overflow-hidden rounded-full bg-[var(--rgba-124-58-237-0_15)]">
             <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)]"
+              className="h-full rounded-full bg-[var(--brand-600)]"
               style={{ boxShadow: "0 0 6px var(--rgba-124-58-237-0_5)" }}
               animate={{ width: `${Math.min(100, levelProgress * 100)}%` }}
               transition={{ duration: 0.25, ease: "easeOut" }}

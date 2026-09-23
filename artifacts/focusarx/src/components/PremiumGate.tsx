@@ -34,7 +34,7 @@ export function PremiumGate({
 
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center px-6 text-center py-12">
-      <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-[var(--palette-amber-500)]/20 to-[var(--palette-amber-600)]/10 mb-6 ring-1 ring-[var(--palette-amber-500)]/20">
+      <div className="flex h-20 w-20 items-center justify-center rounded-[var(--radius-xl)] bg-[var(--palette-amber-500)]/20 mb-6 ring-1 ring-[var(--palette-amber-500)]/20">
         <Lock className="h-8 w-8 text-[var(--palette-amber-400)]" />
       </div>
       <h2 className="text-2xl font-semibold tracking-tight text-[var(--foreground)] mb-2">
@@ -69,7 +69,7 @@ export function PremiumGate({
       <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
         <Link
           href="/premium"
-          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[var(--palette-amber-500)] to-[var(--palette-amber-600)] px-6 py-3 text-sm font-bold text-white shadow-[0_0_15px_var(--rgba-251-191-36-0_25)] hover:shadow-[0_0_25px_var(--rgba-251-191-36-0_4)] transition-all min-h-[44px]"
+          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--palette-amber-500)] px-6 py-3 text-sm font-bold text-white transition-all min-h-[44px]"
         >
           <Crown className="h-4 w-4" />
           {canAfford ? "Unlock Premium" : "View Premium"}

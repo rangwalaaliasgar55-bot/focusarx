@@ -29,7 +29,7 @@ export default function FeynmanTechniquePage() {
         </header>
 
         <div className="grid gap-12 lg:grid-cols-2 mb-24">
-           <div className="relative aspect-video rounded-3xl overflow-hidden border border-[var(--palette-white)]/5 bg-[var(--palette-zinc-900)] shadow-2xl">
+           <div className="relative aspect-video rounded-[var(--radius-xl)] overflow-hidden border border-[var(--palette-white)]/5 bg-[var(--palette-zinc-900)] shadow-[var(--shadow-lg)]">
               {/* Self-hosted illustration (public/content/). It used to be an
                   Unsplash hotlink: a third-party CDN means the image search
                   credit went to unsplash.com, the filename was a photo id, and
@@ -44,7 +44,7 @@ export default function FeynmanTechniquePage() {
                 decoding="async"
                 className="object-cover w-full h-full opacity-60"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[var(--background)] to-transparent" />
+              <div className="absolute inset-0 bg-[var(--background)] to-transparent" />
            </div>
            <div className="flex flex-col justify-center">
               <h2 className="text-3xl font-bold mb-4">Why it Works</h2>
@@ -71,13 +71,13 @@ export default function FeynmanTechniquePage() {
           ))}
         </div>
 
-        <div className="mt-32 rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-12 text-center relative overflow-hidden group">
-           <div className="absolute inset-0 bg-gradient-to-br from-[var(--palette-emerald-500)]/10 to-[var(--palette-blue-500)]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="mt-32 rounded-[var(--radius-xl)] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-12 text-center relative overflow-hidden group">
+           <div className="absolute inset-0 bg-[var(--palette-emerald-500)]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
            <div className="relative z-[var(--z-content)]">
               <h2 className="text-3xl font-semibold mb-6">Master it with FocusArx</h2>
               <p className="text-[var(--muted-fg)] mb-10 max-w-lg mx-auto">Use our "Explain" mode to practice the Feynman Technique while your AI coach monitors your clarity and identifies logical leaps.</p>
               <Link href="/signup">
-                <button className="h-14 px-10 rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] font-semibold hover:bg-[var(--palette-zinc-200)] transition-all shadow-xl">
+                <button className="h-14 px-10 rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] font-semibold hover:bg-[var(--palette-zinc-200)] transition-all shadow-[var(--shadow-lg)]">
                   Start Learning Now
                 </button>
               </Link>

@@ -42,11 +42,11 @@ export default function DeepStudyGuidePage() {
       />
 
       {/* Nav */}
-      <nav className="sticky top-0 z-[var(--z-modal)] border-b border-[var(--palette-white)]/5 bg-[var(--background)]/90 backdrop-blur-2xl">
+      <nav className="sticky top-0 z-[var(--z-modal)] border-b border-[var(--palette-white)]/5 bg-[var(--background)]/90">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
           <Link href="/">
             <div className="flex items-center gap-2.5 cursor-pointer">
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-e879f9)]">
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[var(--brand-600)]">
                 <svg viewBox="0 0 24 24" fill="var(--palette-white)" className="h-3.5 w-3.5"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
               </div>
               <span className="text-sm font-bold">FocusArx</span>
@@ -150,7 +150,7 @@ export default function DeepStudyGuidePage() {
             { value: "↑ 40%", label: "better retention with spaced, focused sessions vs. marathon cramming", color: "from-[var(--palette-teal-500)] to-[var(--palette-emerald-600)]" },
           ].map((stat, i) => (
             <div key={i} className="rounded-2xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.03] p-5 text-center">
-              <div className={`mb-2 text-3xl font-semibold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>{stat.value}</div>
+              <div className={`mb-2 text-3xl font-semibold bg-gradient-to-r ${stat.color} text-[var(--brand-strong)]`}>{stat.value}</div>
               <p className="text-xs leading-relaxed text-[var(--foreground-muted)]">{stat.label}</p>
             </div>
           ))}
@@ -208,7 +208,7 @@ export default function DeepStudyGuidePage() {
               time: "5 min",
               phase: "Phase 1: Pre-Session Ritual",
               icon: <Target size={18} />,
-              color: "border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/5",
+              color: "border-[var(--brand-500)]/40 bg-[var(--palette-violet-500)]/5",
               accent: "text-[var(--palette-violet-300)]",
               steps: [
                 "Write down exactly ONE thing you will accomplish in this session",
@@ -391,7 +391,7 @@ export default function DeepStudyGuidePage() {
           whileInView="visible"
           viewport={{ once: true }}
           variants={fadeUp}
-          className="rounded-2xl border border-[var(--palette-purple-500)]/20 bg-gradient-to-br from-[var(--palette-purple-500)]/10 to-[var(--palette-pink-500)]/5 p-8 text-center"
+          className="rounded-2xl border border-[var(--palette-purple-500)]/20 bg-[var(--palette-purple-500)]/10 p-8 text-center"
         >
           <div className="mb-2 text-2xl"><Zap size={16} aria-hidden="true" /></div>
           <h3 className="mb-3 text-xl font-bold text-[var(--palette-white)]">
@@ -405,7 +405,7 @@ export default function DeepStudyGuidePage() {
             <motion.button
               whileHover={{ scale: 1.04, boxShadow: "0 0 30px 8px var(--rgba-124-58-237-0_4)" }}
               whileTap={{ scale: 0.97 }}
-              className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]"
+              className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] active:scale-[0.98]"
               // Analytics: blog_cta_click { article: "deep-study-guide", cta: "start-free" }
             >
               Start Your First Session Free <ArrowRight size={16} />

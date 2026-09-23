@@ -421,7 +421,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
     } else {
       toast(`Failed to save: ${res.error ?? "Unknown error"}`, "error");
     }
-  }, [addSession, getActiveSeconds, persistence, reset, totalPlanned, toast, enqueueOffline]);
+  }, [addSession, getActiveSeconds, persistence, reset, totalPlanned, toast, enqueueOffline, setShowSummary]);
 
   const { m, s } = formatTime(secondsLeft);
 
@@ -542,7 +542,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
           type="button"
           onClick={handleToggle}
           disabled={isSaving}
-          className="flex min-h-[64px] w-full items-center justify-center gap-3 rounded-full bg-gradient-to-br from-[var(--brand-600)] to-[var(--brand-700)] px-6 py-4 text-base font-bold text-white shadow-[0_0_0_8px_var(--brand-soft),0_12px_32px_rgba(124,58,237,0.35)] transition-transform active:scale-[0.97] disabled:opacity-60"
+          className="flex min-h-[64px] w-full items-center justify-center gap-3 rounded-full bg-[var(--brand-600)] px-6 py-4 text-base font-bold text-white transition-transform active:scale-[0.97] disabled:opacity-60"
           aria-label={isRunning ? "Pause" : isPaused ? "Resume" : "Start focus session"}
         >
           {isRunning ? <Pause size={22} fill="currentColor" /> : <Play size={22} fill="currentColor" className="ml-0.5" />}
@@ -684,7 +684,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
       <AnimatePresence>
         {showExitConfirm && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[var(--z-modal)] bg-black/60 backdrop-blur-sm" onClick={() => setShowExitConfirm(false)} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[var(--z-modal)] bg-black/60" onClick={() => setShowExitConfirm(false)} />
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -716,7 +716,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
       </AnimatePresence>
       <AnimatePresence>
         {showSummary && summary && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/60 p-4">
             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="w-full max-w-sm rounded-[1.5rem] bg-[var(--surface-1)] p-6 text-center shadow-2xl">
               <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[var(--success-soft)] text-[var(--success)]">
                 <CheckCircle size={28} />

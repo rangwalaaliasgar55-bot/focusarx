@@ -39,7 +39,7 @@ export function TimerRitualsPanel({
   const [intention, setIntention] = useState("");
 
   return (
-    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4 backdrop-blur-xl">
+    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[var(--foreground-muted)]">
           <Sparkles size={12} className="text-[var(--brand-400)]" /> Focus Rituals & Presets
@@ -141,8 +141,8 @@ export function ReflectionModal({
   const [text, setText] = useState("");
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[var(--z-modal)] grid place-items-center bg-black/70 p-4 backdrop-blur-sm">
-      <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full max-w-md rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 shadow-2xl">
+    <div className="fixed inset-0 z-[var(--z-modal)] grid place-items-center bg-black/70 p-4">
+      <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full max-w-md rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 shadow-[var(--shadow-lg)]">
         <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--foreground)]"><BookOpen size={16} className="text-[var(--brand-400)]" /> Session reflection</h3>
         <p className="mt-1 text-xs text-[var(--foreground-muted)]">You focused for {Math.floor(durationSeconds / 60)}m. What did you accomplish?</p>
         <textarea

@@ -201,14 +201,14 @@ export function FeatureCompassModal({ open, onClose }: FeatureCompassModalProps)
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-[var(--background-card,#0f1117)] border border-[var(--border-subtle,#232736)] rounded-2xl shadow-2xl">
+      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-[var(--background-card,#0f1117)] border border-[var(--border-subtle,#232736)] rounded-2xl shadow-[var(--shadow-lg)]">
         <DialogTitle className="sr-only">FocusArx Feature Explorer</DialogTitle>
         <DialogDescription className="sr-only">
           Explore all features, gamification systems, AI tools, and focus modes on FocusArx.
         </DialogDescription>
 
         {/* Header banner */}
-        <div className="relative p-6 border-b border-[var(--border-subtle,#232736)] bg-gradient-to-r from-[var(--brand-900,#1e1b4b)]/40 via-[var(--surface-1,#12141f)] to-transparent">
+        <div className="relative p-6 border-b border-[var(--border-subtle,#232736)] bg-[var(--brand-soft)] to-transparent">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg text-white">
@@ -241,11 +241,7 @@ export function FeatureCompassModal({ open, onClose }: FeatureCompassModalProps)
               <button
                 key={tab.id}
                 onClick={() => setSelectedCategory(tab.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  selectedCategory === tab.id
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "bg-[var(--surface-2,#181b29)] text-[var(--foreground-muted,#94a3b8)] hover:text-white"
-                }`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${ selectedCategory === tab.id ? "bg-indigo-600 text-white shadow-sm" : "bg-[var(--surface-2,#181b29)] text-[var(--foreground-muted,#94a3b8)] hover:text-white" }`}
               >
                 {tab.label}
               </button>
@@ -264,11 +260,7 @@ export function FeatureCompassModal({ open, onClose }: FeatureCompassModalProps)
                 <button
                   key={item.id}
                   onClick={() => setActiveItem(item)}
-                  className={`w-full text-left p-3 rounded-xl border transition-all flex items-start gap-3 ${
-                    isSelected
-                      ? "bg-indigo-950/40 border-indigo-500/40 shadow-sm"
-                      : "bg-[var(--surface-1,#141724)] border-[var(--border-subtle,#232736)] hover:border-indigo-500/20 text-[var(--foreground-muted,#94a3b8)] hover:text-white"
-                  }`}
+                  className={`w-full text-left p-3 rounded-xl border transition-all flex items-start gap-3 ${ isSelected ? "bg-indigo-950/40 border-indigo-500/40 shadow-sm" : "bg-[var(--surface-1,#141724)] border-[var(--border-subtle,#232736)] hover:border-indigo-500/20 text-[var(--foreground-muted,#94a3b8)] hover:text-white" }`}
                 >
                   <div className={`p-2 rounded-lg bg-gradient-to-br ${item.accentColor} shrink-0`}>
                     <Icon className="h-5 w-5" />

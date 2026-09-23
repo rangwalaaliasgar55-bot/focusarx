@@ -673,11 +673,7 @@ export default function FlowTimer({ taskName, onFinish, onExitPreset }: FlowTime
           whileTap={{ scale: 0.96 }}
           onClick={toggle}
           disabled={pendingSync}
-          className={`flex min-h-[54px] min-w-[140px] items-center justify-center gap-2 rounded-full px-6 text-sm font-bold shadow-lg transition-all ${
-            running
-              ? "bg-[var(--surface-raised)] border border-[var(--border-strong)] text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
-              : "bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-500)] text-white hover:from-[var(--brand-500)] hover:to-[var(--brand-400)] shadow-[0_8px_24px_-6px_var(--rgba-124-58-237-0_5)]"
-          } disabled:cursor-not-allowed disabled:opacity-60`}
+          className={`flex min-h-[54px] min-w-[140px] items-center justify-center gap-2 rounded-full px-6 text-sm font-bold shadow-lg transition-all ${ running ? "bg-[var(--surface-raised)] border border-[var(--border-strong)] text-[var(--foreground)] hover:bg-[var(--surface-hover)]" : "bg-[var(--brand-600)] text-white hover:from-[var(--brand-500)] hover:to-[var(--brand-400)]" } disabled:cursor-not-allowed disabled:opacity-60`}
           aria-label={running ? "Pause flowtime" : elapsed > 0 ? "Resume flowtime" : "Start flowtime"}
         >
           {running ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}

@@ -515,7 +515,7 @@ export default function PetsPage() {
         {/* Detail modal */}
         <AnimatePresence>
           {selectedDetail && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[var(--z-modal)] grid place-items-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => setSelectedDetail(null)}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[var(--z-modal)] grid place-items-center bg-black/70 p-4" onClick={() => setSelectedDetail(null)}>
               <motion.div initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }} className="w-full max-w-md rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -552,7 +552,7 @@ export default function PetsPage() {
         </AnimatePresence>
 
         {toast && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed bottom-6 left-1/2 z-[var(--z-modal)] -translate-x-1/2 rounded-full bg-[var(--foreground)] px-5 py-2.5 text-xs font-bold text-[var(--background)] shadow-xl">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed bottom-6 left-1/2 z-[var(--z-modal)] -translate-x-1/2 rounded-full bg-[var(--foreground)] px-5 py-2.5 text-xs font-bold text-[var(--background)] shadow-[var(--shadow-lg)]">
             {toast}
           </motion.div>
         )}

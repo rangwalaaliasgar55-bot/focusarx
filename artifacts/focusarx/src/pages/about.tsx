@@ -61,7 +61,7 @@ const VALUES = [
 
 export default function AboutPage() {
   return (
-    <div className="relative min-h-[100dvh] forge-bg-glow">
+    <div className="relative min-h-[100dvh]">
       <PageSEO {...PAGE_SEO.about} />
       <main id="main-content" className="relative z-[var(--z-content)] mx-auto max-w-5xl px-4 py-10 md:py-20">
         <PageTransition>
@@ -86,7 +86,7 @@ export default function AboutPage() {
               className="mb-8 text-5xl sm:text-7xl font-semibold tracking-tight text-[var(--palette-white)] leading-[0.9]"
             >
               Restoring the world's <br />
-              <span className="text-gradient">Attention Span.</span>
+              <span className="text-[var(--foreground)]">Attention Span.</span>
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
@@ -108,7 +108,7 @@ export default function AboutPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.25, delay: i * 0.1 }}
-                className="rounded-[32px] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-8 backdrop-blur-xl glass-heavy"
+                className="rounded-[var(--radius-2xl)] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-8 glass-heavy"
               >
                 <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-600)]/10 border border-[var(--brand-600)]/20">
                   <v.icon size={20} className="text-[var(--brand-400)]" />
@@ -126,7 +126,7 @@ export default function AboutPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.25}}
-              className="rounded-[32px] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-10 backdrop-blur-xl glass-heavy"
+              className="rounded-[var(--radius-2xl)] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-10 glass-heavy"
             >
               <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--foreground-subtle)]">
                 Who writes this
@@ -142,7 +142,7 @@ export default function AboutPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.25, delay: 0.1 }}
-              className="rounded-[32px] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-10 glass lg:col-span-2"
+              className="rounded-[var(--radius-2xl)] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-10 glass lg:col-span-2"
             >
               <h2 className="mb-2 text-2xl font-semibold text-[var(--palette-white)]">How we research what we publish</h2>
               <p className="mb-8 text-sm leading-relaxed text-[var(--muted-fg)]">
@@ -190,7 +190,7 @@ export default function AboutPage() {
           {/* Contact & Legal Details */}
           <div className="mb-24 grid gap-8 lg:grid-cols-3">
              <div className="lg:col-span-2 space-y-8">
-                <div className="rounded-[32px] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-10 glass">
+                <div className="rounded-[var(--radius-2xl)] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-10 glass">
                    <h2 className="text-2xl font-semibold text-[var(--palette-white)] mb-6">Verified Information</h2>
                    <div className="grid sm:grid-cols-2 gap-10">
                       <div className="space-y-6">
@@ -233,11 +233,11 @@ export default function AboutPage() {
                 </div>
              </div>
 
-             <div className="rounded-[32px] border border-[var(--palette-white)]/5 bg-gradient-to-br from-[var(--brand-600)]/10 to-[var(--brand-pink)]/5 p-10 flex flex-col justify-center text-center">
+             <div className="rounded-[var(--radius-2xl)] border border-[var(--palette-white)]/5 bg-[var(--brand-soft)] p-10 flex flex-col justify-center text-center">
                 <h3 className="text-2xl font-semibold text-[var(--palette-white)] mb-4 italic">Join the Elite.</h3>
                 <p className="text-sm text-[var(--foreground-muted)] mb-8">Ready to transform your cognitive output? Start your first session today.</p>
                 <Link href="/signup">
-                  <button className="w-full py-4 rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] font-semibold hover:scale-105 transition-all shadow-xl shadow-[var(--palette-purple-950)]/20">
+                  <button className="w-full py-4 rounded-2xl bg-[var(--palette-white)] text-[var(--palette-black)] font-semibold transition-all shadow-[var(--shadow-lg)]">
                     Get Started Free
                   </button>
                 </Link>

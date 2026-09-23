@@ -40,7 +40,7 @@ export default function ScienceOfDeepWorkPage() {
           <p className="text-[var(--foreground-muted)] leading-relaxed text-lg">
             When you focus intensely on a specific skill, you trigger the growth of <strong>myelin</strong>—a fatty tissue that wraps around your neurons. Think of it as high-performance insulation for your brain's electrical circuits.
           </p>
-          <div className="rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-8 backdrop-blur-xl">
+          <div className="rounded-[var(--radius-xl)] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-8">
              <div className="flex gap-6 items-start">
                <div className="h-12 w-12 rounded-2xl bg-[var(--palette-yellow-500)]/10 flex items-center justify-center shrink-0">
                   <Zap className="text-[var(--palette-yellow-500)]" size={24} />
@@ -78,7 +78,7 @@ export default function ScienceOfDeepWorkPage() {
               { icon: <Lightbulb />, title: "The Flow Pathway", desc: "Deep work is the biological gateway to Flow—where time disappears and productivity spikes by 500%." },
             ].map((item, i) => (
               <div key={i} className="text-center group">
-                <div className="mx-auto h-16 w-16 rounded-2xl bg-[var(--palette-purple-500)]/5 border border-[var(--palette-purple-500)]/10 flex items-center justify-center text-[var(--palette-purple-400)] group-hover:scale-110 group-hover:border-[var(--palette-purple-500)]/30 transition-all mb-8">
+                <div className="mx-auto h-16 w-16 rounded-2xl bg-[var(--palette-purple-500)]/5 border border-[var(--palette-purple-500)]/10 flex items-center justify-center text-[var(--palette-purple-400)] group-hover:border-[var(--palette-purple-500)]/30 transition-all mb-8">
                    {item.icon}
                 </div>
                 <h3 className="font-bold text-2xl mb-4 text-[var(--palette-white)]">{item.title}</h3>
@@ -91,7 +91,7 @@ export default function ScienceOfDeepWorkPage() {
       <Section className="py-32 text-center">
          <h2 className="text-4xl sm:text-6xl font-semibold mb-10 tracking-tight">Ready to rewire <br />your focus?</h2>
          <Link href="/signup">
-           <button className="h-16 px-12 rounded-2xl bg-gradient-to-r from-[var(--palette-purple-500)] to-[var(--palette-blue-500)] font-semibold text-lg shadow-2xl hover:scale-105 transition-transform">
+           <button className="h-16 px-12 rounded-2xl bg-[var(--palette-purple-500)] font-semibold text-lg shadow-[var(--shadow-lg)] transition-transform">
              Initialize Deep Work
            </button>
          </Link>

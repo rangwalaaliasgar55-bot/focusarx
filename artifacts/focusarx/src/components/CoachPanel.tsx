@@ -183,7 +183,7 @@ export default function CoachPanel() {
               setOpen(true);
               setHasProactive(false);
             }}
-            className="fixed bottom-28 right-20 z-[var(--z-nav)] max-w-[220px] rounded-2xl border border-[var(--rgba-124-58-237-0_35)] bg-[var(--rgba-8-12-28-0_96)] px-4 py-3 text-left shadow-[0_4px_20px_var(--rgba-124-58-237-0_25)] backdrop-blur-2xl"
+            className="fixed bottom-28 right-20 z-[var(--z-nav)] max-w-[220px] rounded-2xl border border-[var(--rgba-124-58-237-0_35)] bg-[var(--rgba-8-12-28-0_96)] px-4 py-3 text-left"
           >
             <p className="mb-1 text-[11px] font-semibold text-[var(--brand-400)]">Coach tip 🧠</p>
             <p className="text-[11px] leading-relaxed text-[var(--foreground-muted)]">{proactiveMsg}</p>
@@ -199,7 +199,7 @@ export default function CoachPanel() {
         }}
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.93 }}
-        className="fixed bottom-28 right-4 z-[var(--z-nav)] flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] shadow-[0_4px_20px_var(--rgba-124-58-237-0_5)] md:bottom-10 md:right-6"
+        className="fixed bottom-28 right-4 z-[var(--z-nav)] flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-600)] md:bottom-10 md:right-6"
         title="FocusArx Coach"
         aria-label={open ? "Close coach" : "Open coach"}
       >
@@ -216,11 +216,11 @@ export default function CoachPanel() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 40, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed bottom-44 right-4 z-[var(--z-nav)] flex w-[340px] max-sm:w-[calc(100vw-2rem)] max-h-[480px] flex-col rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-8-12-28-0_92)] shadow-2xl backdrop-blur-2xl md:bottom-28 md:right-6"
+            className="fixed bottom-44 right-4 z-[var(--z-nav)] flex w-[340px] max-sm:w-[calc(100vw-2rem)] max-h-[480px] flex-col rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--rgba-8-12-28-0_92)] shadow-[var(--shadow-lg)] md:bottom-28 md:right-6"
           >
             {/* Header */}
             <div className="flex items-center gap-3 border-b border-[var(--rgba-124-58-237-0_15)] px-4 py-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-sm"><Brain size={16} aria-hidden="true" /></div>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--brand-600)] text-sm"><Brain size={16} aria-hidden="true" /></div>
               <div>
                 <p className="text-sm font-bold text-[var(--foreground)]">FocusArx Coach</p>
                 <p className="text-[11px] text-[var(--foreground-subtle)]">{isLocked ? "Premium feature" : "Productivity & neuroscience"}</p>
@@ -235,7 +235,7 @@ export default function CoachPanel() {
                 </button>
               )}
               {isFallback && !isLocked && (
-                <span className="ml-auto rounded border border-[var(--palette-zinc-800)] px-1.5 py-0.5 text-[11px] text-[var(--palette-zinc-600)]">Basic</span>
+                <span className="ml-auto rounded border border-[var(--border-subtle)] px-1.5 py-0.5 text-[11px] text-[var(--palette-zinc-600)]">Basic</span>
               )}
             </div>
 
@@ -292,7 +292,7 @@ export default function CoachPanel() {
                 <div className="flex w-full flex-col gap-2">
                   <Link
                     href="/premium"
-                    className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[var(--palette-amber-500)] to-[var(--palette-amber-600)] px-4 py-2.5 text-sm font-bold text-white shadow-[0_0_15px_var(--rgba-251-191-36-0_25)]"
+                    className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-[var(--palette-amber-500)] px-4 py-2.5 text-sm font-bold text-white"
                     onClick={() => setOpen(false)}
                   >
                     <Crown size={16} /> View Premium benefits
@@ -319,11 +319,7 @@ export default function CoachPanel() {
                       className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                     >
                       <div
-                        className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                          msg.role === "user"
-                            ? "rounded-br-sm bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-4f46e5)] text-[var(--palette-white)]"
-                            : "rounded-bl-sm bg-[var(--rgba-124-58-237-0_1)] text-[var(--foreground)]"
-                        }`}
+                        className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${ msg.role === "user" ? "rounded-br-sm bg-[var(--brand-600)] text-[var(--palette-white)]" : "rounded-bl-sm bg-[var(--rgba-124-58-237-0_1)] text-[var(--foreground)]" }`}
                       >
                         {msg.content}
                       </div>

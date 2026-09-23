@@ -108,7 +108,7 @@ export function QuickLaunchOrb() {
         aria-label="Quick launch — explore FocusArx features"
         whileHover={reduceMotion ? undefined : { scale: 1.06 }}
         whileTap={reduceMotion ? undefined : { scale: 0.94 }}
-        className="quicklaunch-orb fixed right-4 z-[var(--z-float)] grid h-14 w-14 place-items-center rounded-full text-[var(--palette-white)] shadow-[0_10px_30px_var(--rgba-124-58-237-0_45)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+        className="quicklaunch-orb fixed right-4 z-[var(--z-float)] grid h-14 w-14 place-items-center rounded-full text-[var(--palette-white)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
         style={{ background: "linear-gradient(135deg, var(--brand-600), var(--brand-pink))" }}
       >
         {open ? <X size={22} /> : <Sparkles size={22} />}
@@ -130,7 +130,7 @@ export function QuickLaunchOrb() {
             type="button"
             aria-label="Close quick launch"
             onClick={close}
-            className="fixed inset-0 z-[var(--z-overlay)] cursor-default bg-[var(--palette-black)]/40 backdrop-blur-[2px]"
+            className="fixed inset-0 z-[var(--z-overlay)] cursor-default bg-[var(--palette-black)]/40-[2px]"
           />
           <motion.div
             ref={panelRef}
@@ -141,7 +141,7 @@ export function QuickLaunchOrb() {
             initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 16, scale: 0.94 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.28, ease: EASE }}
-            className="quicklaunch-panel fixed z-[var(--z-overlay)] origin-bottom-right overflow-y-auto overscroll-contain rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-4 shadow-[0_24px_80px_var(--rgba-0-0-0-0_55)] outline-none"
+            className="quicklaunch-panel fixed z-[var(--z-overlay)] origin-bottom-right overflow-y-auto overscroll-contain rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-4 outline-none"
           >
             <div className="mb-3 flex items-center justify-between">
               <div>

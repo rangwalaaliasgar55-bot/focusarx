@@ -412,7 +412,7 @@ export default function ProfilePage() {
               initials, and an equipped effect is called out under the name. */}
           <div className="relative">
             <Avatar
-              className="h-20 w-20 border-2 shadow-[var(--shadow-violet-sm)]"
+              className="h-20 w-20 border-2"
               style={worn?.frame ? { borderColor: WORN_RARITY[worn.frame.rarity ?? "common"]?.ring ?? "var(--card-border)", boxShadow: WORN_RARITY[worn.frame.rarity ?? "common"]?.glow } : undefined}
             >
               <AvatarFallback className="bg-[var(--brand-soft)] text-xl font-semibold text-[var(--brand-strong)]">

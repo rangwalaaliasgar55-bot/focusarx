@@ -126,7 +126,7 @@ export default function BreakFreeStreak() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.25}}
-            className="flex items-center gap-2.5 rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_1)] px-5 py-3 mb-8 shadow-[0_0_24px_var(--rgba-124-58-237-0_15)]"
+            className="flex items-center gap-2.5 rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-124-58-237-0_1)] px-5 py-3 mb-8"
           >
             <span className="text-2xl">{milestone.icon}</span>
             <p className="text-sm text-[var(--foreground)] font-medium">{milestone.label}</p>
@@ -141,11 +141,7 @@ export default function BreakFreeStreak() {
           return (
             <div key={m.day} className="flex flex-col items-center gap-1">
               <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-lg border transition-all duration-[var(--duration-slow)] ${
-                  reached
-                    ? "border-[var(--rgba-124-58-237-0_4)] bg-[var(--rgba-124-58-237-0_15)] shadow-[0_0_12px_var(--rgba-124-58-237-0_3)]"
-                    : "border-[var(--palette-1e2a2a)] bg-[var(--palette-0d1515)] opacity-40"
-                }`}
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-lg border transition-all duration-[var(--duration-slow)] ${ reached ? "border-[var(--rgba-124-58-237-0_4)] bg-[var(--rgba-124-58-237-0_15)]" : "border-[var(--palette-1e2a2a)] bg-[var(--palette-0d1515)] opacity-40" }`}
               >
                 {m.icon}
               </div>
@@ -162,7 +158,7 @@ export default function BreakFreeStreak() {
         <button
           onClick={handleStart}
           disabled={startMutation.isPending}
-          className="rounded-2xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-8 py-3.5 text-sm font-bold text-[var(--palette-white)] shadow-lg shadow-[var(--rgba-124-58-237-0_4)] hover:opacity-90 transition-opacity disabled:opacity-60"
+          className="rounded-2xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-8 py-3.5 text-sm font-bold text-[var(--palette-white)] shadow-lg hover:opacity-90 transition-opacity disabled:opacity-60"
         >
           {startMutation.isPending ? "Starting…" : "Start My Journey"}
         </button>
@@ -196,7 +192,7 @@ export default function BreakFreeStreak() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[var(--z-toast)] flex items-center justify-center p-4 bg-[var(--palette-black)]/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[var(--z-toast)] flex items-center justify-center p-4 bg-[var(--palette-black)]/60"
             onClick={() => setRelapseDialog(false)}
           >
             <motion.div
@@ -204,7 +200,7 @@ export default function BreakFreeStreak() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 28 }}
-              className="w-full max-w-sm rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--palette-0d0f1c)] p-6 shadow-2xl"
+              className="w-full max-w-sm rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--palette-0d0f1c)] p-6 shadow-[var(--shadow-lg)]"
               onClick={(e) => e.stopPropagation()}
             >
               <p className="text-xl font-bold text-[var(--foreground)] mb-2">That's okay. 💙</p>

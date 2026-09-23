@@ -90,7 +90,7 @@ function ContractCard({
   const iconColor = contract.contractType === "charity" ? "var(--color-error)" : contract.contractType === "shame" ? "var(--palette-f97316)" : "var(--info)";
 
   return (
-    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5 backdrop-blur-xl">
+    <div className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-5">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `color-mix(in srgb, ${iconColor} 9%, transparent)` }}>
@@ -122,7 +122,7 @@ function ContractCard({
       {isCurrentWeek && (
         <div className="h-1.5 rounded-full bg-[var(--rgba-124-58-237-0_1)] overflow-hidden">
           <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-400)]"
+            className="h-full rounded-full bg-[var(--brand-600)]"
             initial={{ width: 0 }}
             animate={{ width: `${pct}%` }}
             transition={{ duration: 0.25, ease: "easeOut" }}
@@ -250,7 +250,7 @@ export default function ConsequencesPage() {
   const showShamePrompt = weekFailed && lastSettled?.contractType === "shame" && !shameDismissed;
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden forge-bg-glow">
+    <div className="relative min-h-[100dvh] overflow-hidden">
       <main className="relative z-[var(--z-content)] mx-auto max-w-2xl px-4 py-10">
         <PageTransition>
           <header className="mb-8">
@@ -347,7 +347,7 @@ export default function ConsequencesPage() {
                   <p className="text-xs text-[var(--foreground-subtle)] mt-1">Set stakes to hold yourself accountable.</p>
                   <button
                     onClick={() => setShowForm(true)}
-                    className="mt-4 inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]"
+                    className="mt-4 inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] active:scale-[0.98]"
                   >
                     <Plus size={14} /> Set Contract
                   </button>
@@ -368,7 +368,7 @@ export default function ConsequencesPage() {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 8 }}
-                    className="rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--card)] p-6 backdrop-blur-xl"
+                    className="rounded-2xl border border-[var(--rgba-124-58-237-0_3)] bg-[var(--card)] p-6"
                   >
                     <h3 className="text-sm font-bold text-[var(--foreground)] mb-4">New Contract</h3>
 

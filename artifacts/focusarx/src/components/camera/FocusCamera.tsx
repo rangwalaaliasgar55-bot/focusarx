@@ -182,7 +182,7 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
   return (
     <motion.div
       layout
-      className={`w-full rounded-2xl border-2 border-[var(--palette-zinc-700)]/60 bg-gradient-to-br from-[var(--palette-zinc-950)]/60 to-[var(--palette-zinc-900)]/40 backdrop-blur-sm p-4 shadow-lg ${className}`}
+      className={`w-full rounded-2xl border-2 border-[var(--palette-zinc-700)]/60 bg-[var(--palette-zinc-950)]/60 p-4 shadow-lg ${className}`}
     >
       <div className="flex items-center justify-between gap-2">
         <div>
@@ -209,7 +209,7 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
             whileTap={{ scale: 0.95 }}
             type="button"
             onClick={() => void handleEnable()}
-            className="rounded-lg bg-gradient-to-r from-[var(--palette-emerald-500)] to-[var(--palette-teal-500)] px-3 py-1.5 text-xs font-semibold text-[var(--palette-white)] hover:shadow-lg hover:shadow-[var(--palette-emerald-500)]/40 transition-all"
+            className="rounded-lg bg-[var(--palette-emerald-500)] px-3 py-1.5 text-xs font-semibold text-[var(--palette-white)] hover:shadow-lg transition-all"
           >
             {modelsReady ? "Start Camera" : "Start Camera · AI…"}
           </motion.button>
@@ -251,7 +251,7 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
                 />
               )}
               {/* Live state chip */}
-              <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full bg-[var(--palette-black)]/60 px-2.5 py-1 backdrop-blur-sm">
+              <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full bg-[var(--palette-black)]/60 px-2.5 py-1">
                 <span
                   className="h-1.5 w-1.5 rounded-full animate-pulse"
                   style={{ background: ringColor }}
@@ -302,7 +302,7 @@ export function FocusCamera({ className = "" }: FocusCameraProps) {
             </div>
 
             {/* Attention history */}
-            <div className="rounded-xl border border-[var(--palette-zinc-800)]/70 bg-[var(--palette-zinc-950)]/40 px-2.5 py-2">
+            <div className="rounded-xl border border-[var(--border-subtle)]/70 bg-[var(--palette-zinc-950)]/40 px-2.5 py-2">
               <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-600)]">
                 Attention — last 90s
               </p>

@@ -304,7 +304,7 @@ export function AdminPetReleases() {
 
       {/* Release / pull modal */}
       {target && (
-        <div className="fixed inset-0 z-[var(--z-modal)] grid place-items-center bg-black/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={releaseTarget ? `Release ${target.name}` : `Pull ${target.name}`}>
+        <div className="fixed inset-0 z-[var(--z-modal)] grid place-items-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-label={releaseTarget ? `Release ${target.name}` : `Pull ${target.name}`}>
           {/* A full-area dismiss button instead of a bare onClick on the backdrop: a
               pointer-only dismiss is unreachable from the keyboard (axe flags both). */}
           <button type="button" aria-label="Close" className="absolute inset-0 cursor-default" onClick={closeModal} />

@@ -8,7 +8,7 @@
  * Two extra states matter, both learned the hard way:
  *
  *   • `reloadBlocked` — the reload budget for this window is spent. Offering an
- *     "Update now" button here is a lie: clicking it does nothing, and that is
+ * "Update now" button here is a lie: clicking it does nothing, and that is
  *     exactly how users ended up mashing refresh. The banner says the update
  *     will apply on the next visit instead.
  *   • `reloadIneffective` — we just came back from a reload that delivered the

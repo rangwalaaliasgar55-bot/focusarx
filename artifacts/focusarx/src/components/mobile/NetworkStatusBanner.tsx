@@ -27,7 +27,7 @@ export function NetworkStatusBanner() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-full border border-[var(--warning)]/30 bg-[var(--warning-soft)] px-4 py-2.5 text-sm shadow-lg backdrop-blur-xl"
+            className="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-full border border-[var(--warning)]/30 bg-[var(--warning-soft)] px-4 py-2.5 text-sm shadow-lg"
             role="status"
             aria-live="polite"
           >
@@ -54,7 +54,7 @@ export function NetworkStatusBanner() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl border border-[var(--danger)]/30 bg-[var(--danger-soft,var(--warning-soft))] px-4 py-3 text-sm shadow-lg backdrop-blur-xl"
+            className="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl border border-[var(--danger)]/30 bg-[var(--danger-soft,var(--warning-soft))] px-4 py-3 text-sm shadow-lg"
             role="alert"
           >
             <AlertTriangle size={16} className="mt-0.5 shrink-0 text-[var(--danger)]" />

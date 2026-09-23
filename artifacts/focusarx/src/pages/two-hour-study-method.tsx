@@ -58,11 +58,11 @@ export default function TwoHourStudyMethodPage() {
       />
 
       {/* Nav */}
-      <nav className="sticky top-0 z-[var(--z-modal)] border-b border-[var(--palette-white)]/5 bg-[var(--background)]/90 backdrop-blur-2xl">
+      <nav className="sticky top-0 z-[var(--z-modal)] border-b border-[var(--palette-white)]/5 bg-[var(--background)]/90">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
           <Link href="/">
             <div className="flex items-center gap-2.5 cursor-pointer">
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--brand-600)] to-[var(--palette-e879f9)]">
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[var(--brand-600)]">
                 <svg viewBox="0 0 24 24" fill="var(--palette-white)" className="h-3.5 w-3.5"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
               </div>
               <span className="text-sm font-bold">FocusArx</span>
@@ -312,7 +312,7 @@ export default function TwoHourStudyMethodPage() {
           whileInView="visible"
           viewport={{ once: true }}
           variants={fadeUp}
-          className="rounded-2xl border border-[var(--palette-teal-500)]/20 bg-gradient-to-br from-[var(--palette-teal-500)]/10 to-[var(--palette-violet-500)]/5 p-8 text-center"
+          className="rounded-2xl border border-[var(--palette-teal-500)]/20 bg-[var(--palette-teal-500)]/10 p-8 text-center"
         >
           <div className="mb-2 text-2xl"><Target size={16} aria-hidden="true" /></div>
           <h3 className="mb-3 text-xl font-bold text-[var(--palette-white)]">
@@ -326,7 +326,7 @@ export default function TwoHourStudyMethodPage() {
             <motion.button
               whileHover={{ scale: 1.04, boxShadow: "0 0 30px 8px var(--rgba-6-214-160-0_25)" }}
               whileTap={{ scale: 0.97 }}
-              className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] shadow-[var(--shadow-violet-sm)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] hover:shadow-[var(--shadow-violet-md)] active:scale-[0.98]"
+              className="inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--brand-600)] px-6 text-sm font-semibold text-[var(--neutral-0)] transition-[background-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-[var(--brand-700)] active:scale-[0.98]"
             >
               Start Free — No Credit Card <ArrowRight size={16} />
             </motion.button>

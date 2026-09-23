@@ -90,13 +90,7 @@ function MissionCard({ mission, onClaim, claiming }: { mission: MissionDef; onCl
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
-      className={`relative rounded-2xl border p-4 transition-all duration-[var(--duration-fast)] ${
-        mission.rewardClaimed
-          ? "border-[var(--border-subtle)] bg-[var(--palette-0d0f1a)] opacity-60"
-          : mission.completed
-          ? "border-[var(--rgba-34-211-135-0_35)] bg-[var(--rgba-34-211-135-0_05)]"
-          : "border-[var(--border-subtle)] bg-[var(--palette-0d0f1a)] hover:border-[var(--rgba-124-58-237-0_3)]"
-      }`}
+      className={`relative rounded-2xl border p-4 transition-all duration-[var(--duration-fast)] ${ mission.rewardClaimed ? "border-[var(--border-subtle)] bg-[var(--surface-1)] opacity-60" : mission.completed ? "border-[var(--rgba-34-211-135-0_35)] bg-[var(--rgba-34-211-135-0_05)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] hover:border-[var(--rgba-124-58-237-0_3)]" }`}
     >
       {mission.completed && !mission.rewardClaimed && (
         <motion.div
@@ -162,7 +156,7 @@ function StatCard({ label, value, total, icon }: { label: string; value: number;
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   return (
     <TiltCard intensity={8}>
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--palette-0d0f1a)] p-4 flex flex-col gap-2 shadow-3d">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-4 flex flex-col gap-2 shadow-[var(--shadow-sm)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-[var(--foreground-subtle)]">{icon}<span className="text-[11px] font-semibold uppercase tracking-[0.12em]">{label}</span></div>
           <motion.span
@@ -230,7 +224,7 @@ export default function MissionsPage() {
         {/* Header */}
         <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--brand-600)] to-[var(--brand-400)] shadow-[0_0_20px_var(--rgba-124-58-237-0_3)]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--brand-600)]">
               <Target size={18} className="text-[var(--palette-white)]" />
             </div>
             <div>
@@ -258,11 +252,7 @@ export default function MissionsPage() {
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 rounded-lg py-2 text-xs font-semibold uppercase tracking-wider transition-all duration-[var(--duration-fast)] ${
-                tab === t
-                  ? "bg-[var(--rgba-124-58-237-0_2)] text-[var(--brand-400)] shadow-sm"
-                  : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]"
-              }`}
+              className={`flex-1 rounded-lg py-2 text-xs font-semibold uppercase tracking-wider transition-all duration-[var(--duration-fast)] ${ tab === t ? "bg-[var(--rgba-124-58-237-0_2)] text-[var(--brand-400)] shadow-sm" : "text-[var(--foreground-subtle)] hover:text-[var(--foreground-muted)]" }`}
             >
               {t === "daily" ? `⚡ Daily (${hoursLeft}h left)` : `📅 Weekly (${daysToMonday}d left)`}
             </button>

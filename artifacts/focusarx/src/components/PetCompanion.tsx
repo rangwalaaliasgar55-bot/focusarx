@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getToken } from "@/lib/auth";
 import { petSpeciesVisual } from "@/lib/petSpecies";
 import { BulbasaurArtwork, isBulbasaurSpecies } from "@/components/pets/PetArtwork";
-import { ACTIVE_PET_EVENT, useActivePet, type ActivePet } from "@/hooks/useActivePet";
+import { useActivePet, type ActivePet } from "@/hooks/useActivePet";
 
 // ── Speech messages ────────────────────────────────────────────────────────────
 const SPEECH_MESSAGES = [
@@ -194,7 +194,7 @@ export default function PetCompanion({
   sessionDurationSeconds = 1500,
 }: PetCompanionProps) {
   const { data: activePet } = useActivePet();
-  const [localPet, setLocalPet] = useState<ActivePet | null>(null);
+  const [localPet] = useState<ActivePet | null>(null);
   const pet = activePet || localPet;
   const [inventory, setInventory] = useState<{ itemId: string; equipped: boolean; type?: string }[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -312,7 +312,7 @@ export default function PetCompanion({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.92 }}
               transition={{ duration: 0.25 }}
-              className="relative rounded-2xl border border-[var(--rgba-124-58-237-0_38)] bg-[var(--rgba-10-12-24-0_97)] px-4 py-2 text-sm font-bold text-[var(--brand-400)] shadow-2xl backdrop-blur-md whitespace-nowrap max-w-[90vw] text-center"
+              className="relative rounded-2xl border border-[var(--rgba-124-58-237-0_38)] bg-[var(--rgba-10-12-24-0_97)] px-4 py-2 text-sm font-bold text-[var(--brand-400)] shadow-[var(--shadow-lg)] whitespace-nowrap max-w-[90vw] text-center"
               style={{ textShadow: "0 0 10px var(--rgba-167-139-250-0_5)" }}
             >
               {message}

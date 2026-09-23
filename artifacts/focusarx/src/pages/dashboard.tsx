@@ -16,7 +16,6 @@ import {
   PawPrint,
   Plus,
   RefreshCw,
-  Sparkles,
   Swords,
   Target,
   Timer,
@@ -199,11 +198,12 @@ function FocusHero({
   };
 
   return (
-    <Card elevation="glow" className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_80%_at_80%_20%,var(--brand-soft-hover),transparent_70%)]" aria-hidden="true" />
+    <Card className="relative overflow-hidden">
       <CardContent className="relative grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
         <div className="min-w-0">
-          <Badge>{running ? <><span className="live-pill-dot" aria-hidden="true" /> {live.status === "paused" ? "Paused" : "In session"}</> : <><Sparkles /> Ready when you are</>}</Badge>
+          {/* One status line. "Ready when you are" used to arrive with a sparkle
+              icon, which is decoration dressed as information. */}
+          <Badge>{running ? <><span className="live-pill-dot" aria-hidden="true" /> {live.status === "paused" ? "Paused" : "In session"}</> : "Ready when you are"}</Badge>
           <h2 className="mt-4 text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">
             {running ? (live.mode === "focus" ? "A focus block is running." : "You're on a break.") : plan.title}
           </h2>
@@ -224,11 +224,22 @@ function FocusHero({
             <Button size="lg" variant="ghost" onClick={openGuide}><Compass /> Feature guide</Button>
           </div>
         </div>
-        <div className="relative mx-auto grid h-40 w-40 place-items-center rounded-full sm:h-44 sm:w-44" style={{ background: `conic-gradient(var(--brand-500) ${running ? live.progress : 0}%, var(--brand-soft) 0)` }} aria-hidden="true">
-          <div className="absolute inset-2 rounded-full bg-[var(--surface)] shadow-[var(--shadow-sm)]" />
-          <div className="relative text-center">
-            <p className="font-display text-4xl font-semibold tracking-[-0.05em]" style={{ fontFeatureSettings: '"tnum" 1' }}><RollingClock value={running ? formatClock(live.secondsLeft) : `${plan.duration}:00`} /></p>
-            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">{running ? (live.mode === "focus" ? "Focus" : "Break") : "Suggested"}</p>
+        {/* The countdown is the one number on this screen that has to read
+            from across the room, so it is set large and left alone. It used to
+            sit inside a 176px conic-gradient ring, which spent the loudest
+            element on the page on a progress arc the number already states. */}
+        <div className="w-full lg:w-56">
+          <p className="font-display text-5xl font-semibold tabular-nums tracking-[-0.04em] sm:text-6xl">
+            <RollingClock value={running ? formatClock(live.secondsLeft) : `${plan.duration}:00`} />
+          </p>
+          <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">
+            {running ? (live.mode === "focus" ? "Focus" : "Break") : "Suggested block"}
+          </p>
+          <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-[var(--surface-2)]" aria-hidden="true">
+            <div
+              className="h-full rounded-full bg-[var(--brand-500)] transition-[width] duration-[var(--duration-slow)] ease-[var(--ease-out)]"
+              style={{ width: `${running ? live.progress : 0}%` }}
+            />
           </div>
         </div>
       </CardContent>

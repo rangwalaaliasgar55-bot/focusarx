@@ -86,9 +86,9 @@ export default function DailyRewardBanner() {
           transition={{ type: "spring", stiffness: 300, damping: 28 }}
           className="fixed top-16 left-1/2 -translate-x-1/2 z-[var(--z-modal)] w-full max-w-sm mx-4"
         >
-          <div className="rounded-2xl border border-[var(--rgba-245-158-11-0_3)] bg-[var(--palette-0d0f1c)] shadow-[0_8px_40px_var(--rgba-0-0-0-0_6)] overflow-hidden">
+          <div className="rounded-2xl border border-[var(--rgba-245-158-11-0_3)] bg-[var(--palette-0d0f1c)] overflow-hidden">
             {/* Gradient top bar */}
-            <div className="h-1 bg-gradient-to-r from-[var(--color-warning)] via-[var(--palette-fcd34d)] to-[var(--color-warning)]" />
+            <div className="h-1 bg-[var(--color-warning)]" />
             <div className="p-5">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-2">
@@ -135,9 +135,7 @@ export default function DailyRewardBanner() {
                   const isPast = day < currentDay;
                   return (
                     <div key={day}
-                      className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                        isPast ? "bg-[var(--color-warning)] text-[var(--palette-black)]" : isCurrent ? "bg-[var(--rgba-245-158-11-0_3)] border-2 border-[var(--color-warning)] text-[var(--color-warning)]" : "bg-[var(--rgba-255-255-255-0_04)] border border-[var(--rgba-255-255-255-0_06)] text-[var(--foreground-subtle)]"
-                      }`}
+                      className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${ isPast ? "bg-[var(--color-warning)] text-[var(--palette-black)]" : isCurrent ? "bg-[var(--rgba-245-158-11-0_3)] border-2 border-[var(--color-warning)] text-[var(--color-warning)]" : "bg-[var(--rgba-255-255-255-0_04)] border border-[var(--rgba-255-255-255-0_06)] text-[var(--foreground-subtle)]" }`}
                     >
                       {day === 7 ? "🏆" : STREAK_EMOJIS[day - 1]}
                     </div>

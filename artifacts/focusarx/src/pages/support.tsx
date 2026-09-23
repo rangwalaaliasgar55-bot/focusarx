@@ -73,7 +73,7 @@ export default function SupportPage() {
   const [activeTab, setActiveTab] = useState(0);
 
   return (
-    <div className="relative min-h-[100dvh] forge-bg-glow">
+    <div className="relative min-h-[100dvh]">
       <PageSEO {...PAGE_SEO.support} />
       <main id="main-content" className="relative z-[var(--z-content)] mx-auto max-w-4xl px-4 py-10">
         <PageTransition>
@@ -123,7 +123,7 @@ export default function SupportPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25, delay: i * 0.08 }}
                 whileHover={{ y: -3 }}
-                className="flex items-center gap-3.5 rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-12-14-28-0_8)] p-4 backdrop-blur-sm transition-colors hover:border-[var(--rgba-124-58-237-0_35)]"
+                className="flex items-center gap-3.5 rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-12-14-28-0_8)] p-4 transition-colors hover:border-[var(--rgba-124-58-237-0_35)]"
               >
                 <span className="text-2xl">{c.emoji}</span>
                 <div>
@@ -135,7 +135,7 @@ export default function SupportPage() {
           </div>
 
           {/* FAQ */}
-          <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-12-14-28-0_8)] p-6 backdrop-blur-sm">
+          <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_2)] bg-[var(--rgba-12-14-28-0_8)] p-6">
             <h2 className="mb-6 text-lg font-bold text-[var(--foreground)]">Frequently Asked Questions</h2>
 
             {/* Category tabs */}
@@ -144,11 +144,7 @@ export default function SupportPage() {
                 <button
                   key={i}
                   onClick={() => setActiveTab(i)}
-                  className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                    activeTab === i
-                      ? "bg-[var(--rgba-124-58-237-0_25)] text-[var(--brand-400)] border border-[var(--rgba-124-58-237-0_4)]"
-                      : "bg-[var(--rgba-124-58-237-0_06)] text-[var(--foreground-subtle)] border border-transparent hover:text-[var(--foreground-muted)]"
-                  }`}
+                  className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${ activeTab === i ? "bg-[var(--rgba-124-58-237-0_25)] text-[var(--brand-400)] border border-[var(--rgba-124-58-237-0_4)]" : "bg-[var(--rgba-124-58-237-0_06)] text-[var(--foreground-subtle)] border border-transparent hover:text-[var(--foreground-muted)]" }`}
                 >
                   {cat.cat}
                 </button>
@@ -163,7 +159,7 @@ export default function SupportPage() {
           </div>
 
           {/* Still need help */}
-          <div className="mt-8 rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-gradient-to-br from-[var(--rgba-124-58-237-0_08)] to-transparent p-6 text-center">
+          <div className="mt-8 rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-124-58-237-0_08)] to-transparent p-6 text-center">
             <p className="mb-1.5 font-semibold text-[var(--foreground)]">Still need help?</p>
             <p className="mb-4 text-sm text-[var(--foreground-muted)]">Our team is happy to assist. Average response time is under 24 hours.</p>
             <Link href="/contact">

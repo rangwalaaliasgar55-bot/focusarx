@@ -124,10 +124,10 @@ export function LandingTimerPreview() {
     status === "running" ? "Pause" : status === "paused" ? "Resume" : status === "done" ? "Run it again" : isBreak ? "Start break" : "Start session";
 
   return (
-    <div className="texture-grain relative mx-auto w-full max-w-md overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--border-strong)] bg-[var(--surface)] p-6 text-left shadow-[var(--shadow-xl),var(--shadow-violet-md)] sm:p-7">
+    <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface-1)] p-6 text-left sm:p-7">
       <div className="flex items-center justify-between gap-3">
         <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--foreground-subtle)]">
-          <span className={cn("h-1.5 w-1.5 rounded-full", status === "running" ? "animate-pulse bg-[var(--success)] motion-reduce:animate-none" : "bg-[var(--border-strong)]")} aria-hidden="true" />
+          <span className={cn("h-1.5 w-1.5 rounded-full", status === "running" ? "bg-[var(--success)]" : "bg-[var(--border-strong)]")} aria-hidden="true" />
           Try it — no signup
         </p>
         <Link href={continueHref} className="inline-flex min-h-8 items-center gap-1 rounded-lg px-2 text-xs font-medium text-[var(--foreground-muted)] transition-colors hover:text-[var(--foreground)]" aria-label="Open the full focus timer">
@@ -137,7 +137,7 @@ export function LandingTimerPreview() {
 
       {/* Session-type chips. The highlight slides between them instead of
           re-painting, so switching a mode feels like moving a dial. */}
-      <div role="group" aria-label="Session type" className="mt-4 grid grid-cols-3 gap-1 rounded-full bg-[var(--surface-hover)] p-1">
+      <div role="group" aria-label="Session type" className="mt-4 grid grid-cols-3 gap-1 rounded-[var(--radius-md)] bg-[var(--surface-2)] p-1">
         {LANDING_TIMER_MODES.map((m) => {
           const selected = m.id === modeId;
           return (
@@ -147,15 +147,14 @@ export function LandingTimerPreview() {
               aria-pressed={selected}
               aria-describedby={chipGroupId}
               onClick={() => switchMode(m.id)}
-              className={cn(
-                "relative min-h-9 rounded-full px-2 text-[13px] font-medium transition-colors duration-[var(--duration-fast)]",
+              className={cn( "relative min-h-9 rounded-[var(--radius-sm)] px-2 text-[13px] font-medium transition-colors duration-[var(--duration-fast)]",
                 selected ? "text-[var(--foreground)]" : "text-[var(--foreground-muted)] hover:text-[var(--foreground)]",
               )}
             >
               {selected && (
                 <motion.span
                   layoutId="landing-timer-mode"
-                  className="absolute inset-0 rounded-full bg-[var(--surface-raised)] shadow-[var(--shadow-sm)]"
+                  className="absolute inset-0 rounded-[var(--radius-sm)] bg-[var(--surface-3)]"
                   transition={{ type: "spring", stiffness: 420, damping: 34 }}
                 />
               )}

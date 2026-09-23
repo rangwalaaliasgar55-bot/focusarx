@@ -28,7 +28,7 @@ export default function StudyMethodCalculator() {
         </header>
 
         <div className="grid gap-8 md:grid-cols-2">
-           <div className="space-y-6 rounded-3xl border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-8 backdrop-blur-xl">
+           <div className="space-y-6 rounded-[var(--radius-xl)] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.02] p-8">
               <div>
                  <label htmlFor="study-calculator-days" className="block text-xs font-bold uppercase tracking-widest text-[var(--foreground-subtle)] mb-3">Days until Deadline</label>
                  <input
@@ -67,7 +67,7 @@ export default function StudyMethodCalculator() {
               </div>
            </div>
 
-           <div className="flex flex-col justify-center items-center text-center p-8 rounded-3xl border border-[var(--brand-400)]/20 bg-[var(--brand-400)]/5">
+           <div className="flex flex-col justify-center items-center text-center p-8 rounded-[var(--radius-xl)] border border-[var(--brand-400)]/20 bg-[var(--brand-400)]/5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--brand-400)] mb-2">Recommended Strategy</p>
               <h2 className="text-3xl font-semibold mb-6">{recommendedMethod}</h2>
 
@@ -88,7 +88,7 @@ export default function StudyMethodCalculator() {
                  </div>
               </div>
 
-              <button className="w-full rounded-2xl bg-[var(--palette-white)] py-4 text-[var(--palette-black)] font-semibold hover:scale-105 transition-all flex items-center justify-center gap-2">
+              <button className="w-full rounded-2xl bg-[var(--palette-white)] py-4 text-[var(--palette-black)] font-semibold transition-all flex items-center justify-center gap-2">
                  Generate Schedule <ArrowRight size={18} />
               </button>
            </div>

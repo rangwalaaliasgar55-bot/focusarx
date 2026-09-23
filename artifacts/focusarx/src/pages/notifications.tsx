@@ -56,7 +56,7 @@ const TYPE_ICONS: Record<string, string> = {
 const BLUE = "border-[var(--palette-blue-500)]/30 bg-[var(--palette-blue-500)]/5";
 const GREEN = "border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/5";
 const AMBER = "border-[var(--palette-amber-500)]/30 bg-[var(--palette-amber-500)]/5";
-const VIOLET = "border-[var(--palette-violet-500)]/30 bg-[var(--palette-violet-500)]/5";
+const VIOLET = "border-[var(--brand-500)]/40 bg-[var(--palette-violet-500)]/5";
 const PINK = "border-[var(--palette-pink-500)]/30 bg-[var(--palette-pink-500)]/5";
 const RED = "border-[var(--palette-red-500)]/30 bg-[var(--palette-red-500)]/5";
 const NEUTRAL = "border-[var(--border-subtle)] bg-[var(--surface-hover)]";
@@ -270,11 +270,7 @@ export default function NotificationsPage() {
               type="button"
               onClick={() => setFilter(f.id)}
               aria-pressed={active}
-              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-                active
-                  ? "border-[var(--brand-600)] bg-[var(--brand-600)] text-[var(--palette-white)]"
-                  : "border-[var(--border-subtle)] bg-[var(--surface-hover)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"
-              }`}
+              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${ active ? "border-[var(--brand-600)] bg-[var(--brand-600)] text-[var(--palette-white)]" : "border-[var(--border-subtle)] bg-[var(--surface-hover)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)]" }`}
             >
               {f.label}
               <span className={`rounded-full px-1.5 text-[11px] ${active ? "bg-black/20" : "bg-[var(--surface-1)]"}`}>{count}</span>

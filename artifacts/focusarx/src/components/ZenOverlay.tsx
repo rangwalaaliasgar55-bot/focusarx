@@ -54,7 +54,7 @@ export default function ZenOverlay({ secondsLeft, progress, mode, isRunning, acc
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25}}
-      className="fixed inset-0 z-[var(--z-modal)] flex flex-col items-center justify-center bg-[var(--palette-080b14)]"
+      className="fixed inset-0 z-[var(--z-modal)] flex flex-col items-center justify-center bg-[var(--surface-1)]"
       role="dialog"
       aria-label="Zen focus mode"
     >

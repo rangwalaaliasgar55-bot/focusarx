@@ -24,7 +24,7 @@ export function EmotePicker({ onSelect }: { onSelect: (emoji: string) => void })
         <SmilePlus size={18} />
       </button>
       {open && (
-        <div className="absolute bottom-full left-0 z-[var(--z-popover)] mb-2 grid w-64 grid-cols-5 gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-2xl" role="dialog" aria-label="Emotes">
+        <div className="absolute bottom-full left-0 z-[var(--z-popover)] mb-2 grid w-64 grid-cols-5 gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[var(--shadow-lg)]" role="dialog" aria-label="Emotes">
           {emotes.map((emote) => (
             <button key={emote.id} type="button" disabled={!emote.unlocked}
               title={emote.unlocked ? emote.name : `${emote.name} — Premium`}

@@ -136,9 +136,9 @@ export function PromptProvider({ children }: { children: React.ReactNode }) {
         }}
       >
         <DialogPrimitive.Portal>
-          <DialogPrimitive.Overlay className="fixed inset-0 z-[calc(var(--z-modal)+5)] bg-black/55 backdrop-blur-sm" />
+          <DialogPrimitive.Overlay className="fixed inset-0 z-[calc(var(--z-modal)+5)] bg-black/55" />
           <DialogPrimitive.Content
-            className="fixed left-1/2 top-1/2 z-[calc(var(--z-modal)+5)] w-[min(calc(100vw-2rem),24rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--card)] p-5 shadow-2xl"
+            className="fixed left-1/2 top-1/2 z-[calc(var(--z-modal)+5)] w-[min(calc(100vw-2rem),24rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--card)] p-5 shadow-[var(--shadow-lg)]"
             // Radix hides the background by setting aria-hidden on the siblings
             // but does not declare modality itself; screen readers honour the
             // attribute directly, so set it.

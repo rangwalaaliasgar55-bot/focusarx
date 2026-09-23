@@ -61,7 +61,7 @@ export function LandingMobileCta() {
           transition={{ duration: 0.25, ease: "easeOut" }}
           className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-[calc(var(--z-nav)+1)] md:hidden"
         >
-          <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-overlay)] p-2 pl-4 shadow-[var(--shadow-lg)] backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-overlay)] p-2 pl-4 shadow-[var(--shadow-lg)]">
             <div className="min-w-0">
               <p className="truncate text-[13px] font-semibold text-[var(--foreground)]">Ready when you are</p>
               <p className="truncate text-[11px] text-[var(--foreground-subtle)]">Free · no account needed</p>
