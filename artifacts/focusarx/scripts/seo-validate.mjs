@@ -680,18 +680,18 @@ const isAppRoute = (p) =>
   }
 }
 
-// ── 8. Consent Mode v2 is actually wired ───────────────────────────────────
-// The default block lives in index.html (it must run before `config`); the
-// visitor's choice is applied from the banner. Both halves have to exist and
-// they have to share one implementation, or the banner silently stops updating
-// consent while the defaults keep applying.
+// ── 8. Consent-gated optional measurement is actually wired ───────────────
+// Analytics and advertising must not be in index.html: loading either before a
+// choice creates third-party critical requests and negates the consent UI. The
+// shared module owns both the Google consent mapping and one-time GA loader.
 {
   const consentLib = readFileSync(join(SRC_ROOT, "lib/consent.ts"), "utf8");
+  const analyticsLoader = readFileSync(join(SRC_ROOT, "lib/analyticsLoader.ts"), "utf8");
   const banner = readFileSync(join(SRC_ROOT, "components/CookieConsent.tsx"), "utf8");
   const indexHtml = readFileSync(join(REPO_ROOT, "artifacts/focusarx/index.html"), "utf8");
 
-  if (!/gtag\(\)?\s*\(?"consent",\s*"update"/.test(consentLib) && !/"consent",\s*"update"/.test(consentLib)) {
-    problems.push("lib/consent.ts never calls gtag(\"consent\", \"update\") — the banner choice would not reach Google");
+  if (!/"consent",\s*"update"/.test(consentLib)) {
+    problems.push("lib/consent.ts never calls gtag(\"consent\", \"update\") — an opt-in would not reach Google");
   }
   const importsConsentLib =
     banner.includes('"@/lib/consent"') ||
@@ -701,10 +701,16 @@ const isAppRoute = (p) =>
     problems.push("components/CookieConsent.tsx does not import lib/consent.ts — two consent implementations will drift");
   }
   for (const signal of ["ad_storage", "ad_user_data", "ad_personalization", "analytics_storage"]) {
-    if (!indexHtml.includes(signal)) problems.push(`index.html consent defaults are missing ${signal} (Consent Mode v2 requires all four)`);
+    if (!consentLib.includes(signal)) problems.push(`lib/consent.ts is missing ${signal} from the Consent Mode mapping`);
   }
-  if (!/wait_for_update/.test(indexHtml)) {
-    problems.push("index.html consent defaults are missing wait_for_update — the update can race the first hit");
+  if (!/analytics:\s*false/.test(consentLib) || !/advertising:\s*false/.test(consentLib)) {
+    problems.push("consent defaults are not necessary-only");
+  }
+  if (/googletagmanager\.com\/gtag\/js|pagead2\.googlesyndication\.com|preconnect[^>]+google/i.test(indexHtml)) {
+    problems.push("index.html eagerly loads optional analytics or advertising instead of using the consent gate");
+  }
+  if (!/ensureAnalyticsLoaded/.test(analyticsLoader) || !/send_page_view:\s*false/.test(analyticsLoader)) {
+    problems.push("analyticsLoader.ts is missing the one-time manual-pageview GA4 loader");
   }
 }
 

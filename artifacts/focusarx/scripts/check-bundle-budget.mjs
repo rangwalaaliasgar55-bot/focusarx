@@ -20,8 +20,10 @@ const BUDGETS = {
   routeChunkGzip: 75 * 1024,
   // Shared vendor chunks (cached across routes, loaded once).
   vendorChunkGzip: 95 * 1024,
-  // Total initial JS for the marketing shell (entry + vendor-react + router).
-  initialJsGzip: 140 * 1024,
+  // Total first-navigation JS (entry plus every modulepreload Vite emits from
+  // the document). This is deliberately not a hand-picked vendor list: Vite
+  // can add a shared dependency without changing a filename convention.
+  initialJsGzip: 175 * 1024,
 };
 
 let failures = 0;
@@ -56,12 +58,29 @@ for (const f of files) {
 }
 ok("route chunks within budget");
 
-const initialCandidates = files.filter((f) => f === entry || /vendor-react|vendor-router/.test(f));
-const initialTotal = initialCandidates.reduce((sum, f) => sum + gz(join(ASSETS, f)), 0);
+// The browser's real initial JavaScript graph is the entry script plus each
+// local modulepreload in index.html. The old heuristic only counted React and
+// the router, quietly omitting vendor-shared and vendor-query even though they
+// are requested before a route can execute. Parse attributes independently of
+// their order so a Vite markup change cannot make this undercount again.
+const preloadTags = [...indexHtmlEarly.matchAll(/<link\b[^>]*\brel=["']modulepreload["'][^>]*>/gi)];
+const initialCandidates = new Set(entry ? [entry] : []);
+for (const [tag] of preloadTags) {
+  const href = tag.match(/\bhref=["']([^"']+)["']/i)?.[1];
+  if (!href || !href.startsWith("/assets/") || !href.endsWith(".js")) continue;
+  const file = href.slice("/assets/".length);
+  if (!files.includes(file)) {
+    fail(`modulepreload references missing asset ${href}`);
+    continue;
+  }
+  initialCandidates.add(file);
+}
+const initialTotal = [...initialCandidates].reduce((sum, f) => sum + gz(join(ASSETS, f)), 0);
+const initialDetail = [...initialCandidates].sort().join(", ");
 if (initialTotal > BUDGETS.initialJsGzip) {
-  fail(`initial JS gzip ${initialTotal} > ${BUDGETS.initialJsGzip}`);
+  fail(`initial JS gzip ${initialTotal} > ${BUDGETS.initialJsGzip} (${initialDetail})`);
 } else {
-  ok(`initial JS gzip ${(initialTotal / 1024).toFixed(1)}kb`);
+  ok(`initial JS gzip ${(initialTotal / 1024).toFixed(1)}kb across ${initialCandidates.size} entry/preload chunks`);
 }
 
 // ── Per-page document budgets ─────────────────────────────────────────

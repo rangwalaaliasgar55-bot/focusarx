@@ -201,6 +201,7 @@ export default function PetCompanion({
   const [showXp, setShowXp] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [blinkKey, setBlinkKey] = useState(0);
+  const [spriteFailed, setSpriteFailed] = useState(false);
 
   const msgIndexRef = useRef(0);
   const msgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -285,6 +286,12 @@ export default function PetCompanion({
   useEffect(() => {
     if (isRunning && progress < 0.05) confettiShownRef.current = false;
   }, [isRunning, progress]);
+
+  // A broken remote staged sprite must fall back to the species glyph, but a
+  // new companion (or corrected catalog URL) gets a fresh chance to load.
+  useEffect(() => {
+    setSpriteFailed(false);
+  }, [pet?.thumbnailUrl]);
 
   if (!pet) return null;
 
@@ -411,6 +418,19 @@ export default function PetCompanion({
               >
                 {isBulbasaurSpecies(pet.slug) ? (
                   <BulbasaurArtwork size={130} className="max-h-[clamp(80px,18vw,130px)] max-w-[clamp(80px,18vw,130px)]" />
+                ) : pet.thumbnailUrl && !spriteFailed ? (
+                  <img
+                    src={pet.thumbnailUrl}
+                    alt=""
+                    aria-hidden="true"
+                    width={130}
+                    height={130}
+                    decoding="async"
+                    referrerPolicy="no-referrer"
+                    draggable={false}
+                    onError={() => setSpriteFailed(true)}
+                    className="h-[clamp(80px,18vw,130px)] w-[clamp(80px,18vw,130px)] object-contain [image-rendering:pixelated]"
+                  />
                 ) : petEmoji}
               </motion.div>
             </motion.div>

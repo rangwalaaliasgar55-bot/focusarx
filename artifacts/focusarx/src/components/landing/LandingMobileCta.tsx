@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { hasConsentChoice } from "@/lib/consent";
 
@@ -43,23 +42,22 @@ export function LandingMobileCta() {
       setScrollZone(y > SHOW_AFTER_PX && y < maxScroll - HIDE_NEAR_BOTTOM_PX);
       setConsentResolved(hasConsentChoice());
     };
+    const onConsentChange = () => setConsentResolved(hasConsentChoice());
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
+    window.addEventListener("focusarx:consent-change", onConsentChange);
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
+      window.removeEventListener("focusarx:consent-change", onConsentChange);
     };
   }, []);
 
+  if (!visible) return null;
+
   return (
-    <AnimatePresence>
-      {visible && (
-        <motion.div
-          initial={{ y: 72, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 72, opacity: 0 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-          className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-[calc(var(--z-nav)+1)] md:hidden"
+        <div
+          className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-[calc(var(--z-nav)+1)] motion-safe:animate-rise-in md:hidden"
         >
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-overlay)] p-2 pl-4 shadow-[var(--shadow-lg)]">
             <div className="min-w-0">
@@ -73,8 +71,6 @@ export function LandingMobileCta() {
               Start focusing <ArrowRight size={15} aria-hidden="true" />
             </Link>
           </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        </div>
   );
 }

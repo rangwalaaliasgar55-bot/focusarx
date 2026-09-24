@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck } from "lucide-react";
 import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
 import {
   DEFAULT_CONSENT,
   hasConsentChoice,
@@ -14,11 +11,10 @@ import {
 /**
  * Cookie notice — the visible half of Consent Mode v2.
  *
- * The *default* consent state is declared inline in index.html before gtag's
- * `config` call; this component only reads a stored choice and writes a new
- * one, through `lib/consent.ts`. Keeping both halves in that one module is the
- * point: a banner that calls gtag directly is how a site ends up with two
- * sources of truth about what "Accept" means.
+ * This component only reads a stored choice and writes a new one through
+ * `lib/consent.ts`, which is also the only module allowed to load optional
+ * measurement. Keeping the decision in one place prevents a banner and a
+ * tracker from silently disagreeing about what "Accept" means.
  *
  * Three answers, all of which persist:
  *   Accept all       → analytics + advertising consent
@@ -33,12 +29,32 @@ export function CookieConsent() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    // Apply a returning visitor's stored choice before the first page view is
-    // measured, then only prompt people who have never answered.
+    // Restore a returning visitor's saved choice first. A new visitor sees no
+    // third-party requests until they choose. The prompt itself waits for an
+    // interaction (or a long fallback) so it cannot become the LCP element and
+    // hide the page the visitor came to read on a slow phone.
     restoreConsent();
     if (hasConsentChoice()) return;
-    const timer = setTimeout(() => setShow(true), 2000);
-    return () => clearTimeout(timer);
+
+    let shown = false;
+    const reveal = () => {
+      if (shown) return;
+      shown = true;
+      setShow(true);
+      window.removeEventListener("pointerdown", reveal, true);
+      window.removeEventListener("keydown", reveal, true);
+      window.removeEventListener("scroll", reveal, true);
+    };
+    window.addEventListener("pointerdown", reveal, { capture: true, once: true, passive: true });
+    window.addEventListener("keydown", reveal, { capture: true, once: true });
+    window.addEventListener("scroll", reveal, { capture: true, once: true, passive: true });
+    const timer = window.setTimeout(reveal, 12_000);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pointerdown", reveal, true);
+      window.removeEventListener("keydown", reveal, true);
+      window.removeEventListener("scroll", reveal, true);
+    };
   }, []);
 
   const choose = (state: ConsentState) => {
@@ -46,21 +62,18 @@ export function CookieConsent() {
     setShow(false);
   };
 
+  if (!show) return null;
+
   return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          initial={{ y: 100 }}
-          animate={{ y: 0 }}
-          exit={{ y: 100 }}
-          className="fixed bottom-6 left-6 right-6 z-[var(--z-max)] mx-auto max-w-4xl"
+        <div
+          className="fixed bottom-6 left-6 right-6 z-[var(--z-max)] mx-auto max-w-4xl motion-safe:animate-rise-in"
           role="region"
           aria-label="Cookie and consent preferences"
         >
           <div className="rounded-2xl border border-[var(--palette-white)]/10 bg-[var(--palette-zinc-950)]/90 p-6 shadow-[var(--shadow-lg)] md:flex md:items-center md:justify-between md:gap-8">
             <div className="flex items-start gap-4 md:items-center">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--palette-purple-500)]/10">
-                <ShieldCheck className="text-[var(--palette-purple-400)]" size={24} aria-hidden />
+                <span className="text-xl font-semibold text-[var(--palette-purple-400)]" aria-hidden="true">◈</span>
               </div>
               <div>
                 <h2 className="text-sm font-bold text-[var(--palette-white)]">Your focus, your data</h2>
@@ -76,23 +89,29 @@ export function CookieConsent() {
               </div>
             </div>
             <div className="mt-6 flex shrink-0 flex-wrap gap-2 md:mt-0 md:flex-col md:items-stretch lg:flex-row lg:items-center">
-              <Button size="sm" variant="default" onClick={() => choose({ ...DEFAULT_CONSENT, advertising: true })}>
+              <button
+                type="button"
+                className="min-h-11 rounded-[var(--radius-md)] bg-[var(--brand-600)] px-3 text-xs font-semibold text-[var(--neutral-0)] transition-colors hover:bg-[var(--brand-700)]"
+                onClick={() => choose({ ...DEFAULT_CONSENT, analytics: true, advertising: true })}
+              >
                 Accept all
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => choose({ ...DEFAULT_CONSENT })}>
+              </button>
+              <button
+                type="button"
+                className="min-h-11 rounded-[var(--radius-md)] border border-[var(--border-strong)] px-3 text-xs font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-hover)]"
+                onClick={() => choose({ ...DEFAULT_CONSENT, analytics: true })}
+              >
                 Analytics only
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
+              </button>
+              <button
+                type="button"
+                className="min-h-11 rounded-[var(--radius-md)] px-3 text-xs font-semibold text-[var(--foreground-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
                 onClick={() => choose({ necessary: true, analytics: false, advertising: false })}
               >
                 Essential only
-              </Button>
+              </button>
             </div>
           </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        </div>
   );
 }

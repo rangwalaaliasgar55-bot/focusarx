@@ -298,6 +298,18 @@ function setAuthCookies(res: Pick<Response, "cookie">, accessToken: string, refr
     ...baseOpts,
     maxAge: 15 * 60 * 1000,
   });
+
+  // This is intentionally NOT a credential and carries no user data. It lets
+  // the SPA distinguish an anonymous first visit from a browser that may have
+  // an httpOnly session, avoiding a session+refresh pair of expected 401s on
+  // every public page view. The API never reads or trusts this cookie.
+  res.cookie("focusarx_session_hint", "1", {
+    httpOnly: false,
+    secure: IS_PROD,
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
 }
 
 function clearAuthCookies(res: Response) {
@@ -310,6 +322,13 @@ function clearAuthCookies(res: Response) {
   res.cookie("access_token", "", { ...baseOpts, maxAge: 0 });
   res.cookie("refresh_token", "", { ...baseOpts, maxAge: 0 });
   res.cookie("focusarx_token", "", { ...baseOpts, maxAge: 0 });
+  res.cookie("focusarx_session_hint", "", {
+    httpOnly: false,
+    secure: IS_PROD,
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: 0,
+  });
 }
 
 /**

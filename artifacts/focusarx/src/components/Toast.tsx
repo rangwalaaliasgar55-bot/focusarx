@@ -1,7 +1,4 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, CheckCircle2, Info, Undo2, XCircle, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export type ToastType = "success" | "info" | "warning" | "danger" | "error";
@@ -26,17 +23,16 @@ interface ToastContextType {
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 const MAX_TOASTS = 4;
 
-const visuals: Record<ToastType, { icon: typeof Info; color: string; soft: string; label: string }> = {
-  success: { icon: CheckCircle2, color: "var(--success)", soft: "var(--success-soft)", label: "Success" },
-  info: { icon: Info, color: "var(--info)", soft: "var(--info-soft)", label: "Information" },
-  warning: { icon: AlertTriangle, color: "var(--warning)", soft: "var(--warning-soft)", label: "Warning" },
-  danger: { icon: XCircle, color: "var(--danger)", soft: "var(--danger-soft)", label: "Error" },
-  error: { icon: XCircle, color: "var(--danger)", soft: "var(--danger-soft)", label: "Error" },
+const visuals: Record<ToastType, { glyph: string; color: string; soft: string; label: string }> = {
+  success: { glyph: "✓", color: "var(--success)", soft: "var(--success-soft)", label: "Success" },
+  info: { glyph: "i", color: "var(--info)", soft: "var(--info-soft)", label: "Information" },
+  warning: { glyph: "!", color: "var(--warning)", soft: "var(--warning-soft)", label: "Warning" },
+  danger: { glyph: "×", color: "var(--danger)", soft: "var(--danger-soft)", label: "Error" },
+  error: { glyph: "×", color: "var(--danger)", soft: "var(--danger-soft)", label: "Error" },
 };
 
 function ToastItem({ record, onRemove }: { record: ToastRecord; onRemove: (id: string) => void }) {
   const visual = visuals[record.type];
-  const Icon = visual.icon;
 
   useEffect(() => {
     const timeout = window.setTimeout(() => onRemove(record.id), record.duration);
@@ -44,18 +40,13 @@ function ToastItem({ record, onRemove }: { record: ToastRecord; onRemove: (id: s
   }, [record.duration, record.id, onRemove]);
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, x: 24, y: 8 }}
-      animate={{ opacity: 1, x: 0, y: 0 }}
-      exit={{ opacity: 0, x: 16, scale: 0.98 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
-      className="pointer-events-auto relative flex w-[min(calc(100vw-2rem),24rem)] items-start gap-3 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--surface-overlay)] p-4 text-[var(--foreground)] shadow-[var(--shadow-[var(--shadow-lg)])]"
+    <div
+      className="pointer-events-auto relative flex w-[min(calc(100vw-2rem),24rem)] items-start gap-3 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--surface-overlay)] p-4 text-[var(--foreground)] shadow-[var(--shadow-lg)] motion-safe:animate-rise-in"
       role={record.type === "danger" || record.type === "error" ? "alert" : "status"}
       aria-label={visual.label}
     >
-      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius-md)]" style={{ color: visual.color, background: visual.soft }}>
-        <Icon size={17} aria-hidden="true" />
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius-md)] text-sm font-bold" style={{ color: visual.color, background: visual.soft }} aria-hidden="true">
+        {visual.glyph}
       </span>
       <div className="min-w-0 flex-1 pt-1">
         <p className="text-sm font-medium leading-snug">{record.message}</p>
@@ -65,21 +56,26 @@ function ToastItem({ record, onRemove }: { record: ToastRecord; onRemove: (id: s
             onClick={() => { record.action?.onClick(); onRemove(record.id); }}
             className="mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-md text-xs font-semibold text-[var(--brand-strong)] hover:underline"
           >
-            <Undo2 size={13} /> {record.action.label ?? "Undo"}
+            ↶ {record.action.label ?? "Undo"}
           </button>
         )}
       </div>
-      <Button variant="ghost" size="icon-sm" onClick={() => onRemove(record.id)} aria-label="Dismiss notification">
-        <X size={14} />
-      </Button>
-      <motion.span
-        className="absolute inset-x-0 bottom-0 h-0.5 origin-left"
-        style={{ background: visual.color }}
-        initial={{ scaleX: 1 }}
-        animate={{ scaleX: 0 }}
-        transition={{ duration: record.duration / 1000, ease: "linear" }}
+      <button
+        type="button"
+        onClick={() => onRemove(record.id)}
+        aria-label="Dismiss notification"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-md)] text-lg text-[var(--foreground-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
+      >
+        <span aria-hidden="true">×</span>
+      </button>
+      <span
+        className="toast-progress absolute inset-x-0 bottom-0 h-0.5 origin-left"
+        style={{
+          background: visual.color,
+          animationDuration: `${record.duration}ms`,
+        }}
       />
-    </motion.div>
+    </div>
   );
 }
 
@@ -106,7 +102,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ toast }}>
       {children}
       <div className={cn("pointer-events-none fixed bottom-24 right-4 z-[var(--z-toast)] flex flex-col items-end gap-2 md:bottom-6")} aria-live="polite" aria-relevant="additions">
-        <AnimatePresence mode="popLayout">{toasts.map((record) => <ToastItem key={record.id} record={record} onRemove={remove} />)}</AnimatePresence>
+        {toasts.map((record) => <ToastItem key={record.id} record={record} onRemove={remove} />)}
       </div>
     </ToastContext.Provider>
   );

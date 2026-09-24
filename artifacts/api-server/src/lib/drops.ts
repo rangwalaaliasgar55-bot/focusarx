@@ -87,7 +87,13 @@ export async function createDrop(input: DropInput): Promise<{ id: string; fanned
 
   // Fan-out: in-app notification + push to real members (never to bots —
   // they don't read inboxes, and we don't fake engagement), socket pop, and
-  // an optional email blast.
+  // an optional email blast. A scheduled event is announced as *upcoming*,
+  // never falsely as "live" just because an admin created it early.
+  const isUpcoming = drop.startsAt > new Date();
+  const deliveryTitle = isUpcoming ? `Upcoming: ${drop.title}` : drop.title;
+  const deliveryMessage = isUpcoming
+    ? `${drop.description ?? "A new FocusArx event"} Starts ${drop.startsAt.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}.`
+    : (drop.description ?? "A drop is live on FocusArx.");
   let fannedOut = 0;
   try {
     const recipients = await db
@@ -97,7 +103,7 @@ export async function createDrop(input: DropInput): Promise<{ id: string; fanned
 
     if (recipients.length) {
       const ids = recipients.map((r) => r.id);
-      const message = drop.description ?? "A drop is live on FocusArx.";
+      const message = deliveryMessage;
       // Bulk in-app notifications, one statement per 500 recipients.
       //
       // Exactly one bound parameter per row (the user id, $1..$n), then the
@@ -114,7 +120,7 @@ export async function createDrop(input: DropInput): Promise<{ id: string; fanned
         const tuples = chunk.map(
           (_uid, k) => `(gen_random_uuid(), $${k + 1}::text, 'drop', $${n + 1}::text, $${n + 2}::text, $${n + 3}::jsonb, false, now())`,
         );
-        const params: unknown[] = [...chunk, drop.title, message, JSON.stringify({ dropId: drop.id, type: drop.type })];
+        const params: unknown[] = [...chunk, deliveryTitle, message, JSON.stringify({ dropId: drop.id, type: drop.type, upcoming: isUpcoming })];
         await pool.query(
           `INSERT INTO notifications (id, user_id, type, title, message, data, read, created_at) VALUES ${tuples.join(", ")}`,
           params,
@@ -124,7 +130,7 @@ export async function createDrop(input: DropInput): Promise<{ id: string; fanned
       // Push (best-effort, capped concurrency) + optional email handled by caller.
       await Promise.all(
         recipients.slice(0, 2000).map(async (r) => {
-          try { await sendPush(r.id, { title: drop.title, body: drop.description ?? "A drop is live on FocusArx.", url: "/dashboard" }); } catch { /* best effort */ }
+          try { await sendPush(r.id, { title: deliveryTitle, body: deliveryMessage, url: "/dashboard" }); } catch { /* best effort */ }
         }),
       );
     }
@@ -143,14 +149,15 @@ export async function createDrop(input: DropInput): Promise<{ id: string; fanned
 export async function emailBlastForDrop(dropId: string): Promise<{ recipients: number }> {
   const [drop] = await db.select().from(adminDropsTable).where(eq(adminDropsTable.id, dropId)).limit(1);
   if (!drop) return { recipients: 0 };
+  const isUpcoming = drop.startsAt > new Date();
   const recipients = await db
     .select({ email: usersTable.email })
     .from(usersTable)
     .where(and(eq(usersTable.isGuest, false), sql`coalesce(${usersTable.role}, 'user') <> 'bot'`));
   const html = `
     <div style="font-family: ui-sans-serif, system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #18181b;">
-      <h1 style="font-size: 20px; margin: 0 0 8px;">${drop.title}</h1>
-      <p style="font-size: 14px; line-height: 1.6; color: #52525b;">${drop.description ?? "A drop is live on FocusArx."}</p>
+      <h1 style="font-size: 20px; margin: 0 0 8px;">${isUpcoming ? "Upcoming: " : "Live now: "}${drop.title}</h1>
+      <p style="font-size: 14px; line-height: 1.6; color: #52525b;">${drop.description ?? (isUpcoming ? "A new FocusArx event is coming up." : "A drop is live on FocusArx.")}</p>
       <p style="font-size: 13px; color: #71717a;">Live ${drop.startsAt.toLocaleString("en-IN")} – ${drop.endsAt.toLocaleString("en-IN")} (IST).</p>
       <a href="/dashboard" style="display: inline-block; background: #7c3aed; color: #fff; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 600;">Open FocusArx</a>
     </div>`;
