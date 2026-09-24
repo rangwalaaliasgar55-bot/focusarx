@@ -500,7 +500,7 @@ function MobileSidePanelDrawer() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 300 }}
-              className="fixed inset-x-0 bottom-0 z-[var(--z-modal)] flex max-h-[85dvh] flex-col rounded-t-[var(--radius-2xl)] border-t border-[var(--border-subtle)] bg-[var(--surface-overlay)] shadow-[var(--shadow-[var(--shadow-lg)])] lg:hidden"
+              className="fixed inset-x-0 bottom-0 z-[var(--z-modal)] flex max-h-[85dvh] flex-col rounded-t-[var(--radius-2xl)] border-t border-[var(--border-subtle)] bg-[var(--surface-overlay)] shadow-[var(--shadow-lg)] lg:hidden"
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}

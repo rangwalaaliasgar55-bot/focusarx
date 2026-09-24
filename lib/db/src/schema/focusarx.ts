@@ -848,11 +848,51 @@ export const userProfileExtrasTable = pgTable("user_profile_extras", {
   isPrivate: boolean("is_private").default(false).notNull(),
   customStatus: text("custom_status"),
   statusEmoji: text("status_emoji"),
+  /** A checked, app-owned profile symbol id (rendered with Lucide on clients). */
+  profileIcon: text("profile_icon"),
   creatorTier: text("creator_tier").notNull().default("learner"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export type UserProfileExtras = typeof userProfileExtrasTable.$inferSelect;
+
+// ─── ATOMIC REQUEST LEDGERS ─────────────────────────────────────────────────
+
+/** Idempotency ledger for confirmed voice-created tasks and goals. */
+export const voiceCaptureBatchesTable = pgTable("voice_capture_batches", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  idempotencyKey: text("idempotency_key").notNull(),
+  transcript: text("transcript").notNull(),
+  result: jsonb("result").$type<Record<string, unknown>>().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  unique("voice_capture_batches_user_key_uidx").on(t.userId, t.idempotencyKey),
+  index("voice_capture_batches_user_created_idx").on(t.userId, t.createdAt),
+]);
+
+export type VoiceCaptureBatch = typeof voiceCaptureBatchesTable.$inferSelect;
+
+/** Server-created hosted checkout intents; provider callbacks are bound to this user-owned row. */
+export const paymentCheckoutIntentsTable = pgTable("payment_checkout_intents", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(),
+  providerOrderId: text("provider_order_id").notNull(),
+  interval: text("interval").notNull(),
+  amountMinor: integer("amount_minor").notNull(),
+  currency: text("currency").notNull(),
+  status: text("status").notNull().default("pending"),
+  providerPaymentId: text("provider_payment_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+}, (t) => [
+  uniqueIndex("payment_checkout_intents_provider_order_uidx").on(t.provider, t.providerOrderId),
+  uniqueIndex("payment_checkout_intents_provider_payment_uidx").on(t.provider, t.providerPaymentId),
+  index("payment_checkout_intents_user_created_idx").on(t.userId, t.createdAt),
+]);
+
+export type PaymentCheckoutIntent = typeof paymentCheckoutIntentsTable.$inferSelect;
 
 // ─── EMOTES ──────────────────────────────────────────────────────────────────
 

@@ -145,29 +145,36 @@
     {
       "idx": 20,
       "version": "7",
-      "when": 1789400000000,
+      "when": 1790000001000,
       "tag": "0020_city_builder_economy",
       "breakpoints": true
     },
     {
       "idx": 21,
       "version": "7",
-      "when": 1789500000000,
+      "when": 1790000002000,
       "tag": "0021_city_simulation",
       "breakpoints": true
     },
     {
       "idx": 22,
       "version": "7",
-      "when": 1789600000000,
+      "when": 1790000003000,
       "tag": "0022_voice_capture_batches",
       "breakpoints": true
     },
     {
       "idx": 23,
       "version": "7",
-      "when": 1789700000000,
+      "when": 1790000004000,
       "tag": "0023_payment_checkout_intents",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790000005000,
+      "tag": "0024_ambient_audio_and_profile_icons",
       "breakpoints": true
     }
   ]

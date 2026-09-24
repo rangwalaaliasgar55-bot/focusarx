@@ -40,6 +40,7 @@ const MUST_ALLOW = [
   "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
   "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)",
   "DuckDuckBot/1.1",
+  "archive.org_bot",
   "UptimeRobot/2.0; http://www.uptimerobot.com/",
   "Better Stack Bot/1.0",
   "Pingdom.com_bot_version_1.4",

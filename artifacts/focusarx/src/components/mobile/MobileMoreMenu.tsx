@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   Building2,
+  CalendarDays,
   Medal,
   Brain,
   Users,
@@ -33,6 +34,7 @@ type MenuItem = {
 };
 
 const SECONDARY_ITEMS: MenuItem[] = [
+  { href: "/planner", label: "Week Runway", icon: CalendarDays, description: "Plan focus blocks by day" },
   { href: "/city", label: "Focus City", icon: Building2, description: "Your growing city" },
   { href: "/achievements", label: "Achievements", icon: Medal, description: "Badges & milestones" },
   { href: "/ai-insights", label: "AI Coach", icon: Brain, description: "Personalized insights", premium: true },

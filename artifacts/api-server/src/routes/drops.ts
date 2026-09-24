@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { adminDropsTable, adminDropClaimsTable, marketplaceItemsTable } from "@workspace/db";
-import { and, desc, eq, gte, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, isNull, lt } from "drizzle-orm";
 import { authMiddleware, optionalAuthMiddleware, type AuthRequest } from "../middlewares/auth";
 import { requireAdmin } from "../lib/adminAuth";
 import { generalLimiter, adminLimiter } from "../lib/rateLimiter";
@@ -51,8 +51,35 @@ dropsRouter.get("/drops", optionalAuthMiddleware, async (req, res) => {
           ))).map((row) => row.dropId))
       : new Set<string>();
 
+    // A sale drop used to expose only an opaque item id, so the member-facing
+    // banner could say little more than "Flash sale". Return the small,
+    // public catalogue summary needed to explain what is actually discounted;
+    // never expose inventory, owner, or internal item metadata here.
+    const saleItemIds = [...new Set(drops
+      .filter((drop) => drop.type === "item_flash_sale")
+      .map((drop) => String(drop.payload?.itemId ?? ""))
+      .filter(Boolean))];
+    const saleItems = saleItemIds.length > 0
+      ? await db.select({ id: marketplaceItemsTable.id, name: marketplaceItemsTable.name, emoji: marketplaceItemsTable.emoji, costCoins: marketplaceItemsTable.costCoins })
+        .from(marketplaceItemsTable)
+        .where(and(inArray(marketplaceItemsTable.id, saleItemIds), eq(marketplaceItemsTable.isActive, true)))
+      : [];
+    const saleItemsById = new Map(saleItems.map((item) => [item.id, item]));
+
     res.json({
       drops: drops.map((d) => ({
+        ...(() => {
+          const item = d.type === "item_flash_sale" ? saleItemsById.get(String(d.payload?.itemId ?? "")) : undefined;
+          const discountPct = Math.min(70, Math.max(0, Number(d.payload?.discountPct) || 0));
+          return item ? {
+            saleItem: {
+              name: item.name,
+              emoji: item.emoji,
+              price: item.costCoins,
+              salePrice: Math.max(1, Math.round(item.costCoins * (100 - discountPct) / 100)),
+            },
+          } : {};
+        })(),
         id: d.id,
         type: d.type,
         title: d.title,
@@ -127,6 +154,23 @@ dropsRouter.post("/admin/drops", authMiddleware, requireAdmin, adminLimiter, asy
     if (!title || typeof title !== "string") {
       res.status(400).json({ error: "Title is required" }); return;
     }
+
+    // The member UI deliberately foregrounds one event and collapses the rest.
+    // Keep the operational side humane too: more than three simultaneous
+    // campaigns means competing push/email messages and unclear rewards.
+    const overlaps = await db.select({ id: adminDropsTable.id })
+      .from(adminDropsTable)
+      .where(and(
+        eq(adminDropsTable.isActive, true),
+        isNull(adminDropsTable.cancelledAt),
+        lt(adminDropsTable.startsAt, end),
+        gt(adminDropsTable.endsAt, start),
+      ))
+      .limit(3);
+    if (overlaps.length >= 3) {
+      res.status(409).json({ error: "This window already has three active events. End, cancel, or reschedule one before adding another." }); return;
+    }
+
     // flash_sale needs a valid item reference
     if (type === "item_flash_sale") {
       const itemId = String(payload?.itemId ?? "");

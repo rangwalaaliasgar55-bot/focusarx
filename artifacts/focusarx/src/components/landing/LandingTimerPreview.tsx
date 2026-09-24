@@ -1,6 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "wouter";
-import { motion } from "framer-motion";
 import { ArrowRight, Coffee, Maximize2, Pause, Play, RotateCcw, Timer as TimerIcon, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -152,10 +151,8 @@ export function LandingTimerPreview() {
               )}
             >
               {selected && (
-                <motion.span
-                  layoutId="landing-timer-mode"
-                  className="absolute inset-0 rounded-[var(--radius-sm)] bg-[var(--surface-3)]"
-                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                <span
+                  className="absolute inset-0 rounded-[var(--radius-sm)] bg-[var(--surface-3)] motion-safe:animate-fade-in"
                 />
               )}
               <span className="relative z-10">{m.label}</span>

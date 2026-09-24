@@ -1,10 +1,9 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { linkAnalyticsUser, trackSiteEvent } from "@/lib/site-analytics";
 import { tryRefreshSession } from "@/lib/api";
 import { clearSessionCache } from "@/lib/queryClient";
 import { resetOfflineQueue } from "@/hooks/useOfflineQueue";
 import { safeGet, safeRemove, safeSet } from "@/lib/safeStorage";
-import { trackEvent as trackGAEvent } from "@/lib/gtag";
+import { hasAnalyticsConsent } from "@/lib/consent";
 
 export type AuthUser = {
   id: string;
@@ -53,6 +52,45 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 const TOKEN_KEY = "focusarx-auth-token";
+const SESSION_HINT_COOKIE = "focusarx_session_hint";
+
+/** Optional measurement must never become an auth-critical import or request.
+ * These modules are fetched only after the visitor has explicitly allowed
+ * analytics; successful sign-in stays fast and works when they are blocked. */
+function linkConsentEligibleAnalyticsUser(userId: string): void {
+  if (!hasAnalyticsConsent()) return;
+  void import("@/lib/site-analytics")
+    .then(({ linkAnalyticsUser }) => linkAnalyticsUser(userId))
+    .catch(() => {});
+}
+
+function reportConsentEligibleLogin(provider: string): void {
+  if (!hasAnalyticsConsent()) return;
+  void Promise.all([import("@/lib/site-analytics"), import("@/lib/gtag")])
+    .then(([analytics, gtag]) => {
+      analytics.trackSiteEvent("user_logged_in", { provider });
+      gtag.trackEvent("login", { method: provider });
+    })
+    .catch(() => {});
+}
+
+/**
+ * A non-sensitive presence marker prevents anonymous visits from issuing a
+ * guaranteed 401 session probe followed by a guaranteed 401 refresh probe.
+ * The marker is never accepted by the API as a credential; it only tells the
+ * client whether a real cookie/token may exist. A bearer token remains a
+ * fallback for older sessions and constrained WebViews.
+ */
+export function hasSessionHint(): boolean {
+  if (getToken()) return true;
+  if (typeof document === "undefined") return false;
+  return new RegExp(`(?:^|;\\s*)${SESSION_HINT_COOKIE}=1(?:;|$)`).test(document.cookie);
+}
+
+function clearSessionHint(): void {
+  if (typeof document === "undefined") return;
+  document.cookie = `${SESSION_HINT_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
+}
 
 /**
  * Token storage goes through safeStorage rather than localStorage directly.
@@ -204,6 +242,11 @@ const TRANSIENT_RETRY_DELAYS_MS = [500, 2000];
 export async function resolveSession(
   options: { retryDelaysMs?: number[] } = {},
 ): Promise<{ session: AuthSession; signedOut: boolean }> {
+  // Most page loads are anonymous. Do not put two known-failing auth requests
+  // on their critical path; an actual credential always leaves either the
+  // server-issued presence marker or the legacy bearer-token fallback.
+  if (!hasSessionHint()) return { session: null, signedOut: true };
+
   const delays = options.retryDelaysMs ?? TRANSIENT_RETRY_DELAYS_MS;
   for (let attempt = 0; ; attempt += 1) {
     const probe = await probeSessionOnce();
@@ -212,6 +255,7 @@ export async function resolveSession(
     }
     if (probe.kind === "signed-out") {
       clearToken();
+      clearSessionHint();
       return { session: null, signedOut: true };
     }
     // Out of patience: report "not signed in" for rendering purposes, but keep
@@ -223,7 +267,10 @@ export async function resolveSession(
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AuthSession>(null);
-  const [status, setStatus] = useState<AuthStatus>("loading");
+  // Anonymous is the common case. Starting there lets public, prerendered
+  // routes render immediately instead of showing a spinner while two expected
+  // 401s resolve. A real session still begins in loading until it is verified.
+  const [status, setStatus] = useState<AuthStatus>(() => hasSessionHint() ? "loading" : "unauthenticated");
 
   const refresh = useCallback(async () => {
     // No setStatus("loading") here: status already initializes to "loading",
@@ -235,8 +282,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Subscription-style (not sync setState): resolves the session, then
-    // publishes. Cancelled on unmount so late responses never setState.
+    // Subscription-style (not sync setState): resolves a *possible* session,
+    // then publishes. A new anonymous visit has no marker, so it is already in
+    // its final state and performs no network I/O.
+    if (!hasSessionHint()) return;
     let cancelled = false;
     void resolveSession().then(({ session }) => {
       if (cancelled) return;
@@ -261,7 +310,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (status === "authenticated" && data?.user?.id) {
-      linkAnalyticsUser(data.user.id);
+      linkConsentEligibleAnalyticsUser(data.user.id);
       // Referral auto-apply (?ref= captured pre-signup). Fire-and-forget,
       // idempotent server-side; never blocks auth.
       void import("./referral").then((m) => m.tryApplyPendingReferral()).catch(() => {});
@@ -273,6 +322,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Same reason as in signOut: the cache belongs to the session that just
       // ended, and the next person to sign in in this tab must not inherit it.
       clearSessionCache();
+      clearSessionHint();
       setData(null);
       setStatus("unauthenticated");
     };
@@ -358,8 +408,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           error: "FocusArx confirmed your sign-in but could not load your session. Try again — you may already be signed in.",
         };
       }
-      trackSiteEvent("user_logged_in", { provider });
-      trackGAEvent("login", { method: provider });
+      reportConsentEligibleLogin(provider);
       return { ok: true };
     } catch {
       return { ok: false, error: "We couldn't reach FocusArx. Check your connection and try again." };
@@ -375,6 +424,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Offline or server unreachable — still clear local state below.
     }
     clearToken();
+    clearSessionHint();
     // Every cached server response belongs to the account that just left.
     clearSessionCache();
     // The offline queue belongs to the account that just left too. Its payloads

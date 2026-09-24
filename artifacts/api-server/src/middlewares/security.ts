@@ -23,7 +23,7 @@ import { Request, Response, NextFunction } from "express";
 /** Agents that must always be allowed through, whatever they look like. */
 const ALWAYS_ALLOWED = [
   // Search / SEO
-  "googlebot", "bingbot", "duckduckbot", "yandexbot", "baiduspider",
+  "googlebot", "bingbot", "duckduckbot", "archive.org_bot", "ia_archiver", "yandexbot", "baiduspider",
   "applebot", "slurp", "semrushbot", "ahrefsbot", "mj12bot", "petalbot",
   "facebookexternalhit", "twitterbot", "linkedinbot", "embedly", "showyoubot",
   "outbrain", "pinterest", "quora link preview", "slackbot", "discordbot",

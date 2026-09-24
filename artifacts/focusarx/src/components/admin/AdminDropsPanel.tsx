@@ -115,7 +115,9 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
       const d = await r.json();
       toast(
         r.ok
-          ? `Drop live — announced to ${d.fannedOut} members${d.emailBlast === "queued" ? " + email blast queued" : ""}.`
+          ? (form.startsInMin <= 0
+            ? `Drop is live — announced to ${d.fannedOut} members${d.emailBlast === "queued" ? " + email blast queued" : ""}.`
+            : `Drop scheduled for ${form.startsInMin}m from now${d.emailBlast === "queued" ? " · email blast queued" : ""}.`)
           : (d.error ?? "Failed"),
         r.ok ? "success" : "error",
       );
@@ -143,7 +145,25 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
   // is both impure and jittery; this panel refreshes via load() anyway.
   const [now] = useState(() => Date.now());
   const currentTemplate = templates.find((t) => t.type === form.type);
-
+  const proposedStart = new Date(now + form.startsInMin * 60 * 1000);
+  const proposedEnd = new Date(proposedStart.getTime() + form.durationH * 3600 * 1000);
+  // A card can foreground one event, but scheduling four at once still sends
+  // four push/email messages and dilutes the reward. Make that collision
+  // visible before the admin presses Create; no silent scheduling surprise.
+  const overlappingDrops = drops.filter((drop) => !drop.cancelledAt
+    && new Date(drop.startsAt) < proposedEnd
+    && new Date(drop.endsAt) > proposedStart);
+  const rewardPreview = (() => {
+    switch (form.type) {
+      case "coin_rain": return `${form.coinsPerClaim.toLocaleString()} coins × ${form.poolTotal.toLocaleString()} members`;
+      case "streak_freeze": return `1 streak-freeze × ${form.poolTotal.toLocaleString()} members`;
+      case "double_xp": return `${form.multiplier}× XP, applied automatically`;
+      case "board_shakeup": return `${form.multiplier}× weekly-board progress, applied automatically`;
+      case "flash_quest": return `${form.targetMinutes} focus min → ${form.rewardCoins.toLocaleString()} coins + ${form.rewardXp.toLocaleString()} XP`;
+      case "item_flash_sale": return `${form.discountPct}% off ${items.find((item) => item.id === form.itemId)?.name ?? "the selected item"}`;
+      default: return "Configure the event reward";
+    }
+  })();
 
   const numField = (label: string, key: string, step = 1) => (
     <label className="block">
@@ -189,6 +209,16 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
           </div>
           <p className="mb-3 text-[0.6875rem] leading-relaxed text-[var(--palette-zinc-500)]">{currentTemplate?.description}</p>
 
+          <div className="mb-3 rounded-lg border border-[var(--palette-violet-500)]/25 bg-[var(--palette-violet-500)]/5 p-3" aria-label="Member-facing event preview">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-[var(--palette-violet-300)]">Member-facing preview</span>
+              <span className="text-[0.6875rem] font-medium text-[var(--palette-zinc-500)]">{form.startsInMin <= 0 ? "Live immediately" : `Starts in ${form.startsInMin}m`}</span>
+            </div>
+            <p className="mt-1 text-xs font-semibold text-[var(--palette-zinc-100)]">{form.title.trim() || "Your event title"}</p>
+            <p className="mt-1 text-[0.6875rem] leading-relaxed text-[var(--palette-zinc-400)]">{form.description.trim() || rewardPreview}</p>
+            <p className="mt-2 text-[0.6875rem] font-medium text-[var(--palette-violet-200)]">{rewardPreview}</p>
+          </div>
+
           <div className="space-y-3">
             <label className="block">
               <span className="mb-1 block text-[0.6875rem] font-medium text-[var(--palette-zinc-400)]">Title</span>
@@ -228,6 +258,13 @@ export function AdminDropsPanel({ authHeaders }: AdminPanelProps) {
                 </select>
               </label>
             )}
+            <div className={`rounded-lg border px-3 py-2 text-[0.6875rem] leading-relaxed ${overlappingDrops.length > 0 ? "border-[var(--palette-amber-500)]/35 bg-[var(--palette-amber-500)]/10 text-[var(--palette-amber-200)]" : "border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/50 text-[var(--palette-zinc-500)]"}`}>
+              <span className="font-semibold">Schedule check: </span>
+              {proposedStart.toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })} → {proposedEnd.toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}.
+              {overlappingDrops.length > 0
+                ? ` It overlaps ${overlappingDrops.length} existing ${overlappingDrops.length === 1 ? "event" : "events"}: ${overlappingDrops.slice(0, 2).map((drop) => drop.title).join(", ")}${overlappingDrops.length > 2 ? "…" : ""}.`
+                : " No active event overlaps this window."}
+            </div>
             <label className="flex cursor-pointer items-center gap-2 text-xs text-[var(--palette-zinc-400)]">
               <input type="checkbox" checked={form.emailBlast} onChange={(e) => setForm((f) => ({ ...f, emailBlast: e.target.checked }))} className="accent-[var(--accent)]" />
               Also send an email blast to every member

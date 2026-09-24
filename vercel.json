@@ -53,7 +53,7 @@
       "dest": "/api/index.mjs?canonicalize=/$1"
     },
     {
-      "src": "/(admin|ai-insights|analytics|auth/callback|battle-pass|city|consequences|constellations|dashboard|data-deletion|developer|dna|dreams|flashcards|focus-dna|forge|forge-room|forgot-password|go/ig|goals|groups|habits|lootboxes|marketplace|messages|missions|notifications|onboarding|pets|profile|quests|referral|reset-password|shop|social|tasks|wallet|welcome)",
+      "src": "/(admin|ai-insights|analytics|auth/callback|battle-pass|city|consequences|constellations|dashboard|data-deletion|developer|dna|dreams|flashcards|focus-dna|forge|forge-room|forgot-password|go/ig|goals|groups|habits|lootboxes|marketplace|messages|missions|notifications|onboarding|pets|planner|profile|quests|referral|reset-password|shop|social|tasks|wallet|welcome)",
       "dest": "/index.html"
     },
     {
@@ -138,7 +138,19 @@
         },
         {
           "key": "Strict-Transport-Security",
-          "value": "max-age=63072000; includeSubDomains"
+          "value": "max-age=63072000; includeSubDomains; preload"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://www.googletagservices.com https://www.google.com https://*.googleadservices.com https://*.googlesyndication.com https://*.doubleclick.net https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.googlesyndication.com; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; font-src 'self' data: https://fonts.gstatic.com; media-src 'self' blob: data:; worker-src 'self' blob:; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://www.google.com https://*.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+        },
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
         },
         {
           "key": "Permissions-Policy",

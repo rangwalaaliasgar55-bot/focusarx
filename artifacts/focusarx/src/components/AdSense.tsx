@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { hasAdvertisingConsent } from "@/lib/consent";
 
 declare global {
   interface Window {
@@ -22,12 +23,11 @@ const ADSENSE_CLIENT =
  * get the AdSense account limited, so every unit is gated on this.
  */
 function hasAdConsent(): boolean {
-  if (typeof window === "undefined") return false;
-  const v = window.localStorage.getItem("focusarx:consent:ads");
-  // No banner decision recorded yet → treat as not consented for personalised
-  // ads, but still allow the (non-personalised) unit to render.
-  if (v === null) return true;
-  return v === "granted";
+  // The publisher script itself is expensive third-party work. Do not request
+  // it (even for a non-personalised fill) until the visitor has deliberately
+  // enabled advertising. This is both the privacy-safe default and keeps ads
+  // out of the mobile page's critical path.
+  return hasAdvertisingConsent();
 }
 
 const SCRIPT_ID = "adsbygoogle-js";
@@ -84,7 +84,7 @@ interface AdSenseProps {
  *   <AdSense slot="1234567890" format="fluid" layoutKey="-6k3+7k-1p+a4" />
  *
  * Behaviour:
- *   - the loader script is injected on first mount only
+ *   - the loader script is injected once, only after advertising opt-in
  *   - the ad is requested when the slot scrolls into view (viewability + perf)
  *   - the slot reserves height up front so filling it causes no layout shift
  *   - push() is guarded against React StrictMode double-invocation
@@ -101,9 +101,12 @@ export function AdSense({
   const ref = useRef<HTMLModElement>(null);
   const pushed = useRef(false);
   const [visible, setVisible] = useState(false);
+  const [consentVersion, setConsentVersion] = useState(0);
 
   useEffect(() => {
-    ensureAdScript();
+    const onConsentChange = () => setConsentVersion((version) => version + 1);
+    window.addEventListener("focusarx:consent-change", onConsentChange);
+    return () => window.removeEventListener("focusarx:consent-change", onConsentChange);
   }, []);
 
   // Request the ad once the slot is actually near the viewport.
@@ -127,15 +130,22 @@ export function AdSense({
   }, []);
 
   useEffect(() => {
-    if (!visible || pushed.current) return;
-    if (!hasAdConsent()) return;
-    try {
-      (window.adsbygoogle = window.adsbygoogle || []).push({});
-      pushed.current = true;
-    } catch {
-      // AdSense not loaded yet or blocked — silent fail, never throw into React.
-    }
-  }, [visible]);
+    if (!visible || pushed.current || !hasAdConsent()) return;
+    ensureAdScript();
+
+    // adsbygoogle queues commands before its async loader finishes. Yielding a
+    // frame also gives the freshly appended <ins> its final dimensions before
+    // the provider measures it.
+    const id = window.requestAnimationFrame(() => {
+      try {
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+        pushed.current = true;
+      } catch {
+        // AdSense not loaded yet or blocked — silent fail, never throw into React.
+      }
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [visible, consentVersion]);
 
   const reserved = minHeight ?? MIN_HEIGHT[format] ?? 250;
 
@@ -166,18 +176,24 @@ export function AdSense({
 export function AdSenseAnchor({ slot }: { slot: string }) {
   const ref = useRef<HTMLModElement>(null);
   const pushed = useRef(false);
+  const [consentVersion, setConsentVersion] = useState(0);
 
   useEffect(() => {
+    const onConsentChange = () => setConsentVersion((version) => version + 1);
+    window.addEventListener("focusarx:consent-change", onConsentChange);
+    return () => window.removeEventListener("focusarx:consent-change", onConsentChange);
+  }, []);
+
+  useEffect(() => {
+    if (!ref.current || pushed.current || !hasAdConsent()) return;
     ensureAdScript();
-    if (!ref.current || pushed.current) return;
-    if (!hasAdConsent()) return;
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
       pushed.current = true;
     } catch {
       // silent
     }
-  }, []);
+  }, [consentVersion]);
 
   return (
     <ins

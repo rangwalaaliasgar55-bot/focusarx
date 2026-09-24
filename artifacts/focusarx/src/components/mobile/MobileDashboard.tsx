@@ -16,6 +16,7 @@ import {
 import { Coins } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useTasks } from "@/hooks/useTasks";
+import { FocusRunway } from "@/components/dashboard/FocusRunway";
 import { useSessionHistory } from "@/hooks/useSessionHistory";
 import { DailyMissionsStrip } from "@/components/DailyMissionsStrip";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,7 @@ import type { Trend } from "@/types/trend";
 
 interface MobileDashboardProps {
   onStartFocus: () => void;
+  onStartPlannedFocus?: (block: { title: string; minutes: number }) => void;
   stats?: {
     totalStudyMinutesToday: number;
     sessionsToday: number;
@@ -53,9 +55,9 @@ interface MobileDashboardProps {
   };
 }
 
-export function MobileDashboard({ onStartFocus, stats, recentSessions, wallet, trends }: MobileDashboardProps) {
+export function MobileDashboard({ onStartFocus, onStartPlannedFocus, stats, recentSessions, wallet, trends }: MobileDashboardProps) {
   const { data: session } = useAuth();
-  const { activeTasks } = useTasks();
+  const { activeTasks, toggleDone } = useTasks();
   const { focusSessionsToday } = useSessionHistory();
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -229,6 +231,13 @@ export function MobileDashboard({ onStartFocus, stats, recentSessions, wallet, t
           <ArrowRight size={16} className="text-[var(--foreground-subtle)]" />
         </Link>
       )}
+
+      {/* The same day plan is available on phones; no desktop-only planner. */}
+      <FocusRunway
+        tasks={activeTasks}
+        onStart={onStartPlannedFocus ?? (() => onStartFocus())}
+        onToggleTask={toggleDone}
+      />
 
       {/* Current streak - motivational */}
       {streak > 0 && (

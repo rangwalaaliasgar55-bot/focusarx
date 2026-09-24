@@ -6,12 +6,12 @@
  *
  * Renders as a compact pill on mobile / compact bar on desktop;
  * expands into a sleek mixer with scenes, layers with per-layer volume,
- * YouTube tracks, EQ, and master volume.
+ * released direct-audio recordings, EQ, and master volume.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Volume2, VolumeX, Music, X, Sparkles, SlidersHorizontal, Square, Play, Pause, ChevronDown, ChevronUp } from "lucide-react";
+import { Volume2, VolumeX, Music, X, Sparkles, SlidersHorizontal, Square, Play, Pause, ChevronDown, ChevronUp, Repeat2 } from "lucide-react";
 import {
   ambientEngine,
   AMBIENT_SOUNDS,
@@ -25,18 +25,21 @@ import { safeGetJson, safeSetJson } from "@/lib/safeStorage";
 import AudioVisualizer from "./AudioVisualizer";
 
 const MIX_KEY = "focusarx-ambient-mix";
+const TRACK_PREFERENCES_KEY = "focusarx-ambient-track-preferences";
 const CORE_IDS: SoundId[] = ["rain", "storm", "ocean", "forest", "cafe", "fireplace", "crickets", "pink", "brown", "white"];
 
-/** Tracks published by an admin (streamed audio or YouTube, not synthesized). */
+/** Released direct-audio tracks published by an admin (never a video embed). */
 type CustomTrack = {
   id: string;
   label: string;
   emoji?: string;
   url: string;
   credit?: string;
-  type?: "audio" | "youtube";
-  youtubeId?: string | null;
+  sourceUrl?: string;
+  license?: string;
+  looping: boolean;
 };
+type TrackPreferences = { volumes: Record<string, number>; loops: Record<string, boolean> };
 
 type SavedMix = { layers: Array<{ id: SoundId; volume: number }>; master: number };
 
@@ -75,8 +78,13 @@ export default function AmbientSoundBar({ variant = "pill", className = "" }: Pr
 
   const [customTracks, setCustomTracks] = useState<CustomTrack[]>([]);
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
-  const [trackVolumes, setTrackVolumes] = useState<Record<string, number>>({});
+  const [trackError, setTrackError] = useState<string | null>(null);
+  const [trackPreferences, setTrackPreferences] = useState<TrackPreferences>(() => safeGetJson<TrackPreferences>(TRACK_PREFERENCES_KEY, { volumes: {}, loops: {} }));
   const trackAudioRef = useRef<HTMLAudioElement | null>(null);
+  const trackVolumes = trackPreferences.volumes;
+  const trackLoops = trackPreferences.loops;
+
+  useEffect(() => { safeSetJson(TRACK_PREFERENCES_KEY, trackPreferences); }, [trackPreferences]);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,33 +104,52 @@ export default function AmbientSoundBar({ variant = "pill", className = "" }: Pr
 
   useEffect(() => () => { stopTrack(); }, [stopTrack]);
 
-  const toggleTrack = (t: CustomTrack) => {
-    if (playingTrackId === t.id) { stopTrack(); return; }
+  const isTrackLooping = (track: CustomTrack) => trackLoops[track.id] ?? track.looping;
+
+  const toggleTrack = (track: CustomTrack) => {
+    if (playingTrackId === track.id) { stopTrack(); return; }
     stopTrack();
+    setTrackError(null);
 
-    const isYt = t.type === "youtube" || !!t.youtubeId || t.url.includes("youtu");
-    if (isYt) {
-      setPlayingTrackId(t.id);
-      return;
-    }
-
-    const el = new Audio(t.url);
-    el.loop = true;
-    el.volume = Math.max(0, Math.min(1, (trackVolumes[t.id] ?? 0.6) * (muted ? 0 : 1)));
-    el.addEventListener("error", () => { if (trackAudioRef.current === el) stopTrack(); });
+    const el = new Audio(track.url);
+    el.loop = isTrackLooping(track);
+    el.volume = Math.max(0, Math.min(1, (trackVolumes[track.id] ?? 0.6) * (muted ? 0 : 1)));
+    el.addEventListener("ended", () => { if (trackAudioRef.current === el) stopTrack(); });
+    el.addEventListener("error", () => {
+      if (trackAudioRef.current === el) {
+        setTrackError(`Could not play ${track.label}. Please try another recording.`);
+        stopTrack();
+      }
+    });
     trackAudioRef.current = el;
-    setPlayingTrackId(t.id);
+    setPlayingTrackId(track.id);
     // `play()` has no guaranteed return value (jsdom, some in-app browsers) —
     // guard before subscribing, or the ambient mixer throws on every play.
-    const played = el.play();
-    if (played && typeof played.catch === "function") played.catch(() => stopTrack());
+    const played = el.play() as Promise<void> | undefined;
+    if (played && typeof played.then === "function") {
+      void played.then(() => {
+        // Playback is never gated on analytics. The API records only authenticated
+        // starts and publishes no audience count outside the admin surface.
+        void fetch(`/api/site/ambient-tracks/${encodeURIComponent(track.id)}/listen`, {
+          method: "POST", credentials: "include", keepalive: true,
+        }).catch(() => undefined);
+      }).catch(() => {
+        setTrackError(`Your browser blocked ${track.label}. Tap play again after interacting with the page.`);
+        stopTrack();
+      });
+    }
   };
 
   const setTrackVolume = (id: string, v: number) => {
-    setTrackVolumes((prev) => ({ ...prev, [id]: v }));
+    setTrackPreferences((prev) => ({ ...prev, volumes: { ...prev.volumes, [id]: v } }));
     if (playingTrackId === id && trackAudioRef.current) {
       trackAudioRef.current.volume = Math.max(0, Math.min(1, v * (muted ? 0 : 1)));
     }
+  };
+
+  const setTrackLoop = (track: CustomTrack, looping: boolean) => {
+    setTrackPreferences((prev) => ({ ...prev, loops: { ...prev.loops, [track.id]: looping } }));
+    if (playingTrackId === track.id && trackAudioRef.current) trackAudioRef.current.loop = looping;
   };
 
   // Master mute also silences a playing track.
@@ -288,80 +315,39 @@ export default function AmbientSoundBar({ variant = "pill", className = "" }: Pr
           </ul>
         </div>
 
-        {/* Curated music & YouTube */}
+        {/* Released recordings: native audio controls only, never a video frame. */}
         {customTracks.length > 0 && (
           <div>
-            <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">
-              <Music size={11} /> Music & YouTube
-            </p>
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">
+                <Music size={11} /> Released recordings
+              </p>
+              <span className="text-[11px] text-[var(--foreground-subtle)]">Audio only</span>
+            </div>
+            {trackError && <p className="mb-2 rounded-md border border-[var(--danger)]/30 bg-[var(--danger-soft)] px-2 py-1.5 text-[11px] text-[var(--danger)]" role="status">{trackError}</p>}
             <ul className="space-y-1">
-              {customTracks.map((t) => {
-                const active = playingTrackId === t.id;
-                const isYt = t.type === "youtube" || !!t.youtubeId || t.url.includes("youtu");
-                const ytId = t.youtubeId || (t.url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/) || [])[1];
-                const vol = trackVolumes[t.id] ?? 0.6;
+              {customTracks.map((track) => {
+                const active = playingTrackId === track.id;
+                const volume = trackVolumes[track.id] ?? 0.6;
+                const looping = isTrackLooping(track);
                 return (
-                  <li
-                    key={t.id}
-                    className={`rounded-lg border px-2 py-1.5 transition-colors ${active ? "border-[var(--brand-500)]/40 bg-[var(--brand-soft)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)]"}`}
-                  >
+                  <li key={track.id} className={`rounded-lg border px-2 py-1.5 transition-colors ${active ? "border-[var(--brand-500)]/40 bg-[var(--brand-soft)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)]"}`}>
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => toggleTrack(t)}
-                        aria-pressed={active}
-                        className="flex min-h-7 min-w-0 flex-1 items-center gap-2 text-left"
-                      >
+                      <button type="button" onClick={() => toggleTrack(track)} aria-pressed={active} className="flex min-h-7 min-w-0 flex-1 items-center gap-2 text-left">
                         <span className="grid h-6 w-6 shrink-0 place-items-center rounded text-xs" style={{ background: active ? "color-mix(in oklab, var(--brand-400) 18%, transparent)" : "var(--surface-2)" }} aria-hidden>
                           {active ? <Pause size={12} className="text-[var(--brand-400)]" /> : <Play size={12} className="text-[var(--foreground-muted)]" />}
                         </span>
-                        <span className="min-w-0">
-                          <span className={`flex items-center gap-1.5 truncate text-xs font-semibold ${active ? "text-[var(--foreground)]" : "text-[var(--foreground-muted)]"}`}>
-                            <span>{t.emoji ? `${t.emoji} ` : (isYt ? "▶️ " : "")}{t.label}</span>
-                            {isYt && (
-                              <span className="rounded bg-[var(--palette-rose-950)]/70 border border-[var(--palette-rose-500)]/30 px-1 py-0.5 text-[11px] font-bold text-[var(--palette-rose-400)] uppercase">
-                                YT
-                              </span>
-                            )}
-                          </span>
-                        </span>
+                        <span className={`truncate text-xs font-semibold ${active ? "text-[var(--foreground)]" : "text-[var(--foreground-muted)]"}`}>{track.emoji ? `${track.emoji} ` : "🎵 "}{track.label}</span>
                       </button>
-                      {active && !isYt && (
-                        <label className="flex items-center gap-1.5">
-                          <span className="sr-only">{t.label} volume</span>
-                          <input
-                            type="range"
-                            min={0}
-                            max={1}
-                            step={0.01}
-                            value={vol}
-                            onChange={(e) => setTrackVolume(t.id, parseFloat(e.target.value))}
-                            className="fx-range h-1.5 w-20"
-                            style={{ ["--fx-range-fill" as string]: "var(--brand-400)", ["--fx-range-pct" as string]: `${vol * 100}%` }}
-                          />
-                        </label>
-                      )}
+                      <button type="button" onClick={() => setTrackLoop(track, !looping)} aria-pressed={looping} aria-label={`${looping ? "Disable" : "Enable"} loop for ${track.label}`} title={looping ? "Looping" : "Play once"} className={`grid h-7 w-7 place-items-center rounded-md transition-colors ${looping ? "bg-[var(--brand-500)]/20 text-[var(--brand-400)]" : "text-[var(--foreground-subtle)] hover:bg-[var(--surface-2)]"}`}>
+                        <Repeat2 size={13} />
+                      </button>
+                      {active && <label className="flex items-center gap-1.5"><span className="sr-only">{track.label} volume</span><input type="range" min={0} max={1} step={0.01} value={volume} onChange={(event) => setTrackVolume(track.id, parseFloat(event.target.value))} className="fx-range h-1.5 w-20" style={{ ["--fx-range-fill" as string]: "var(--brand-400)", ["--fx-range-pct" as string]: `${volume * 100}%` }} /></label>}
                     </div>
-
-                    {/* YouTube Embedded Stream */}
-                    {active && isYt && ytId && (
-                      <div className="mt-2 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)]">
-                        <div className="relative aspect-video w-full max-h-32">
-                          <iframe
-                            src={`https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&enablejsapi=1&loop=1&playlist=${ytId}&modestbranding=1`}
-                            title={t.label}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            className="h-full w-full border-0"
-                          />
-                        </div>
-                        <div className="flex items-center justify-between px-2 py-1 text-[11px] text-[var(--foreground-subtle)]">
-                          <span>Focus Audio Stream</span>
-                          <a href={t.url} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--brand-400)] underline">
-                            YouTube ↗
-                          </a>
-                        </div>
-                      </div>
-                    )}
+                    <p className="mt-1 truncate pl-8 text-[11px] text-[var(--foreground-subtle)]">
+                      {looping ? "Loops continuously" : "Plays once"}{track.credit ? ` · ${track.credit}` : ""}{track.license ? ` · ${track.license}` : ""}
+                      {track.sourceUrl && <a href={track.sourceUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-[var(--brand-400)] hover:underline">Source ↗</a>}
+                    </p>
                   </li>
                 );
               })}

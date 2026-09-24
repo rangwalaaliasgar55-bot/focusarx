@@ -6,6 +6,7 @@ import { apiJson, errorMessage } from "@/lib/api";
 import { useToast } from "@/components/Toast";
 import { Trophy, Flame, Clock, CheckSquare, Star, Users, Zap, Crown, ArrowLeft, UserPlus } from "lucide-react";
 import { User } from "lucide-react";
+import { ProfileIcon } from "@/lib/profileIcons";
 
 /** Shared client: cookie-first auth, silent refresh, readable error messages. */
 interface PublicProfile {
@@ -28,6 +29,7 @@ interface PublicProfile {
   friendCount?: number;
   badgeCount?: number;
   recentBadges?: Array<{ id?: string; name?: string; icon?: string | null }>;
+  profileIcon?: string | null;
 }
 
 function apiFetch<T = unknown>(path: string, opts?: RequestInit): Promise<T> {
@@ -148,7 +150,7 @@ export default function UserProfilePage() {
         {/* Avatar */}
         <div className="flex items-end justify-between -mt-12 mb-4">
           <div className={`h-24 w-24 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center text-3xl font-semibold text-[var(--palette-white)] border-4 border-[var(--rgba-8-9-20-0_8)] shadow-[var(--shadow-lg)]`}>
-            {initials}
+            {profile.profileIcon ? <ProfileIcon id={profile.profileIcon} size={38} aria-label="Profile symbol" /> : initials}
           </div>
           {!isOwnProfile && status === "authenticated" && (
             <button onClick={() => sendRequest.mutate()} disabled={sendRequest.isPending || sendRequest.isSuccess} className="flex items-center gap-2 rounded-xl bg-[var(--brand-600)] px-4 py-2 text-sm font-semibold text-[var(--palette-white)] disabled:opacity-50 hover:bg-[var(--palette-6d31d4)] transition-colors">

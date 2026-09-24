@@ -86,10 +86,13 @@ app.use(
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'"],
+        frameAncestors: ["'none'"],
         upgradeInsecureRequests: isDev ? null : [],
       },
     },
     crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: { policy: "same-origin" },
+    hsts: isDev ? false : { maxAge: 63_072_000, includeSubDomains: true, preload: true },
     permissionsPolicy: {
       features: {
         camera: ["self"],

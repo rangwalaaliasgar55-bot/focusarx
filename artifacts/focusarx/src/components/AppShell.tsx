@@ -8,6 +8,7 @@ import {
   BookOpen,
   Brain,
   Building2,
+  CalendarDays,
   CheckSquare2,
   ChevronDown,
   Compass,
@@ -112,6 +113,7 @@ const NAV_GROUPS: NavGroup[] = [
     entries: [
       { href: "/", label: "Timer", icon: Timer },
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/planner", label: "Week runway", icon: CalendarDays },
       { href: "/tasks", label: "Tasks", icon: CheckSquare2 },
       { href: "/goals", label: "Goals", icon: Goal },
     ],

@@ -92,7 +92,35 @@ declare global {
   }
 }
 
-createRoot(document.getElementById("root")!).render(
+// Prerendered public routes have a useful static shell in #root. Mount the
+// interactive application beside it, rather than clearing that shell as soon
+// the entry chunk evaluates; on a slow phone this avoids an SEO-first paint
+// turning into a spinner while the lazy route arrives. RoutedContent emits the
+// ready event only after its Suspense boundary resolves, then the shell is
+// removed in one handoff (never displayed beside the interactive page).
+const staticRoot = document.getElementById("root");
+const hasStaticShell = Boolean(staticRoot?.querySelector(".fa-seo"));
+const appMount = hasStaticShell && staticRoot?.parentElement
+  ? (() => {
+      staticRoot.id = "focusarx-prerender";
+      staticRoot.setAttribute("aria-live", "off");
+      Object.assign(staticRoot.style, {
+        position: "fixed",
+        inset: "0",
+        zIndex: "10000",
+        overflow: "auto",
+        width: "100%",
+        background: "var(--background, #0b0d13)",
+      });
+      const mount = document.createElement("div");
+      mount.id = "root";
+      staticRoot.insertAdjacentElement("afterend", mount);
+      window.addEventListener("focusarx:route-ready", () => staticRoot.remove(), { once: true });
+      return mount;
+    })()
+  : staticRoot;
+
+createRoot(appMount!).render(
   <StrictMode>
     <App />
   </StrictMode>
