@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { CheckCircle, Coins, Crown, Lock, Package, ShoppingBag, ShoppingCart, Sparkles, User, Zap } from "lucide-react";
+import { CheckCircle, Coins, Crown, Lock, Package, ShoppingBag, ShoppingCart, Sparkles, Timer, User, Zap } from "lucide-react";
+import { Link } from "wouter";
+import { describeCoinGap, perSessionRewards, sessionsForCoins } from "@/lib/progressCopy";
 import { haptic } from "@/lib/haptics";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
@@ -231,6 +233,23 @@ export default function MarketplacePage() {
   const filtered = filter === "all" ? items : items.filter(i => i.type === filter);
   const owned = items.filter(i => i.owned).length;
 
+  /**
+   * The cheapest thing this student does not own yet, and what it costs in
+   * sessions rather than in coins.
+   *
+   * At zero coins this page was a shop with nothing to buy and no route from
+   * here to a first purchase: "0 Focus Coins" and a wall of disabled buttons. The
+   * number that actually moves a student is not the price — it is how many blocks
+   * of work stand between them and something they want, so that is the line this
+   * page leads with once the wallet is empty.
+   */
+  const coins = wallet?.coins ?? 0;
+  const nextGoal = items
+    .filter((item) => !item.owned)
+    .map((item) => ({ item, price: item.salePrice ?? item.costCoins }))
+    .sort((a, b) => a.price - b.price)[0] ?? null;
+  const goalShortfall = nextGoal ? Math.max(0, nextGoal.price - coins) : 0;
+
   if (loading) return (
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--brand-600)] border-t-transparent" />
@@ -269,6 +288,32 @@ export default function MarketplacePage() {
             </div>
           </div>
         </motion.div>
+
+        {/* Nearest goal — the difference between a locked shop and a target. */}
+        {nextGoal && (coins < nextGoal.price) ? (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-[var(--rgba-245-158-11-0_25)] bg-[var(--rgba-245-158-11-0_06)] px-4 py-3"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-warning)]">Closest thing you can earn</p>
+              <p className="mt-0.5 text-sm text-[var(--foreground-muted)]">
+                <span className="font-semibold text-[var(--foreground)]">{nextGoal.item.name}</span> costs{" "}
+                <span className="font-semibold text-[var(--color-warning)]">{nextGoal.price.toLocaleString()} coins</span>
+                {" — "}
+                {describeCoinGap(goalShortfall)}. A 25-minute block pays about{" "}
+                {perSessionRewards().coins} coins, so this is {sessionsForCoins(goalShortfall)} block{sessionsForCoins(goalShortfall) === 1 ? "" : "s"} of work, not a payment.
+              </p>
+            </div>
+            <Link
+              href="/focus"
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--brand-600)] px-4 text-sm font-semibold text-[var(--neutral-0)] transition-colors hover:bg-[var(--brand-700)]"
+            >
+              <Timer size={14} aria-hidden="true" /> Earn it in a block
+            </Link>
+          </motion.div>
+        ) : null}
 
         {/* Error */}
         <AnimatePresence>

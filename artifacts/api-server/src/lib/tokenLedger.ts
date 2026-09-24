@@ -114,6 +114,30 @@ async function checkDailyLimit(userId: string, source: TokenSource, amount: numb
  * Earn tokens — idempotent, transactional, with daily limits
  * Returns { balanceAfter, ledgerEntry, limited }
  */
+/**
+ * Has a grant with this idempotency key already been paid?
+ *
+ * `earnTokens` is idempotent but only tells you so *after* it runs, which is no
+ * use for rendering "already claimed". This is the read half of the same
+ * guarantee: one query, the same key, so the UI and the payout can never
+ * disagree about whether a week was paid.
+ */
+export async function hasTokenGrant(idempotencyKey: string, tx?: DbOrTx): Promise<boolean> {
+  try {
+    const t = tx ?? db;
+    const [row] = await t
+      .select({ id: tokenLedgerTable.id })
+      .from(tokenLedgerTable)
+      .where(eq(tokenLedgerTable.idempotencyKey, idempotencyKey))
+      .limit(1);
+    return Boolean(row);
+  } catch {
+    // Fail closed: an unreadable ledger must not look like "not yet claimed",
+    // because that would offer a button that cannot pay out.
+    return true;
+  }
+}
+
 export async function earnTokens(
   userId: string,
   source: TokenSource,

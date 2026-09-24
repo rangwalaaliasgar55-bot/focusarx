@@ -13,9 +13,11 @@ import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { usePremium } from "@/hooks/usePremium";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { apiJson } from "@/lib/api";
+import { apiJson, asArray, asNumber, asRecord, asString } from "@/lib/api";
 import { QueryError } from "@/components/ui/QueryError";
 import { TrendPill } from "@/components/ui/trend-pill";
+import { buildInsights, type Insight } from "@/lib/analyticsInsights";
+import { Sun, Sunrise, CalendarCheck, Repeat } from "lucide-react";
 import type { Trend } from "@/types/trend";
 
 interface AnalyticsData {
@@ -47,6 +49,54 @@ interface AnalyticsData {
   };
 }
 
+/**
+ * A complete `AnalyticsData`, whatever the server sent.
+ *
+ * Reached from the dashboard and from the nav, by students who are looking for
+ * the answer to "is this working". The render reads `data.personalBests.*`,
+ * `data.chartData14`, `data.hourDist` and `data.heatmap` unconditionally, so a
+ * payload missing any one of them was a blank page rather than a truthful "no
+ * sessions yet" — which at zero sessions is the *only* thing this page has to
+ * say, and must therefore never be the thing that breaks it.
+ */
+function readAnalytics(payload: unknown): AnalyticsData {
+  const raw = asRecord(payload);
+  const bests = asRecord(raw.personalBests);
+  const week = asRecord(raw.weekComparison);
+  return {
+    heatmap: (raw.heatmap && typeof raw.heatmap === "object" ? raw.heatmap : {}) as Record<string, number>,
+    chartData14: asArray<{ date: string; minutes: number }>(raw.chartData14).map((d) => ({
+      date: asString(asRecord(d).date),
+      minutes: asNumber(asRecord(d).minutes),
+    })),
+    hourDist: asArray<{ hour: number; minutes: number }>(raw.hourDist).map((d) => ({
+      hour: asNumber(asRecord(d).hour),
+      minutes: asNumber(asRecord(d).minutes),
+    })),
+    timeDayHeatmap: asArray<AnalyticsData["timeDayHeatmap"][number]>(raw.timeDayHeatmap),
+    historyDays: raw.historyDays === undefined ? undefined : asNumber(raw.historyDays),
+    isPremium: raw.isPremium === true,
+    // Always an array (see the note on readAnalytics): "no bars" and "no field"
+    // are the same fact, and the render already coalesces with `?? []`.
+    weekBarData: asArray<{ day: string; date: string; minutes: number }>(raw.weekBarData),
+    weekComparison: raw.weekComparison === undefined
+      ? undefined
+      : {
+          thisWeekMinutes: asNumber(week.thisWeekMinutes),
+          lastWeekMinutes: asNumber(week.lastWeekMinutes),
+          changePercent: asNumber(week.changePercent),
+          trend: week.trend as AnalyticsData["weekComparison"] extends { trend?: infer T } ? T : never,
+        },
+    personalBests: {
+      longestSessionMinutes: asNumber(bests.longestSessionMinutes),
+      bestDayMinutes: asNumber(bests.bestDayMinutes),
+      totalSessions: asNumber(bests.totalSessions),
+      totalMinutes: asNumber(bests.totalMinutes),
+      longestStreak: asNumber(bests.longestStreak),
+    },
+  };
+}
+
 function HeatmapCell({ minutes, date }: { minutes: number; date: string }) {
   const intensity = Math.min(1, minutes / 120);
   const alpha = 0.08 + intensity * 0.82;
@@ -57,6 +107,45 @@ function HeatmapCell({ minutes, date }: { minutes: number; date: string }) {
       style={{ background: color, outline: "1px solid var(--rgba-124-58-237-0_06)" }}
       title={`${date}: ${minutes}m`}
     />
+  );
+}
+
+/**
+ * One derived conclusion.
+ *
+ * The icon and its colour carry the tone (an upward week, a dip, something to
+ * do), so the row is scannable without reading every word. Tone is stated in
+ * text as well, for anyone who does not get colour.
+ */
+function InsightRow({ insight }: { insight: Insight }) {
+  const tone = insight.tone;
+  const Icon =
+    insight.id === "window" ? Sunrise
+    : insight.id === "trend" ? TrendingUp
+    : insight.id === "consistency" ? CalendarCheck
+    : insight.id === "strength" ? Sun
+    : Repeat;
+  const toneClass =
+    tone === "up" ? "text-[var(--palette-emerald-400)]"
+    : tone === "down" ? "text-[var(--palette-amber-400)]"
+    : tone === "action" ? "text-[var(--brand-teal)]"
+    : "text-[var(--foreground-subtle)]";
+  const toneLabel =
+    tone === "up" ? "Improving"
+    : tone === "down" ? "Below last week"
+    : tone === "action" ? "Do this"
+    : "Observation";
+  return (
+    <li className="flex gap-3">
+      <span className={`mt-0.5 shrink-0 ${toneClass}`} aria-hidden>
+        <Icon size={16} />
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-[var(--foreground)]">{insight.title}</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-[var(--foreground-muted)]">{insight.detail}</p>
+        <p className={`mt-0.5 text-[11px] font-medium ${toneClass}`}>{toneLabel}</p>
+      </div>
+    </li>
   );
 }
 
@@ -173,7 +262,10 @@ export default function AnalyticsPage() {
    */
   const { data, isLoading, isError, refetch, isRefetching } = useQuery<AnalyticsData>({
     queryKey: ["analytics"],
-    queryFn: () => apiJson<AnalyticsData>("/api/analytics"),
+    // Normalised, because `data.personalBests.totalMinutes` on a payload that
+    // arrived without `personalBests` was a blank analytics page — and analytics
+    // is where a student goes to decide whether the method is working at all.
+    queryFn: async () => readAnalytics(await apiJson("/api/analytics")),
     staleTime: 60_000,
   });
   const loading = isLoading;
@@ -194,6 +286,24 @@ export default function AnalyticsPage() {
       value: h.minutes,
       fill: HOUR_COLORS[i] ?? "var(--brand-600)",
     }));
+
+  /*
+   * The charts above answer questions the student has to think to ask. This
+   * closes the loop: the same numbers, read back as conclusions, with the one
+   * action worth taking attached. Derived from the payload that is already on
+   * the page — no extra request.
+   */
+  const insights = data
+    ? buildInsights({
+        chart14: data.chartData14,
+        hourDist: data.hourDist,
+        timeDayHeatmap: data.timeDayHeatmap,
+        weekComparison: data.weekComparison
+          ? { thisWeekMinutes: data.weekComparison.thisWeekMinutes, lastWeekMinutes: data.weekComparison.lastWeekMinutes }
+          : undefined,
+        personalBests: data.personalBests,
+      })
+    : [];
 
   const wc = data?.weekComparison;
   const weekBar = data?.weekBarData ?? [];
@@ -248,6 +358,30 @@ export default function AnalyticsPage() {
                   </motion.div>
                 ))}
               </div>
+
+              {/* Read of your week — the conclusion, not another chart. */}
+              <section aria-labelledby="read-title" className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 id="read-title" className="text-sm font-semibold text-[var(--foreground)]">Read of your week</h2>
+                  {insights.length > 0 && (
+                    <Link href="/focus?duration=25&src=analytics" className="text-xs font-semibold text-[var(--brand-teal)] hover:underline">
+                      Start a 25-minute block
+                    </Link>
+                  )}
+                </div>
+                {insights.length === 0 ? (
+                  <p className="mt-2 text-xs text-[var(--foreground-muted)]">
+                    Two or three sessions is all this needs. Come back after your next block and it will tell you which hours
+                    are carrying your week.
+                  </p>
+                ) : (
+                  <ul className="mt-3 space-y-3">
+                    {insights.map((insight) => (
+                      <InsightRow key={insight.id} insight={insight} />
+                    ))}
+                  </ul>
+                )}
+              </section>
 
               {/* Weekly comparison — premium */}
               {wc ? (

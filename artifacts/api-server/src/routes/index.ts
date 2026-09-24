@@ -78,6 +78,9 @@ import { stripeRouter } from "./stripe";
 import { recapRouter } from "./recap";
 import { webhooksRouter } from "./webhooks";
 import { integrationsRouter } from "./integrations";
+import { voiceCaptureRouter } from "./voiceCapture";
+import { adminBattlePassRouter } from "./adminBattlePass";
+import { razorpayRouter } from "./razorpay";
 
 const router: IRouter = Router();
 
@@ -160,5 +163,13 @@ router.use(stripeRouter);
 router.use(recapRouter);
 router.use(webhooksRouter);
 router.use(integrationsRouter);
+// "Plan by voice": transcript → drafts → tasks/goals. Written long ago and
+// never mounted, so every call 404'd and the feature was missing in the UI too.
+router.use(voiceCaptureRouter);
+router.use(adminBattlePassRouter);
+// UPI/card premium checkout. Mounted, and honest when unconfigured: the route
+// answers 503 RAZORPAY_NOT_CONFIGURED rather than 404, so the client can tell
+// "not enabled yet" apart from "this build does not have it".
+router.use(razorpayRouter);
 
 export default router;

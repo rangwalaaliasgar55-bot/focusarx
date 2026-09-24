@@ -10,6 +10,7 @@ import { queryClient } from "@/lib/queryClient";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { ToastProvider } from "@/components/Toast";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { VoiceCaptureMount } from "@/components/VoiceCaptureMount";
 import { ViewSkeleton } from "@/components/ui/skeleton";
 const CommandPalette = lazyWithRetry(() => import("@/components/CommandPalette"));
 const SiteAnalyticsTracker = lazyWithRetry(() => import("@/components/SiteAnalyticsTracker").then((m) => ({ default: m.SiteAnalyticsTracker })));
@@ -544,6 +545,9 @@ function App() {
         <ToastProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <DeferredAnalytics />
+            {/* Voice capture is mounted app-wide but loads nothing until it is
+                asked for — see components/VoiceCaptureMount.tsx. */}
+            <VoiceCaptureMount />
             <AppWithPalette />
           </WouterRouter>
         </ToastProvider>

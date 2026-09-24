@@ -123,16 +123,21 @@ export default function AmbientSoundBar({ variant = "pill", className = "" }: Pr
     });
     trackAudioRef.current = el;
     setPlayingTrackId(track.id);
-    void el.play().then(() => {
-      // Playback is never gated on analytics. The API records only authenticated
-      // starts and publishes no audience count outside the admin surface.
-      void fetch(`/api/site/ambient-tracks/${encodeURIComponent(track.id)}/listen`, {
-        method: "POST", credentials: "include", keepalive: true,
-      }).catch(() => undefined);
-    }).catch(() => {
-      setTrackError(`Your browser blocked ${track.label}. Tap play again after interacting with the page.`);
-      stopTrack();
-    });
+    // `play()` has no guaranteed return value (jsdom, some in-app browsers) —
+    // guard before subscribing, or the ambient mixer throws on every play.
+    const played = el.play() as Promise<void> | undefined;
+    if (played && typeof played.then === "function") {
+      void played.then(() => {
+        // Playback is never gated on analytics. The API records only authenticated
+        // starts and publishes no audience count outside the admin surface.
+        void fetch(`/api/site/ambient-tracks/${encodeURIComponent(track.id)}/listen`, {
+          method: "POST", credentials: "include", keepalive: true,
+        }).catch(() => undefined);
+      }).catch(() => {
+        setTrackError(`Your browser blocked ${track.label}. Tap play again after interacting with the page.`);
+        stopTrack();
+      });
+    }
   };
 
   const setTrackVolume = (id: string, v: number) => {

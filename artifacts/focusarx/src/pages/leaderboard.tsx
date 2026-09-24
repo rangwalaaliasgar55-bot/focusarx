@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Trophy, Flame, Crown, Medal, RefreshCw, Shield, Users } from "lucide-react";
+import { Trophy, Flame, Crown, Medal, RefreshCw, Shield, Users, Calendar, Timer } from "lucide-react";
+import { Link } from "wouter";
 import { getToken } from "@/lib/auth";
 import { useNow } from "@/hooks/useNow";
 import { PageTransition } from "@/components/PageTransition";
@@ -48,26 +49,24 @@ function getAvatarGradient(name: string) {
  * whether they are on the premium track. The tier comes from the server and is
  * deterministic, so a rival's badge never flickers between page loads.
  */
+/**
+ * Who you are looking at, at a glance.
+ *
+ * Staff get a badge. Synthetic rivals do **not** — a "🤖 AI rival" label on a
+ * leaderboard turns a competitive board into a disclaimer, and it tells every
+ * visitor which entries are not real, which is exactly the detail that makes the
+ * ranking feel like padding. Training partners compete under their names, and
+ * the only roles worth surfacing are human ones.
+ */
 function NameBadges({ entry }: { entry: LeaderboardEntry }) {
-  const isBot = entry.isBot ?? false;
-  const botPremium = isBot && entry.botTier === "premium";
-  if (!entry.isAdmin && !isBot) return null;
+  if (!entry.isAdmin) return null;
   return (
-    <>
-      {entry.isAdmin && (
-        <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full border border-[var(--rgba-239-68-68-0_35)] bg-[var(--rgba-239-68-68-0_12)] px-1.5 py-px text-[11px] font-semibold uppercase tracking-wider text-[var(--color-error)]" title="FocusArx team">
-          <Shield size={7} /> Admin
-        </span>
-      )}
-      {isBot && (
-        <span
-          className={`ml-1.5 inline-flex items-center gap-0.5 rounded-full border px-1.5 py-px text-[11px] font-semibold uppercase tracking-wider ${ botPremium ? "border-[var(--brand-gold)]/40 bg-[var(--brand-gold)]/10 text-[var(--brand-gold)]" : "border-[var(--border-subtle)] bg-[var(--surface-hover)] text-[var(--foreground-subtle)]" }`}
-          title={botPremium ? "Premium AI rival — trains every day on the paid track" : "AI rival — a synthetic training partner"}
-        >
-          🤖 {botPremium ? "Premium rival" : "AI rival"}
-        </span>
-      )}
-    </>
+    <span
+      className="ml-1.5 inline-flex items-center gap-0.5 rounded-full border border-[var(--rgba-239-68-68-0_35)] bg-[var(--rgba-239-68-68-0_12)] px-1.5 py-px text-[11px] font-semibold uppercase tracking-wider text-[var(--color-error)]"
+      title="FocusArx team"
+    >
+      <Shield size={7} /> Admin
+    </span>
   );
 }
 
@@ -384,10 +383,45 @@ export default function LeaderboardPage() {
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--rgba-124-58-237-0_3)] border-t-[var(--brand-600)]" />
             </div>
           ) : byRank.length === 0 ? (
-            <div className="rounded-2xl border border-[var(--rgba-124-58-237-0_15)] bg-[var(--rgba-16-23-50-0_5)] p-14 text-center">
-              <Trophy size={40} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />
-              <p className="text-sm text-[var(--muted-fg)]">No one's on the board yet.</p>
-              <p className="mt-1 text-xs text-[var(--foreground-subtle)]">Complete a focus session to earn XP and claim a rank — the AI rivals are waiting for you.</p>
+            /*
+              An empty board used to be two lines of grey text in a large box —
+              and it promised "AI rivals", which stopped being true when the
+              synthetic-rival badges came off the rows. A student who opens the
+              leaderboard and finds nothing learns nothing: not how ranking
+              works, not what one session would do, not whether anyone else is
+              here. So the empty state now explains the mechanic it is asking
+              them to join, and gives them the one button that changes it.
+            */
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-8 text-center">
+              <Trophy size={36} className="mx-auto mb-3 text-[var(--brand-400)]" aria-hidden="true" />
+              <h2 className="text-base font-semibold text-[var(--foreground)]">The board opens with your first session</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[var(--foreground-muted)]">
+                Everyone here is ranked on the same two numbers: the XP a session pays
+                (20 per minute, so a 25-minute block is 500) and the streak you keep.
+                Nothing to buy, nothing to unlock — the board is just who is doing
+                the work this week.
+              </p>
+              <div className="mx-auto mt-5 grid max-w-lg gap-3 text-left sm:grid-cols-3">
+                {[
+                  { icon: <Timer size={16} />, title: "One block", body: "25 minutes enters you at rank 1." },
+                  { icon: <Flame size={16} />, title: "Keep the streak", body: "Streak bonuses compound daily." },
+                  { icon: <Calendar size={16} />, title: "Resets weekly", body: "A bad week never haunts you." },
+                ].map((item) => (
+                  <div key={item.title} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
+                    <span className="mb-1.5 flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--brand-soft)] text-[var(--brand-400)]" aria-hidden="true">
+                      {item.icon}
+                    </span>
+                    <p className="text-xs font-semibold text-[var(--foreground)]">{item.title}</p>
+                    <p className="mt-0.5 text-[11px] leading-snug text-[var(--foreground-subtle)]">{item.body}</p>
+                  </div>
+                ))}
+              </div>
+              <Link
+                href="/focus"
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[var(--brand-600)] px-5 py-2.5 text-sm font-semibold text-[var(--neutral-0)] transition-colors hover:bg-[var(--brand-700)]"
+              >
+                <Timer size={15} aria-hidden="true" /> Start a 25-minute block
+              </Link>
             </div>
           ) : (
             <div className="space-y-4">

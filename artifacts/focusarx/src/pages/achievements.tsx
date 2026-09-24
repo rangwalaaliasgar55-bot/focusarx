@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { QueryError } from "@/components/ui/QueryError";
 import { motion, AnimatePresence } from "framer-motion";
-import { Star, Lock, Trophy, Flame, Target, Clock, Zap, CheckCircle2, ListTodo, TrendingUp, Users } from "lucide-react";
+import { Star, Lock, Trophy, Flame, Target, Clock, Zap, CheckCircle2, ListTodo, TrendingUp, Users, Timer } from "lucide-react";
 import { PartyPopper } from "lucide-react";
 import { getToken } from "@/lib/auth";
+import { Link } from "wouter";
 import { PageTransition } from "@/components/PageTransition";
+import { describeBadgeGap } from "@/lib/progressCopy";
 import { TiltCard, StaggerContainer, StaggerItem } from "@/components/TiltCard";
 
 interface Badge {
@@ -288,12 +290,27 @@ export default function AchievementsPage() {
                       />
                     </div>
                     <span className="shrink-0 text-[11px] font-bold text-[var(--brand-400)]">
-                      {nextUnlock.threshold - nextUnlock.progress} {nextUnlock.unit} to go
+                      {describeBadgeGap(nextUnlock)}
                     </span>
                   </div>
                 </div>
               </motion.div>
             )}
+
+            {/* A badge gap is a plan only if there is a way to act on it. */}
+            {nextUnlock ? (
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <Link
+                  href="/focus"
+                  className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--brand-600)] px-4 text-sm font-semibold text-[var(--neutral-0)] transition-colors hover:bg-[var(--brand-700)]"
+                >
+                  <Timer size={14} aria-hidden="true" /> Start a block towards it
+                </Link>
+                <p className="text-[11px] text-[var(--foreground-subtle)]">
+                  Badges unlock the moment the session is saved — there is nothing to claim.
+                </p>
+              </div>
+            ) : null}
 
             <div className="mt-4 space-y-1.5">
               <div className="flex items-center justify-between text-xs">

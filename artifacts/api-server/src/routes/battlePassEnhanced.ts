@@ -7,7 +7,9 @@ import { eq, and, desc } from "drizzle-orm";
 import { isUserPremium } from "../lib/premiumCheck";
 import { earnTokens, getTokenBalance } from "../lib/tokenLedger";
 import { logger } from "../lib/logger";
-import { requiredXpForTier, eligibleTiersForXp, currentTierForXp } from "../lib/battlePassTiers";
+import { MAX_TIER, requiredXpForTier, eligibleTiersForXp, currentTierForXp } from "../lib/battlePassTiers";
+import { buildSeasonTiers, groupTierRewards, requiredXpForTierIndex, rewardPayout, type RewardRow } from "../lib/battlePassSeasons";
+import { mintCoins } from "../lib/coinLedger";
 
 const router = Router();
 
@@ -34,7 +36,7 @@ async function getSeasonXp(userId: string): Promise<number> {
 // GET /api/battle-pass/current — enhanced with 30-50 tiers, free+premium, countdown, grace
 interface TierRewardView {
   type?: string | null; value?: number | null; label?: string | null; coins: number; xp: number;
-  tokenAmount?: number; cosmeticId?: string; petId?: string;
+  tokenAmount?: number; cosmeticId?: string; petId?: string; lootbox?: string;
 }
 
 interface BattlePassTierView {
@@ -42,95 +44,99 @@ interface BattlePassTierView {
   freeReward: TierRewardView; premiumReward: TierRewardView;
 }
 
+/**
+ * Shape a reward payload for the client.
+ *
+ * `coins`/`xp`/`tokenAmount`/`cosmeticId` are the fields the battle-pass page
+ * renders, so the mapping is explicit here rather than left to the page to
+ * guess from a jsonb blob.
+ */
+function toTierRewardView(value: { coins?: number; xp?: number; tokens?: number; cosmeticId?: string; petId?: string; lootbox?: string; label?: string } | undefined, type: string): TierRewardView {
+  return {
+    type,
+    label: value?.label ?? null,
+    coins: value?.coins ?? 0,
+    xp: value?.xp ?? 0,
+    tokenAmount: value?.tokens,
+    cosmeticId: value?.cosmeticId,
+    petId: value?.petId,
+    lootbox: value?.lootbox,
+  };
+}
+
 router.get("/battle-pass/current", authMiddleware, async (req: AuthRequest, res) => {
   try {
-    const { start, end, seasonId } = getCurrentSeason();
+    const { end, seasonId } = getCurrentSeason();
     const now = new Date();
     const daysLeft = Math.ceil((end.getTime() - now.getTime()) / 86400000);
     const graceEnd = new Date(end.getTime() + 3 * 86400000); // 3 day grace
     const inGrace = now > end && now < graceEnd;
 
-    // Try to load battle pass definition, fallback to generated tiers
+    // The active season, or the generated default when an admin has not
+    // published one yet. `isActive` is the publish flag the admin builder sets.
     const [bp] = await db.select().from(battlePasses).where(eq(battlePasses.isActive, true)).orderBy(desc(battlePasses.createdAt)).limit(1);
-    let tiers: BattlePassTierView[] = [];
+
+    let tiers: BattlePassTierView[];
+    let seasonTitle: string;
     if (bp) {
       const rewards = await db.select().from(battlePassRewards).where(eq(battlePassRewards.battlePassId, bp.id)).orderBy(battlePassRewards.tier);
-      tiers = rewards.map((r) => {
-        // NOTE: battle_pass_rewards only stores {tier, type, value, requiredXp, isPremium}
-        // — it has no free/premium reward columns, so these reads were always
-        // undefined at runtime (previously hidden by an untyped callback param).
-        const phantom = r as unknown as {
-          freeRewardType?: string; freeRewardValue?: number; freeRewardLabel?: string;
-          freeRewardCoins?: number; freeRewardXp?: number;
-          premiumRewardType?: string; premiumRewardValue?: number; premiumRewardLabel?: string;
-          premiumRewardCoins?: number; premiumRewardXp?: number;
-        };
-        return {
-          tier: r.tier,
-          xpRequired: r.requiredXp,
-          freeReward: { type: phantom.freeRewardType, value: phantom.freeRewardValue, label: phantom.freeRewardLabel, coins: phantom.freeRewardCoins ?? 0, xp: phantom.freeRewardXp ?? 0 },
-          premiumReward: { type: phantom.premiumRewardType, value: phantom.premiumRewardValue, label: phantom.premiumRewardLabel, coins: phantom.premiumRewardCoins ?? 0, xp: phantom.premiumRewardXp ?? 0 },
-        };
-      });
+      // Read the columns the table actually has (tier / required_xp / is_premium /
+      // value). The previous implementation read `freeRewardCoins`-style fields
+      // that do not exist, so every tier rendered as "0 coins" — which is what
+      // made the pass look broken and empty.
+      const rows: RewardRow[] = rewards.map((row) => ({
+        tier: row.tier,
+        requiredXp: row.requiredXp,
+        isPremium: row.isPremium,
+        value: (row.value as Record<string, unknown> | null) ? (row.value as RewardRow["value"]) : {},
+      }));
+      tiers = groupTierRewards(rows).map((view) => ({
+        tier: view.tier,
+        xpRequired: view.xpRequired,
+        freeReward: toTierRewardView(view.freeReward, view.freeType),
+        premiumReward: toTierRewardView(view.premiumReward, view.premiumType),
+      }));
+      seasonTitle = bp.title;
     } else {
-      // Generate 30 tiers
-      tiers = Array.from({ length: 30 }, (_, i) => {
-        const tier = i + 1;
-        const xpReq = tier * 500 + Math.floor(tier / 5) * 500;
-        const isMilestone = tier % 5 === 0;
-        return {
-          tier,
-          xpRequired: xpReq,
-          freeReward: {
-            type: isMilestone ? "bundle" : tier % 2 === 0 ? "coins" : "xp",
-            value: 50 + tier * 10,
-            label: isMilestone ? `${100 + tier * 20} tokens milestone` : `${50 + tier * 5} tokens`,
-            coins: isMilestone ? 100 + tier * 20 : tier % 2 === 0 ? 50 + tier * 5 : 0,
-            xp: isMilestone ? 200 + tier * 10 : tier % 2 === 1 ? 100 + tier * 5 : 0,
-            tokenAmount: isMilestone ? 100 + tier * 5 : 25 + tier * 2,
-          },
-          premiumReward: {
-            type: "bundle",
-            value: 100 + tier * 20,
-            label: isMilestone ? `Premium: ${200 + tier * 30} tokens + pet + cosmetic` : `Premium: ${100 + tier * 10} tokens`,
-            coins: 100 + tier * 20,
-            xp: 200 + tier * 15,
-            tokenAmount: isMilestone ? 200 + tier * 10 : 50 + tier * 5,
-            cosmeticId: isMilestone ? `premium_tier_${tier}_cosmetic` : undefined,
-            petId: tier === 30 ? "legendary_phoenix" : undefined,
-          },
-        };
-      });
+      // No season configured — generate the same table the admin builder would
+      // publish, so the page is complete rather than empty.
+      tiers = buildSeasonTiers({ seed: seasonId }).map((tier) => ({
+        tier: tier.tier,
+        xpRequired: tier.requiredXp,
+        freeReward: toTierRewardView(tier.free, "coins"),
+        premiumReward: toTierRewardView(tier.premium, tier.premium.cosmeticId ? "cosmetic" : "tokens"),
+      }));
+      seasonTitle = "FocusArx Season";
     }
 
-    // User progress (live season XP from battle_pass_progress)
     const seasonXp = await getSeasonXp(req.userId!);
-    const currentTier = currentTierForXp(seasonXp, (t) => {
-      const view = tiers.find(x => x.tier === t);
-      return requiredXpForTier(view ? { requiredXp: view.xpRequired } : undefined, t);
-    });
-
-    // Claims
-    const claims = await db.select().from(battlePassClaimsTable).where(and(eq(battlePassClaimsTable.userId, req.userId!), eq(battlePassClaimsTable.battlePassId, bp?.id ?? seasonId)));
-    const claimedFree = new Set(claims.filter(c => !c.isPremiumReward).map(c => c.tier));
-    const claimedPremium = new Set(claims.filter(c => c.isPremiumReward).map(c => c.tier));
-
+    // `maxTier` is the length of *this* season: an admin may author up to 50
+    // tiers, and the default cap of 30 used to make tier 31+ unreachable.
+    const currentTier = currentTierForXp(
+      seasonXp,
+      (t) => requiredXpForTier({ requiredXp: tiers[t - 1]?.xpRequired ?? requiredXpForTierIndex(t) }, t),
+      tiers.length,
+    );
     const isPremium = await isUserPremium(req.userId!);
-    const balance = await getTokenBalance(req.userId!);
+    const claims = await db.select().from(battlePassClaimsTable).where(and(eq(battlePassClaimsTable.userId, req.userId!), eq(battlePassClaimsTable.battlePassId, bp?.id ?? seasonId)));
+    const claimedFree = claims.filter((c) => !c.isPremiumReward).map((c) => c.tier);
+    const claimedPremium = claims.filter((c) => c.isPremiumReward).map((c) => c.tier);
+    const balance = await getTokenBalance(req.userId!).catch(() => 0);
 
     res.json({
       seasonId: bp?.id ?? seasonId,
-      name: bp?.title ?? `Season ${seasonId}`,
-      startDate: bp?.startDate ?? start,
-      endDate: bp?.endDate ?? end,
-      daysLeft,
-      graceEndsAt: graceEnd,
-      inGracePeriod: inGrace,
+      seasonTitle,
       tiers,
-      progress: { seasonXp, currentTier, claimedFree: Array.from(claimedFree), claimedPremium: Array.from(claimedPremium) },
+      // `countdown.endsAt` is what the page renders; `endDate`/`graceEndsAt` are
+      // kept for the older client shape.
+      countdown: { endsAt: end.toISOString(), graceEndsAt: graceEnd.toISOString() },
+      endDate: end.toISOString(),
+      graceEndsAt: graceEnd.toISOString(),
+      daysLeft,
+      inGracePeriod: inGrace,
       isPremium,
       tokenBalance: balance,
-      countdown: { endsAt: end, graceEndsAt: graceEnd },
+      progress: { currentTier, seasonXp, claimedFree, claimedPremium },
     });
   } catch (err) {
     logger.error({ err }, "battle pass current error");
@@ -138,7 +144,6 @@ router.get("/battle-pass/current", authMiddleware, async (req: AuthRequest, res)
   }
 });
 
-// POST /api/battle-pass/claim — idempotent claim per tier
 router.post("/battle-pass/claim", authMiddleware, async (req: AuthRequest, res) => {
   const { tier, isPremiumReward, battlePassId } = req.body as { tier: number; isPremiumReward?: boolean; battlePassId?: string };
   if (!tier || tier < 1 || tier > 50) return res.status(400).json({ error: "Invalid tier" });
@@ -176,8 +181,20 @@ router.post("/battle-pass/claim", authMiddleware, async (req: AuthRequest, res) 
       if (!premium) return res.status(403).json({ error: "Premium track requires Premium membership", requiresPremium: true });
     }
 
-    // Determine reward tokens
-    const tokenReward = isPremiumReward ? 50 + tier * 5 : 25 + tier * 2;
+    // Pay what the tier advertised. The old code ignored the configured reward
+    // entirely and paid `25 + tier * 2` (free) / `50 + tier * 5` (premium), so a
+    // milestone advertising a cosmetic handed over tokens instead — the season
+    // was decoration. `rewardPayout` keeps the old numbers as a floor for rows
+    // that carry no payload.
+    const [rewardRow] = bp
+      ? await db.select().from(battlePassRewards).where(and(
+          eq(battlePassRewards.battlePassId, bp.id),
+          eq(battlePassRewards.tier, tier),
+          eq(battlePassRewards.isPremium, !!isPremiumReward),
+        )).limit(1)
+      : [];
+    const payout = rewardPayout((rewardRow?.value as Record<string, never> | null) ?? null, !!isPremiumReward, tier);
+    const tokenReward = payout.tokens ?? 0;
 
     // Insert claim idempotently
     const rewardId = `${isPremiumReward ? "premium" : "free"}_tier_${tier}`;
@@ -203,7 +220,8 @@ router.post("/battle-pass/claim", authMiddleware, async (req: AuthRequest, res) 
       throw e;
     }
 
-    // Award tokens idempotently
+    // Award every component the reward promised, each idempotent on its own key
+    // so a replayed claim cannot pay twice.
     const idempotencyKey = `bp_${bpId}_${req.userId}_${tier}_${isPremiumReward ? "premium" : "free"}`;
     let tokenResult;
     try {
@@ -212,7 +230,26 @@ router.post("/battle-pass/claim", authMiddleware, async (req: AuthRequest, res) 
       // token already awarded — still success
     }
 
-    res.json({ claimed: claim, tokenReward, balanceAfter: tokenResult?.balanceAfter });
+    // Coins are minted through the ledger (not written straight to the wallet),
+    // which is what makes a claim reproducible from the transaction history.
+    if (payout.coins && payout.coins > 0) {
+      try {
+        await mintCoins(req.userId!, payout.coins, "battle_pass_reward", { metadata: { idempotencyKey: `${idempotencyKey}_coins`, tier } });
+      } catch (err) {
+        logger.warn({ err, tier }, "battle pass coin award failed");
+      }
+    }
+
+    res.json({
+      claimed: claim,
+      tokenReward,
+      coinsAwarded: payout.coins ?? 0,
+      cosmeticId: payout.cosmeticId ?? null,
+      petId: payout.petId ?? null,
+      lootbox: payout.lootbox ?? null,
+      xpAwarded: payout.xp ?? 0,
+      balanceAfter: tokenResult?.balanceAfter,
+    });
   } catch (err) {
     logger.error({ err }, "battle pass claim error");
     res.status(500).json({ error: "Failed to claim reward" });
@@ -235,7 +272,8 @@ router.post("/battle-pass/claim-all", authMiddleware, async (req: AuthRequest, r
       ? await db.select().from(battlePassRewards).where(eq(battlePassRewards.battlePassId, bp.id))
       : [];
     const requirementFor = (t: number) => requiredXpForTier(rewards.find(r => r.tier === t), t);
-    const tiers = eligibleTiersForXp(seasonXp, requirementFor);
+    const maxTier = rewards.reduce((top, reward) => Math.max(top, reward.tier), 0) || MAX_TIER;
+    const tiers = eligibleTiersForXp(seasonXp, requirementFor, maxTier);
 
     const claims = await db.select().from(battlePassClaimsTable).where(and(eq(battlePassClaimsTable.userId, req.userId!), eq(battlePassClaimsTable.battlePassId, bpId)));
     const claimedSet = new Set(claims.map(c => `${c.tier}_${c.isPremiumReward ? "p" : "f"}`));
@@ -258,10 +296,19 @@ router.post("/battle-pass/claim-all", authMiddleware, async (req: AuthRequest, r
           isPremiumReward: isPrem,
         }).onConflictDoNothing().returning();
         if (c) {
-          const tokenReward = isPrem ? 50 + tier * 5 : 25 + tier * 2;
+          // Same payout rule as the single claim — a bulk claim must not pay a
+          // different amount than claiming the tiers one at a time.
+          const payout = rewardPayout(
+            (rewards.find(r => r.tier === tier && r.isPremium === isPrem)?.value as Record<string, never> | null) ?? null,
+            isPrem,
+            tier,
+          );
           const idempotencyKey = `bp_${bpId}_${req.userId}_${tier}_${isPrem ? "premium" : "free"}`;
-          try { await earnTokens(req.userId!, "battle_pass", idempotencyKey, { description: `bp ${bpId} tier ${tier} premium ${isPrem}` }, tokenReward); } catch {}
-          results.push(c);
+          try { await earnTokens(req.userId!, "battle_pass", idempotencyKey, { description: `bp ${bpId} tier ${tier} premium ${isPrem}` }, payout.tokens ?? 0); } catch {}
+          if (payout.coins && payout.coins > 0) {
+            try { await mintCoins(req.userId!, payout.coins, "battle_pass_reward", { metadata: { idempotencyKey: `${idempotencyKey}_coins`, tier } }); } catch {}
+          }
+          results.push({ ...c, coins: payout.coins ?? 0 });
         }
       } catch {}
     }

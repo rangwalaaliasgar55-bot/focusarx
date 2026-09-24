@@ -17,6 +17,7 @@ import { AdminQuestsPanel } from "@/components/admin/AdminQuestsPanel";
 import { AdminLootboxPanel } from "@/components/admin/AdminLootboxPanel";
 import { AdminPetsPanel } from "@/components/admin/AdminPetsPanel";
 import { AdminBattlePassPanel } from "@/components/admin/AdminBattlePassPanel";
+import { AdminBattlePassBuilder } from "@/components/admin/AdminBattlePassBuilder";
 import { AdminDropsPanel } from "@/components/admin/AdminDropsPanel";
 import { AdminEconomyPanel } from "@/components/admin/AdminEconomyPanel";
 import { AdminNotifyPanel } from "@/components/admin/AdminNotifyPanel";
@@ -162,7 +163,12 @@ export default function AdminPage() {
     marketplace: () => <AdminMarketplacePanel authHeaders={authHeaders} />,
     pets: () => <AdminPetsPanel petStats={petStats} />,
     lootboxes: () => <AdminLootboxPanel authHeaders={authHeaders} />,
-    battlepass: () => <AdminBattlePassPanel bpStats={bpStats} />,
+    battlepass: () => (
+      <>
+        <AdminBattlePassBuilder authHeaders={authHeaders} />
+        <AdminBattlePassPanel bpStats={bpStats} />
+      </>
+    ),
     quests: () => <AdminQuestsPanel authHeaders={authHeaders} />,
     city: () => <AdminCityPanel />,
     notify: () => <AdminNotifyPanel authHeaders={authHeaders} />,

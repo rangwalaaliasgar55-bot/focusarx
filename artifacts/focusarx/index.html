@@ -14,6 +14,88 @@
         }
       } catch (e) { /* private mode: React defaults to dark */ }
     </script>
+    <!-- ──────────────────────────────────────────────────────────────
+         Boot guard — recovery when the browser fails to load the app.
+
+         Everything that recovers from a failed chunk (lib/chunkRecovery.ts,
+         lib/lazyWithRetry.ts, the service worker's version purging) lives
+         *inside* the JavaScript bundle. That is fine for a lazy route chunk,
+         but useless for the failure that produces a permanently white screen:
+         the entry bundle itself failing to load after a deploy, an offline
+         mobile browser, or a service worker serving a stale index.html that
+         points at a chunk hash we have since deleted. In that state none of our
+         code exists to notice.
+
+         So this runs first, in the document, and it is the only script here
+         that is allowed to be defensive rather than clever:
+           1. a <script>/<link> element fails to load → hard reload once;
+           2. the app has not mounted after 12s → hard reload once.
+         "Hard reload" means unregistering the service worker first (the usual
+         stale-cache culprit), then navigating to the same URL with a fresh
+         `_r` cache-buster so neither the HTML nor the chunk can come from a
+         cache that predates the deploy. Guarded by sessionStorage so a genuinely
+         broken deploy reloads once, not in a loop, and the message below is what
+         the user sees if even that fails.
+    ────────────────────────────────────────────────────────────── -->
+    <script>
+      (function () {
+        var KEY = "focusarx:boot-reload";
+        var GIVE_UP_MS = 12000;
+
+        function hardReload() {
+          try {
+            location.replace(
+              location.pathname + location.search + (location.search ? "&" : "?") + "_r=" + Date.now()
+            );
+          } catch (e) {
+            location.reload();
+          }
+        }
+
+        function recover(reason) {
+          try {
+            var last = Number(sessionStorage.getItem(KEY) || "0");
+            // One automatic recovery per 30s window. A loop of reloads is worse
+            // than a visible failure: it hides the error and burns the user's data.
+            if (Date.now() - last < 30000) return;
+            sessionStorage.setItem(KEY, String(Date.now()));
+          } catch (e) {
+            return; // private mode with storage disabled: never reload blind
+          }
+          if (window.console && console.warn) console.warn("[focusarx] recovery reload:", reason);
+          var sw = navigator.serviceWorker;
+          if (sw && sw.getRegistrations) {
+            sw.getRegistrations()
+              .then(function (regs) { return Promise.all(regs.map(function (r) { return r.unregister(); })); })
+              .catch(function () {})
+              .then(hardReload);
+          } else {
+            hardReload();
+          }
+        }
+
+        // 1. A subresource failed. Capture phase, because these do not bubble.
+        window.addEventListener(
+          "error",
+          function (e) {
+            var t = e && e.target;
+            if (!t || t === window) return;
+            var tag = t.tagName;
+            if (tag === "SCRIPT" || tag === "LINK") recover("failed to load " + (t.src || t.href || tag));
+          },
+          true
+        );
+
+        // 2. The bundle loaded but never took over the page — the classic
+        //    "dead index.html" case, which otherwise just sits there.
+        setTimeout(function () {
+          if (window.__focusarxBooted) return;
+          var root = document.getElementById("root");
+          var empty = !root || root.children.length === 0 || !!root.querySelector(".fa-seo");
+          if (empty) recover("app did not mount in " + GIVE_UP_MS + "ms");
+        }, GIVE_UP_MS);
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, viewport-fit=cover" />
     <meta name="theme-color" content="#030308" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#F5F7FA" media="(prefers-color-scheme: light)" />

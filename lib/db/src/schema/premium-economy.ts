@@ -227,3 +227,11 @@ export const assetCatalogTable = pgTable("asset_catalog", {
 ]);
 
 export type AssetCatalog = typeof assetCatalogTable.$inferSelect;
+
+/*
+ * Hosted checkout intents live in `focusarx.ts` next to the voice-capture
+ * ledger (`paymentCheckoutIntentsTable`). The table was added to this file too
+ * while the branch was open; keeping both made `schema/index.ts` re-export the
+ * same name twice and the whole workspace failed to typecheck. One definition,
+ * in the file that already owned the surrounding payment tables.
+ */

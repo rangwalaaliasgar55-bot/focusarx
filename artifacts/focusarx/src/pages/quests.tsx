@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
-import { Zap, Clock, CheckCircle, RefreshCw, Calendar } from "lucide-react";
+import { Zap, Clock, CheckCircle, RefreshCw, Calendar, Target, Timer } from "lucide-react";
+import { Link } from "wouter";
 import { PAGE, CARD, STAGGER } from "@/lib/animations";
 import { QueryError } from "@/components/ui/QueryError";
+import { asArray, asRecord } from "@/lib/api";
 
 function authHeaders() {
   const t = getToken();
@@ -89,6 +91,41 @@ function QuestCard({ progress, onClaim, claiming }: { progress: QuestProgress; o
   );
 }
 
+/**
+ * The first quest.
+ *
+ * A quest board with nothing on it told the student to "check back after your
+ * next session" — true, and useless: it states the dependency without offering
+ * the action. Every quest in the catalogue is downstream of the same first move,
+ * so the empty state names it, prices it, and links straight to it.
+ */
+function FirstQuestCard() {
+  return (
+    <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface-2)] p-5">
+      <div className="flex items-start gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-soft)] text-[var(--brand-400)]" aria-hidden="true">
+          <Target size={16} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-[var(--foreground)]">Your first quest is one block away</p>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--foreground-muted)]">
+            Quests are generated from what you actually do, so the board fills in
+            the moment a session is saved. A 25-minute block pays 500 XP and 100
+            coins, and it counts towards the daily board, the weekly board and
+            your streak at the same time.
+          </p>
+          <Link
+            href="/focus"
+            className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--brand-600)] px-4 text-sm font-semibold text-[var(--neutral-0)] transition-colors hover:bg-[var(--brand-700)]"
+          >
+            <Timer size={14} aria-hidden="true" /> Start a 25-minute block
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function QuestsPage() {
   const [quests, setQuests] = useState<{ daily: QuestProgress[]; weekly: QuestProgress[] }>({ daily: [], weekly: [] });
   const [loading, setLoading] = useState(true);
@@ -101,7 +138,16 @@ export default function QuestsPage() {
     try {
       const res = await fetch("/api/quests", { headers: authHeaders() });
       if (!res.ok) throw new Error(String(res.status));
-      setQuests((await res.json()) as { daily: QuestProgress[]; weekly: QuestProgress[] });
+      // `quests.daily` / `quests.weekly` were spread straight into an array, so a
+      // payload missing either bucket threw "not iterable" during render. Both
+      // fields are normalised to arrays: a quest board with nothing on it is a
+      // valid state, a crash is not.
+      const body = (await res.json()) as unknown;
+      const raw = asRecord(body);
+      setQuests({
+        daily: asArray<QuestProgress>(raw.daily),
+        weekly: asArray<QuestProgress>(raw.weekly),
+      });
       setLoadError(false);
     } catch {
       // Previously `if (res.ok) setQuests(…)` with no else, so a failed request
@@ -212,9 +258,7 @@ export default function QuestsPage() {
                 <span className="text-[11px] text-[var(--foreground-subtle)]">(resets at midnight)</span>
               </div>
               {quests.daily.length === 0 ? (
-                <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--muted)] p-6 text-center text-sm text-[var(--foreground-subtle)]">
-                  No daily quests right now — check back after your next session.
-                </div>
+                <FirstQuestCard />
               ) : (
                 <motion.div variants={STAGGER} initial="initial" animate="animate" className="space-y-3">
                   {quests.daily.map(p => <QuestCard key={p.id} progress={p} onClaim={handleClaim} claiming={claiming} />)}
@@ -230,8 +274,11 @@ export default function QuestsPage() {
                 <span className="text-[11px] text-[var(--foreground-subtle)]">(resets Monday)</span>
               </div>
               {quests.weekly.length === 0 ? (
-                <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--muted)] p-6 text-center text-sm text-[var(--foreground-subtle)]">
-                  No weekly quests yet. Keep completing sessions to unlock them!
+                <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-5 text-center">
+                  <p className="text-sm text-[var(--foreground-muted)]">No weekly quests yet.</p>
+                  <p className="mt-1 text-xs text-[var(--foreground-subtle)]">
+                    Weekly quests open once you have a few sessions on the board — the same blocks the daily board counts.
+                  </p>
                 </div>
               ) : (
                 <motion.div variants={STAGGER} initial="initial" animate="animate" className="space-y-3">

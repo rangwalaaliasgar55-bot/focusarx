@@ -90,18 +90,18 @@ export const PLATFORM_FEATURES: FeatureGuideItem[] = [
   {
     id: "coach",
     category: "ai",
-    title: "Arx AI Coach (Gemini Powered)",
-    badge: "AI Intelligence",
+    title: "Focus Coach",
+    badge: "Premium",
     icon: Brain,
     tagline: "Neuroscience-based coaching, habit diagnostics & study roadmaps",
     description:
-      "Powered by Google Gemini 2.5 Flash, Arx diagnoses distraction patterns, builds tailored multi-day study schedules, and offers real-time coaching before and after sessions.",
+      "Included with Premium. Arx diagnoses distraction patterns, builds tailored multi-day study schedules, and offers real-time coaching before and after sessions. Requests are served by the providers listed on our AI policy page.",
     howToUse: [
       "Ask Arx for study roadmaps or cognitive reframing in the coach panel.",
       "Check your weekly AI productivity report on the dashboard.",
       "Receive personalized session tips based on your daily readiness score.",
     ],
-    ctaText: "Open AI Coach",
+    ctaText: "Open Coach",
     href: "/ai-insights",
     accentColor: "from-purple-500/20 to-pink-500/20 border-purple-500/30 text-purple-400",
   },

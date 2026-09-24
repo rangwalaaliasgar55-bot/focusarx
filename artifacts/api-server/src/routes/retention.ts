@@ -5,6 +5,7 @@ import { db } from "@workspace/db";
 import {
   loginRewardsTable, userWalletsTable, studyStreaksTable,
   freezeTokensTable, notificationsTable, battlePassProgressTable,
+  battlePassClaimsTable,
   usersTable,
 } from "@workspace/db";
 import { sendPush } from "../lib/pushSender";
@@ -18,6 +19,7 @@ import {
   BATTLE_PASS_TIERS, battlePassClaimId, currentBattlePassSeason, rolloverBattlePassSeason, battlePassSeasonEndsAt,
   calculateBattlePassTier, nextBattlePassThreshold,
 } from "../lib/battlePass";
+import { DEFAULT_TIERS } from "../lib/battlePassSeasons";
 import { sendUnauthorized } from "../lib/httpErrors";
 
 export const retentionRouter = Router();
@@ -229,7 +231,9 @@ retentionRouter.get("/retention/battle-pass", authMiddleware, async (req: AuthRe
     premiumUnlocked: progress?.premiumUnlocked,
     claimedTiers: progress?.claimedTiers ?? [],
     nextTierXp,
-    tiers: BATTLE_PASS_TIERS,
+    // The season ships 30 tiers by default; the canonical table holds up to 50
+    // so an admin-authored longer season stays claimable.
+    tiers: BATTLE_PASS_TIERS.slice(0, DEFAULT_TIERS),
     endsAt: battlePassSeasonEndsAt().toISOString(),
   });
 });
@@ -255,8 +259,31 @@ retentionRouter.post("/retention/battle-pass/claim", authMiddleware, async (req:
     if ((progress.claimedTiers ?? []).includes(claimId)) return { status: 400 as const, error: "Already claimed" };
     if (calculateBattlePassTier(progress.seasonXp ?? 0) < tier) return { status: 400 as const, error: "Tier not reached" };
 
+    // Two claim endpoints exist — this legacy one (coins + XP, recorded in
+    // `claimed_tiers`) and `/battle-pass/claim` (the season reward, recorded in
+    // `battle_pass_claims`). Nothing in the client calls this one, but an
+    // authenticated client could, and paying the same tier through two books is
+    // a real double-mint. The shared claims table arbitrates: a tier claimed on
+    // either path is refused on the other.
+    const [alreadyPaid] = await tx.select({ tier: battlePassClaimsTable.tier })
+      .from(battlePassClaimsTable)
+      .where(and(
+        eq(battlePassClaimsTable.userId, userId),
+        eq(battlePassClaimsTable.tier, tier),
+        eq(battlePassClaimsTable.isPremiumReward, track === "premium"),
+      )).limit(1);
+    if (alreadyPaid) return { status: 409 as const, error: "Already claimed" };
+
     const reward = track === "premium" ? tierDef.premiumReward : tierDef.freeReward;
     const newClaimed = [...(progress.claimedTiers ?? []), claimId];
+    // Record the payout in the shared table so the newer endpoint refuses it too.
+    await tx.insert(battlePassClaimsTable).values({
+      battlePassId: String(currentBattlePassSeason()),
+      userId,
+      tier,
+      rewardId: `${track}_tier_${tier}`,
+      isPremiumReward: track === "premium",
+    }).onConflictDoNothing();
     await tx.update(battlePassProgressTable).set({ claimedTiers: newClaimed, updatedAt: new Date() }).where(eq(battlePassProgressTable.userId, userId));
     if (reward.coins > 0) {
       await mintCoins(userId, reward.coins, "battle_pass_reward", {

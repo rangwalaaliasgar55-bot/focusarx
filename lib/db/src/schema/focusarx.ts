@@ -858,20 +858,11 @@ export type UserProfileExtras = typeof userProfileExtrasTable.$inferSelect;
 
 // ─── ATOMIC REQUEST LEDGERS ─────────────────────────────────────────────────
 
-/** Idempotency ledger for confirmed voice-created tasks and goals. */
-export const voiceCaptureBatchesTable = pgTable("voice_capture_batches", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
-  idempotencyKey: text("idempotency_key").notNull(),
-  transcript: text("transcript").notNull(),
-  result: jsonb("result").$type<Record<string, unknown>>().notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (t) => [
-  unique("voice_capture_batches_user_key_uidx").on(t.userId, t.idempotencyKey),
-  index("voice_capture_batches_user_created_idx").on(t.userId, t.createdAt),
-]);
-
-export type VoiceCaptureBatch = typeof voiceCaptureBatchesTable.$inferSelect;
+/*
+ * The voice-capture ledger is defined once, below `paymentCheckoutIntentsTable`
+ * — the branch that added it here and the branch that added it there both
+ * merged, and a duplicated `pgTable` fails the whole workspace typecheck.
+ */
 
 /** Server-created hosted checkout intents; provider callbacks are bound to this user-owned row. */
 export const paymentCheckoutIntentsTable = pgTable("payment_checkout_intents", {
@@ -976,3 +967,31 @@ export const emailLogsTable = pgTable("email_logs", {
 ]);
 
 export type EmailLog = typeof emailLogsTable.$inferSelect;
+
+/**
+ * Voice capture batches (idempotency for "plan by voice").
+ *
+ * The route (`artifacts/api-server/src/routes/voiceCapture.ts`) has inserted
+ * into this table since it was written — with a `userId + idempotencyKey`
+ * unique target, so a retry after a dropped response cannot double-create the
+ * student's tasks. The table itself was never added to the schema, which meant
+ * the router could not be imported, which meant it was never mounted, which
+ * meant the whole voice feature 404'd. One missing `pgTable` removed a shipped
+ * feature from the product.
+ *
+ * `result` holds the ids the batch created (`{ taskIds, goalIds, createdCount }`);
+ * a replayed commit returns it verbatim instead of inserting again.
+ */
+export const voiceCaptureBatchesTable = pgTable("voice_capture_batches", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  idempotencyKey: text("idempotency_key").notNull(),
+  transcript: text("transcript").notNull(),
+  result: jsonb("result").$type<{ taskIds: string[]; goalIds: string[]; createdCount: number }>().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("voice_capture_batches_user_key_uidx").on(t.userId, t.idempotencyKey),
+  index("voice_capture_batches_user_created_idx").on(t.userId, t.createdAt),
+]);
+
+export type VoiceCaptureBatch = typeof voiceCaptureBatchesTable.$inferSelect;

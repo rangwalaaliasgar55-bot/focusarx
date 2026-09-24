@@ -321,12 +321,22 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
       if (secondsLeft > 2 * 60 * 60) {
         toast("Planning >2h? Consider breaking into smaller blocks for better focus.", "info");
       }
-      trackSessionStart("deep_work", secondsLeft, activeTasks.length > 0);
-      playCoachVoice("session_start");
     }
+    // Start the clock before the optional cues. On mobile this is the primary
+    // start path — the Instagram funnel drops guests straight onto it — and it
+    // used to call the coach cue first, so a throw from `play()` meant tapping
+    // "Start" did nothing at all.
     if (isRunning) haptic("tap");
     else haptic("select");
     toggle();
+    if (isIdle && mode === "focus") {
+      try {
+        trackSessionStart("deep_work", secondsLeft, activeTasks.length > 0);
+        playCoachVoice("session_start");
+      } catch {
+        /* cues and analytics are best-effort; the session is not */
+      }
+    }
   }, [isIdle, mode, secondsLeft, toggle, activeTasks.length, toast, isRunning]);
 
   const handleReset = useCallback(() => {

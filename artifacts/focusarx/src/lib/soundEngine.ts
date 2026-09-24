@@ -96,7 +96,20 @@ const COACH_AUDIO: Record<string, string> = {
 export const playCoachVoice = (key: keyof typeof COACH_AUDIO) => {
   // Coach voice is enabled by default, only disabled if explicitly set to "false"
   if (localStorage.getItem("fx-coach-voice") === "false") return;
-  const audio = new Audio(COACH_AUDIO[key]);
-  audio.volume = 0.6;
-  audio.play().catch(() => {});
+  // Best-effort by contract, and it must stay that way. `play()` is specced to
+  // return a promise, but jsdom, some in-app browsers and older WebViews return
+  // `undefined` — and `.catch` on that threw *synchronously*. The throw
+  // propagated out of the caller's click handler, so every statement after the
+  // cue was skipped: on the mobile timer that was `toggle()` itself, and on
+  // desktop it was the state update that opens the lock picker. The visible
+  // symptom was "press start, nothing happens" — a session that never begins
+  // because a sound effect failed.
+  try {
+    const audio = new Audio(COACH_AUDIO[key]);
+    audio.volume = 0.6;
+    const played = audio.play();
+    if (played && typeof played.catch === "function") played.catch(() => {});
+  } catch {
+    /* a cue that cannot play is not a reason to lose a focus session */
+  }
 };

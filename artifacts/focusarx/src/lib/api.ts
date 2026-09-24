@@ -244,5 +244,65 @@ export function errorMessage(err: unknown, fallback = "Something went wrong. Ple
   return fallback;
 }
 
-// Re-export chunk error handler for use by lazy-loaded components
+// ── Response shape checks ───────────────────────────────────────────────────
+/**
+ * `apiJson<T>` and `useQuery<T>` are **casts, not checks**.
+ *
+ * TypeScript erases them at runtime, so a 200 carrying `{}` — a proxy, an error
+ * envelope with an OK status, an older API than this build, a cold start that
+ * answered before the database woke up — sails through as `T` and then throws
+ * somewhere inside render, where it takes the whole route down to the error
+ * boundary. That exact failure has now shipped four times:
+ *
+ *   • `/focus`      — `wallet.coins.toLocaleString()` on a wallet that wasn't one
+ *   • `/profile`    — `providers.map()` on `undefined`, killing the entire page
+ *   • `/dashboard`  — `stats.chartData.map()`, blank screen
+ *   • `/analytics`  — `data.personalBests.totalMinutes`, blank screen
+ *
+ * The lesson is not "validate this one field". A screen that renders numbers and
+ * lists must be able to render *zeros and an empty list*, because that is the
+ * honest reading of a payload that arrived without them. These helpers are how
+ * that is written, and they are deliberately boring.
+ *
+ *   const rooms = asArray<Room>(await apiJson("/api/study-rooms"));
+ *   const stats = asRecord(await apiJson("/api/stats"));
+ *   const minutes = asNumber(stats.totalMinutes);
+ *
+ * A malformed response then degrades to an empty state (`rooms.length === 0`)
+ * instead of a crash, and `isError` still reports the request that actually
+ * failed. Never use these to paper over a real error path — use them so that a
+ * *bad shape* is survivable.
+ */
+export function asArray<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[];
+  // A common envelope: `{ rooms: [...] }`, `{ sessions: [...] }`.
+  if (value && typeof value === "object") {
+    for (const candidate of Object.values(value as Record<string, unknown>)) {
+      if (Array.isArray(candidate)) return candidate as T[];
+    }
+  }
+  return [];
+}
+
+/** An object, or `{}` — never `undefined`, never a primitive. */
+export function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+/** A finite number, or the fallback. Strings that parse are accepted. */
+export function asNumber(value: unknown, fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
+/** A non-empty string, or the fallback. */
+export function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+/** Re-export chunk error handler for use by lazy-loaded components */
 export { handleChunkLoadError };

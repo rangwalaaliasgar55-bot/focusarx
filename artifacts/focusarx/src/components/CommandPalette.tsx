@@ -10,6 +10,7 @@ import {
   Goal,
   LayoutDashboard,
   Library,
+  Mic,
   Plus,
   Settings,
   Sparkles,
@@ -37,6 +38,7 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { openVoiceCapture } from "@/lib/voiceCapture";
 
 interface Destination {
   label: string;
@@ -111,6 +113,18 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
     window.setTimeout(() => window.dispatchEvent(new CustomEvent("focusarx:open-guide")), 120);
   };
 
+  /**
+   * Voice planning from the palette. Closing first and dispatching on the next
+   * tick is the same order `openGuide` uses, and it matters here too: the
+   * dialog that opens is a sibling of this one, and a shared-modal stack that
+   * opens before the palette has closed leaves two `aria-modal` dialogs on
+   * screen with the caret trapped in the wrong one.
+   */
+  const startVoiceCapture = () => {
+    close();
+    window.setTimeout(() => openVoiceCapture(), 120);
+  };
+
   const createTask = async () => {
     const title = query.trim();
     if (!title || creating) return;
@@ -138,6 +152,9 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
             <CommandGroup heading="Quick actions">
               <CommandItem value="start focus session timer" onSelect={startFocus} className="min-h-11 rounded-[var(--radius-md)]">
                 <Timer /> <span>Start focus session</span><CommandShortcut>Enter</CommandShortcut>
+              </CommandItem>
+              <CommandItem value="plan by voice dictate speak tasks alt m microphone" onSelect={startVoiceCapture} className="min-h-11 rounded-[var(--radius-md)]">
+                <Mic size={16} className="mr-2" aria-hidden="true" /> Plan by voice (Alt+M)
               </CommandItem>
               <CommandItem value="feature guide tour compass explore help" onSelect={openGuide} className="min-h-11 rounded-[var(--radius-md)]">
                 <Compass className="text-indigo-400" /> <span>Explore FocusArx Features (Interactive Guide)</span>
