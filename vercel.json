@@ -53,7 +53,7 @@
       "dest": "/api/index.mjs?canonicalize=/$1"
     },
     {
-      "src": "/(admin|ai-insights|analytics|auth/callback|battle-pass|city|consequences|constellations|dashboard|data-deletion|developer|dna|dreams|flashcards|focus-dna|forge|forge-room|forgot-password|go/ig|goals|groups|habits|lootboxes|marketplace|messages|missions|notifications|onboarding|pets|profile|quests|referral|reset-password|shop|social|tasks|wallet|welcome)",
+      "src": "/(admin|ai-insights|analytics|auth/callback|battle-pass|city|consequences|constellations|dashboard|data-deletion|developer|dna|dreams|flashcards|focus-dna|forge|forge-room|forgot-password|go/ig|goals|groups|habits|lootboxes|marketplace|messages|missions|notifications|onboarding|pets|planner|profile|quests|referral|reset-password|shop|social|tasks|wallet|welcome)",
       "dest": "/index.html"
     },
     {
