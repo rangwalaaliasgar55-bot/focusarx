@@ -17,6 +17,7 @@ import { PromptProvider } from "@/components/ui/PromptDialog";
 import { SiteAnalyticsTracker } from "@/components/SiteAnalyticsTracker";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import AppShell from "@/components/AppShell";
+import { VoiceCaptureMount } from "@/components/VoiceCaptureMount";
 import { ViewSkeleton } from "@/components/ui/skeleton";
 const CommandPalette = lazyWithRetry(() => import("@/components/CommandPalette"));
 const NotFound = lazyWithRetry(() => import("@/pages/not-found"));
@@ -543,6 +544,9 @@ function App() {
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <GlobalBackground isFocusing={isFocusing} />
             <SiteAnalyticsTracker />
+            {/* Voice capture is mounted app-wide but loads nothing until it is
+                asked for — see components/VoiceCaptureMount.tsx. */}
+            <VoiceCaptureMount />
             <AppWithPalette />
           </WouterRouter>
         </PromptProvider>

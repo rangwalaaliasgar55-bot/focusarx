@@ -5,10 +5,30 @@ import { Volume2, Crown, Lock, Coins, ArrowRight, Sparkles } from "lucide-react"
 import { Brain } from "lucide-react";
 import { usePremium } from "@/hooks/usePremium";
 import { useAuth } from "@/lib/auth";
+import { useQueryClient } from "@tanstack/react-query";
+import { dispatchFocusDeepLink } from "@/lib/focusDeepLink";
+import { Check, Play, ListTodo, Target } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 
-type Message = { role: "user" | "assistant"; content: string };
+/**
+ * What the coach actually did.
+ *
+ * The server performs the work (it owns the database) and reports one
+ * `ExecutedAction` per request; the panel's job is to show it, refresh the
+ * screens it touched, and — for `start_session`, which only the browser can do —
+ * arm the timer. A "Done!" bubble with no action behind it is exactly the
+ * failure this replaces, so an action that did not succeed says so.
+ */
+type ExecutedAction = {
+  type: "create_task" | "create_goal" | "complete_task" | "start_session";
+  summary: string;
+  ok: boolean;
+  id?: string;
+  client?: { minutes: number; label: string | null } | null;
+};
+
+type Message = { role: "user" | "assistant"; content: string; actions?: ExecutedAction[] };
 
 /**
  * The quick prompts, rewritten as *requests for artefacts*.
@@ -20,10 +40,10 @@ type Message = { role: "user" | "assistant"; content: string };
  * is visibly unable to produce.
  */
 const QUICK_PROMPTS = [
-  "Plan my next 3 hours",
-  "Break my assignment into steps",
+  "Add a task: revise physics for 45 minutes tomorrow",
+  "Start a 25 minute block on my next task",
+  "Create a goal to finish the syllabus by next week",
   "What should I work on first",
-  "Turn this topic into notes",
 ];
 
 const PROACTIVE_MESSAGES = [
@@ -110,7 +130,7 @@ export default function CoachPanel() {
       ? "Premium · unlimited messages"
       : allowance && typeof allowance.remaining === "number"
         ? `${allowance.remaining} of ${allowance.limit ?? 10} messages left today`
-        : "Productivity & neuroscience";
+        : "Advice and real changes to your plan";
 
 
   useEffect(() => {
@@ -126,6 +146,7 @@ export default function CoachPanel() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const qc = useQueryClient();
   const [proactiveMsg, setProactiveMsg] = useState(() => PROACTIVE_MESSAGES[0]!);
   useEffect(() => {
     if (open || hasProactive || isLocked) return;
@@ -196,16 +217,53 @@ export default function CoachPanel() {
     setLoading(true);
 
     try {
-      const d = await apiJson<{ reply?: string; error?: string; fallback?: boolean }>("/api/coach/chat", {
+      const d = await apiJson<{ reply?: string; error?: string; fallback?: boolean; actions?: ExecutedAction[] }>("/api/coach/chat", {
         method: "POST",
         body: JSON.stringify({
           message: text,
-          conversationHistory: messages.slice(-8),
+          conversationHistory: messages.slice(-8).map(({ role, content }) => ({ role, content })),
         }),
       });
       if (d.fallback) setIsFallback(true);
       const reply = d.reply ?? "Stay focused — you've got this!";
-      setMessages((h) => [...h, { role: "assistant", content: reply }]);
+      const actions = Array.isArray(d.actions) ? d.actions : [];
+      setMessages((h) => [...h, { role: "assistant", content: reply, actions }]);
+
+      // The coach edited real rows, so every screen showing them is now stale.
+      // Without this the task list still shows yesterday's state next to a chip
+      // saying the task was added.
+      const touchedTasks = actions.some((a) => a.ok && (a.type === "create_task" || a.type === "complete_task"));
+      const touchedGoals = actions.some((a) => a.ok && a.type === "create_goal");
+      if (touchedTasks) {
+        void qc.invalidateQueries({ queryKey: ["tasks"] });
+        void qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
+        void qc.invalidateQueries({ queryKey: ["analytics"] });
+      }
+      if (touchedGoals) {
+        void qc.invalidateQueries({ queryKey: ["goals"] });
+        void qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      }
+
+      // "Start a 25-minute block on organic chemistry" has to start a block.
+      // The server cannot press the button, so it returns the instruction and
+      // the browser applies it through the same deep-link path an Instagram
+      // link uses — one code path for arming the timer, whichever asked.
+      const session = actions.find((a) => a.ok && a.type === "start_session" && a.client);
+      if (session?.client) {
+        const minutes = session.client.minutes;
+        window.setTimeout(() => {
+          dispatchFocusDeepLink({
+            durationSeconds: minutes * 60,
+            task: session.client!.label,
+            src: "coach",
+            armed: true,
+          });
+        }, 200);
+        if (minutes && (minutes < 5 || minutes > 240)) {
+          // Defensive only: the server clamps, so this should be unreachable.
+          setMessages((h) => [...h, { role: "assistant", content: "That block length is out of range — pick 5 to 240 minutes." }]);
+        }
+      }
     } catch (e) {
       if (e instanceof ApiError && (e.status === 429 || e.status === 403)) {
         // The server's own sentence says which limit was hit and when it
@@ -406,10 +464,29 @@ export default function CoachPanel() {
                       animate={{ opacity: 1, y: 0 }}
                       className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                     >
-                      <div
-                        className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${ msg.role === "user" ? "rounded-br-sm bg-[var(--brand-600)] text-[var(--palette-white)]" : "rounded-bl-sm bg-[var(--rgba-124-58-237-0_1)] text-[var(--foreground)]" }`}
-                      >
-                        {msg.content}
+                      <div className="max-w-[85%] space-y-1.5">
+                        <div
+                          className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${ msg.role === "user" ? "rounded-br-sm bg-[var(--brand-600)] text-[var(--palette-white)]" : "rounded-bl-sm bg-[var(--rgba-124-58-237-0_1)] text-[var(--foreground)]" }`}
+                        >
+                          {msg.content}
+                        </div>
+                        {msg.actions && msg.actions.length > 0 && (
+                          <ul className="space-y-1">
+                            {msg.actions.map((action, actionIndex) => (
+                              <li
+                                key={`${action.type}-${actionIndex}`}
+                                className={`flex items-start gap-1.5 rounded-lg border px-2 py-1 text-[11px] leading-snug ${ action.ok ? "border-[var(--success)]/35 bg-[var(--success-soft)] text-[var(--foreground-muted)]" : "border-[var(--warning)]/35 bg-[var(--surface-2)] text-[var(--warning)]" }`}
+                              >
+                                <span className="mt-[1px] shrink-0" aria-hidden="true">
+                                  {action.ok
+                                    ? action.type === "start_session" ? <Play size={11} /> : action.type === "create_goal" ? <Target size={11} /> : action.type === "create_task" ? <ListTodo size={11} /> : <Check size={11} />
+                                    : <Check size={11} />}
+                                </span>
+                                <span>{action.summary}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
                     </motion.div>
                   ))}

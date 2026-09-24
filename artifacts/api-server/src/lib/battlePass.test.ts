@@ -8,25 +8,52 @@ import {
   nextBattlePassThreshold,
 } from "./battlePass";
 import { istToday } from "./istDate";
+import { requiredXpForTierIndex } from "./battlePassSeasons";
+import { currentTierForXp, requiredXpForTier } from "./battlePassTiers";
 
 describe("canonical battle-pass progression", () => {
+  // One 25-minute session is 500 XP (20 XP/min), which is exactly tier 1 — a
+  // new account starts at tier 0 with something achievable on day one. The
+  // ladder is `tier * 500 + 250` per milestone tier, the same one the page and
+  // the admin builder render. It used to be a flat `tier * 500` with tier 1 at
+  // 0 XP, which only agreed with the page for the first five tiers.
   it.each([
-    [0, 1],
-    [499, 1],
-    [500, 2],
+    [0, 0],
+    [499, 0],
+    [500, 1],
     [1_199, 2],
-    [1_200, 3],
-    [8_000, 8],
-    [Number.POSITIVE_INFINITY, 1],
-    [-1, 1],
+    [1_200, 2],
+    [1_500, 3],
+    [8_000, 14],
+    [Number.POSITIVE_INFINITY, 50],
+    [-1, 0],
   ])("maps %s XP to tier %s", (xp, expected) => {
     expect(calculateBattlePassTier(xp)).toBe(expected);
   });
 
-  it("returns the next threshold from the same canonical definitions", () => {
-    expect(nextBattlePassThreshold(1)).toBe(500);
-    expect(nextBattlePassThreshold(7)).toBe(8_000);
+  it("returns the next threshold from the same ladder the page draws", () => {
+    expect(nextBattlePassThreshold(0)).toBe(500);
+    expect(nextBattlePassThreshold(1)).toBe(1_000);
+    expect(nextBattlePassThreshold(7)).toBe(4_250); // tier 8 — a milestone step adds 250
     expect(nextBattlePassThreshold(BATTLE_PASS_TIERS.length)).toBeNull();
+  });
+
+  it("is the same function the page and the claim gate use", () => {
+    // Regression: the page drew `Tier 8 — claimable` at 4,400 season XP while
+    // the claim gate computed tier 5 from the same number and answered
+    // "Tier not yet unlocked". Both now read this ladder.
+    for (const xp of [0, 500, 1_000, 1_500, 2_400, 4_400, 8_000, 14_000, 29_999, 30_000]) {
+      const pageTier = currentTierForXp(xp, (tier) => requiredXpForTier({ requiredXp: requiredXpForTierIndex(tier) }, tier));
+      expect(pageTier, `tier disagreement at ${xp} XP`).toBe(calculateBattlePassTier(xp));
+    }
+  });
+
+  it("lets a loot box skip tiers all the way to the end of the season", () => {
+    // The table used to stop at tier 8, so `BATTLE_PASS_TIERS.length` capped
+    // every tier-skip reward eight levels into a thirty-level season.
+    expect(BATTLE_PASS_TIERS).toHaveLength(50);
+    expect(BATTLE_PASS_TIERS.at(-1)!.tier).toBe(50);
+    expect(calculateBattlePassTier(BATTLE_PASS_TIERS.at(-1)!.xpRequired)).toBe(50);
   });
 
   it("keeps free and premium claim IDs distinct", () => {

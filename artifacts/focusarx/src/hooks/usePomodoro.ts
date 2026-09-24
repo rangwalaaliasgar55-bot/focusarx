@@ -17,6 +17,15 @@ import {
 } from "@/lib/crossTabSync";
 import { publishSceneSnapshot, publishSceneComplete } from "@/lib/sceneBus";
 import {
+  clockSkewMs,
+  creditSeconds,
+  elapsedMs,
+  isClockJump,
+  monoNow,
+  monoSince,
+  shiftDeadlineForClockJump,
+} from "@/lib/timerAccounting";
+import {
   finalizeSessionMetrics,
   resetFocusMonitor,
   updateFocusSessionDuration,
@@ -110,6 +119,14 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
   const completingRef = useRef(false);
   const activeSecondsRef = useRef(restored?.activeSeconds ?? 0);
   const lastTickRef = useRef<number | null>(null);
+  /**
+   * Monotonic sample taken with each wall-clock sample. `performance.now()`
+   * cannot jump, so the difference between the two is the clock's step — see
+   * `lib/timerAccounting.ts`. Null when the platform has no monotonic clock.
+   */
+  const lastMonoRef = useRef<number | null>(null);
+  /** How many times a wall-clock step was corrected for — surfaced for tests. */
+  const clockAdjustmentsRef = useRef(0);
   const lastGuestSaveRef = useRef(0);
   const leadReleaseRef = useRef<(() => void) | null>(null);
   /** Set once the election is *sustainably* lost (not while still racing). */
@@ -151,17 +168,19 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
     deadlineMsRef.current = Date.now() + slice * 1000;
     completingRef.current = false;
     lastTickRef.current = Date.now();
+    lastMonoRef.current = monoNow();
   }, []);
 
   const clearDeadline = useCallback(() => {
     deadlineMsRef.current = null;
     if (lastTickRef.current !== null) {
       const now = Date.now();
-      const delta = (now - lastTickRef.current) / 1000;
+      const delta = elapsedMs(now - lastTickRef.current, monoSince(lastMonoRef.current)) / 1000;
       activeSecondsRef.current += delta;
       updateFocusSessionDuration(delta);
       lastTickRef.current = null;
     }
+    lastMonoRef.current = null;
   }, []);
 
   const advancePhase = useCallback(
@@ -170,13 +189,16 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
       const currentMode = modeRef.current;
 
       if (record) {
-        // Record the exact active seconds tracked during this phase
+        // Record the exact active seconds tracked during this phase — real
+        // elapsed time (monotonic), not wall-clock time, so a clock step in the
+        // middle of a block cannot inflate or erase it.
         if (lastTickRef.current !== null) {
           const now = Date.now();
-          const delta = (now - lastTickRef.current) / 1000;
+          const delta = elapsedMs(now - lastTickRef.current, monoSince(lastMonoRef.current)) / 1000;
           activeSecondsRef.current += delta;
           updateFocusSessionDuration(delta);
           lastTickRef.current = now;
+          lastMonoRef.current = monoNow();
         }
 
         // Reactive scene: a completed focus phase bursts, then re-forms.
@@ -184,7 +206,9 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
           publishSceneComplete();
         }
 
-        const durationSeconds = Math.floor(activeSecondsRef.current);
+        // A phase credits at most its own length: a device that slept through
+        // the deadline must not be paid for the hours it was asleep.
+        const durationSeconds = creditSeconds(activeSecondsRef.current, totalSecondsRef.current);
         const metrics =
           currentMode === "focus"
             ? finalizeSessionMetrics(durationSeconds)
@@ -306,11 +330,24 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
     () => {
       const now = Date.now();
       if (lastTickRef.current !== null) {
-        const delta = (now - lastTickRef.current) / 1000;
+        const wallDelta = now - lastTickRef.current;
+        const monoDelta = monoSince(lastMonoRef.current);
+        // A wall clock that steps (NTP correction, a manual change) would
+        // otherwise end the block early or freeze it. Move the deadline by the
+        // step and count only the real, monotonic elapsed time.
+        if (isClockJump(wallDelta, monoDelta)) {
+          const shifted = shiftDeadlineForClockJump(deadlineMsRef.current, wallDelta, monoDelta);
+          if (shifted !== deadlineMsRef.current) {
+            clockAdjustmentsRef.current += 1;
+            deadlineMsRef.current = shifted;
+          }
+        }
+        const delta = elapsedMs(wallDelta, monoDelta) / 1000;
         activeSecondsRef.current += delta;
         updateFocusSessionDuration(delta);
       }
       lastTickRef.current = now;
+      lastMonoRef.current = monoNow();
 
       const end = deadlineMsRef.current;
       if (end == null) return;
@@ -594,6 +631,7 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
       if (snapshot.status === "running") {
         deadlineMsRef.current = Date.now() + snapshot.secondsLeft * 1000;
         lastTickRef.current = Date.now();
+        lastMonoRef.current = monoNow();
       } else {
         deadlineMsRef.current = null;
         lastTickRef.current = null;

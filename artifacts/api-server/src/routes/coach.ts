@@ -18,6 +18,16 @@ import {
   validateAiOutput,
   checkIpLimit,
 } from "../lib/aiGuardrails";
+import {
+  COACH_ACTION_CONTRACT,
+  MAX_ACTIONS,
+  executeCoachActions,
+  openTaskTitles,
+  parseActionsFromModel,
+  parseActionsFromText,
+  type CoachAction,
+  type ExecutedAction,
+} from "../lib/coachActions";
 import { z } from "zod";
 
 const router = Router();
@@ -191,28 +201,75 @@ router.post("/coach/chat", authMiddleware, premiumStatusMiddleware, aiCoachLimit
     const historyFormatted = history.map(h => `${h.role === "user" ? "User" : "Coach"}: ${h.content}`).join("\n");
     const fullPrompt = historyFormatted ? `${historyFormatted}\nUser: ${sanitized}\nCoach:` : sanitized;
 
+    // The coach can act, so it needs to know what the student already has open
+    // ("mark the physics revision done" is only resolvable against a real list)
+    // and it needs to be told the action contract in the same breath as its
+    // persona. `openTaskTitles` fails soft: an empty list just means the model
+    // may create tasks but must not complete any.
+    const openTasks = await openTaskTitles(req.userId!).catch(() => [] as string[]);
+    const actionContext = [
+      "",
+      COACH_ACTION_CONTRACT,
+      "",
+      `Today is ${today}.`,
+      openTasks.length
+        ? `OPEN TASKS (the only titles you may pass to complete_task):\n${openTasks.map((title) => `- ${title}`).join("\n")}`
+        : "OPEN TASKS: none — do not use complete_task.",
+    ].join("\n");
+
     const aiResult = await generateAi({
       purpose: "coach_chat",
       prompt: fullPrompt,
-      system: systemPrompt,
-      maxTokens: 300,
+      system: `${systemPrompt}\n${actionContext}`,
+      // JSON mode: the reply and its actions arrive together, so a request that
+      // names a task lands in the database rather than in a paragraph.
+      json: true,
+      maxTokens: 600,
       userId: req.userId,
     });
 
     let reply: string;
+    let actions: CoachAction[] = [];
     let isFallback = false;
 
     if (aiResult && aiResult.text) {
-      const validated = validateAiOutput(aiResult.text, 2000);
+      const parsedReply = parseActionsFromModel(aiResult.text);
+      const validated = validateAiOutput(parsedReply.reply, 2000);
       reply = validated.sanitized;
+      actions = parsedReply.actions;
     } else {
       isFallback = true;
       reply = builtinReply(sanitized);
     }
 
+    // The deterministic reader is not only the offline path — it is also a
+    // safety net for the common, unambiguous imperative. A model that answers
+    // "sure, I have noted that" in prose while emitting no action has still
+    // failed the student; if the sentence is an explicit instruction, do it.
+    if (actions.length === 0) {
+      actions = parseActionsFromText(sanitized, today);
+    }
+
+    let executed: ExecutedAction[] = [];
+    if (actions.length > 0) {
+      executed = await executeCoachActions(req.userId!, actions.slice(0, MAX_ACTIONS));
+      // A task created from the offline reader should not be double-created by
+      // a following "add it again" retry within the same second; the executor
+      // is the only writer and each call is a single insert, so no dedupe key
+      // is needed beyond the student's own words.
+
+      // If the model produced no usable sentence but we did act, say what we did
+      // rather than showing an empty bubble.
+      if (!reply.trim() && executed.length > 0) reply = "Done.";
+    }
+
     const limit = coachDailyLimit(Boolean(req.isPremium));
     res.json({
       reply,
+      // What the coach actually did, in the student's words. The panel renders
+      // these as chips and refreshes the task list — a claim of work that did
+      // not happen is worse than no action at all.
+      actions: executed,
       fallback: isFallback,
       provider: aiResult?.provider ?? "template",
       // The panel shows this, so a student can see the allowance rather than

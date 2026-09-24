@@ -13,6 +13,7 @@ import {
   Compass,
   Flame,
   LineChart,
+  Mic,
   PawPrint,
   Plus,
   RefreshCw,
@@ -35,6 +36,7 @@ import RecapCard from "@/components/dashboard/RecapCard";
 import CommunityNow from "@/components/dashboard/CommunityNow";
 import OnboardingChecklist from "@/components/dashboard/OnboardingChecklist";
 import PageHeader from "@/components/PageHeader";
+import { openVoiceCapture } from "@/lib/voiceCapture";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -558,7 +560,14 @@ export default function DashboardPage() {
         title={`${greeting}, ${firstName}`}
         subtitle="One clear plan for your focus, tasks, and momentum today."
         icon={<BarChart3 aria-hidden="true" />}
-        actions={<Button onClick={startFocus}><Timer /> Start session</Button>}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="secondary" onClick={() => openVoiceCapture()}>
+              <Mic /> Plan by voice
+            </Button>
+            <Button onClick={startFocus}><Timer /> Start session</Button>
+          </div>
+        }
       />
 
       <OnboardingChecklist />

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, lazy, Suspense } from "react";
 import { AnimatePresence, motion, motion as m } from "framer-motion";
-import { Check, ChevronDown, ClipboardList, Coins, Flame, Plus, Rocket, X } from "lucide-react";
+import { Check, ChevronDown, ClipboardList, Coins, Flame, Mic, Plus, Rocket, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiJson } from "@/lib/api";
 import { useFocusSessionState } from "@/lib/focusSessionBus";
@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { SessionRecoveryProvider } from "@/components/SessionRecoveryContext";
 import Timer from "@/components/Timer";
 import { useSessionHistory } from "@/hooks/useSessionHistory";
+import { openVoiceCapture } from "@/lib/voiceCapture";
 import { useTasks } from "@/hooks/useTasks";
 import ReadinessCheckInModal from "@/components/ReadinessCheckInModal";
 import MissedTaskReview, { useMissedTaskReview } from "@/components/MissedTaskReview";
@@ -263,7 +264,19 @@ function SidePanel() {
         </Suspense>
       </CollapsiblePanelGroup>
 
-      <CollapsiblePanelGroup title="Assist & camera" summary="Ask Arx, focus camera">
+      <CollapsiblePanelGroup title="Assist & camera" summary="Plan by voice, ask Arx, focus camera">
+        {/* Voice planning is the fastest way into the product on a phone —
+            speaking a plan is one action where typing it is six. It used to be
+            genuinely absent (see components/VoiceCaptureMount.tsx). */}
+        <button
+          type="button"
+          onClick={() => openVoiceCapture()}
+          className="flex w-full items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2.5 text-left text-xs font-semibold text-[var(--foreground-muted)] transition-colors hover:border-[var(--brand-400)] hover:text-[var(--foreground)]"
+        >
+          <Mic size={14} aria-hidden="true" />
+          Plan by voice
+          <span className="ml-auto text-[11px] font-normal text-[var(--foreground-subtle)]">say it, get tasks · Alt+M</span>
+        </button>
         <Suspense fallback={<HeavyWidgetFallback />}>
           <AskArx />
         </Suspense>

@@ -48,6 +48,7 @@ vi.mock("wouter", () => ({
 }));
 
 import CoachPanel from "./CoachPanel";
+import { FOCUS_DEEP_LINK_EVENT } from "@/lib/focusDeepLink";
 import { AuthStatus } from "@/lib/auth";
 
 function mount() {
@@ -190,6 +191,101 @@ describe("CoachPanel access", () => {
     );
     // The allowance is explained, not just denied.
     expect(screen.getByText(/reset at midnight IST/i)).toBeTruthy();
+  });
+});
+
+describe("CoachPanel actions — the coach does the work", () => {
+  it("shows what it did, as chips, when the server performed actions", async () => {
+    mockFetch({
+      "/api/coach/status": { body: { isPremium: false, allowance: { used: 0, limit: 10, remaining: 10 }, lockScreen: null } },
+      "/api/coach/session-tip": { body: { tip: "Ready when you are.", fallback: false } },
+      "/api/coach/chat": {
+        body: {
+          reply: "Added it for tomorrow.",
+          fallback: false,
+          provider: "gemini",
+          actions: [
+            { type: "create_task", ok: true, summary: "Added “Revise physics” for 2026-09-25", id: "task-1" },
+            { type: "start_session", ok: true, summary: "Starting a 45-minute block", client: { minutes: 45, label: "Revise physics" } },
+          ],
+          allowance: { used: 1, limit: 10, remaining: 9 },
+        },
+      },
+    });
+
+    mount();
+    await act(async () => { await openPanel(); });
+    const input = screen.getByPlaceholderText("Ask your coach…");
+    fireEvent.change(input, { target: { value: "add task revise physics for 45 minutes tomorrow" } });
+    await act(async () => {
+      fireEvent.keyDown(input, { key: "Enter" });
+      await Promise.resolve();
+    });
+
+    // The chips are the proof of work — not the sentence above them.
+    await waitFor(() => expect(screen.getByText(/Added “Revise physics” for 2026-09-25/)).toBeTruthy());
+    expect(screen.getByText(/Starting a 45-minute block/)).toBeTruthy();
+  });
+
+  it("arms the timer when the coach asks for a session", async () => {
+    const deepLinks: unknown[] = [];
+    const onDeepLink = (event: Event) => deepLinks.push((event as CustomEvent).detail);
+    window.addEventListener(FOCUS_DEEP_LINK_EVENT, onDeepLink);
+
+    mockFetch({
+      "/api/coach/status": { body: { isPremium: false, allowance: { used: 0, limit: 10, remaining: 10 }, lockScreen: null } },
+      "/api/coach/session-tip": { body: { tip: "Ready.", fallback: false } },
+      "/api/coach/chat": {
+        body: {
+          reply: "Starting it now.",
+          actions: [{ type: "start_session", ok: true, summary: "Starting a 25-minute block", client: { minutes: 25, label: "Organic chemistry" } }],
+        },
+      },
+    });
+
+    mount();
+    await act(async () => { await openPanel(); });
+    const input = screen.getByPlaceholderText("Ask your coach…");
+    fireEvent.change(input, { target: { value: "start a 25 minute block on organic chemistry" } });
+    await act(async () => {
+      fireEvent.keyDown(input, { key: "Enter" });
+      await Promise.resolve();
+    });
+
+    // The dispatch is deferred (the panel yields a tick so the reply paints
+    // first), and an earlier test's deferred dispatch can still land here, so
+    // wait for *this* payload rather than for "any" event.
+    await waitFor(() =>
+      expect(deepLinks.some((d) => (d as { task?: string }).task === "Organic chemistry")).toBe(true)
+    );
+    // The same deep-link payload the Instagram funnel uses — one code path arms
+    // the timer, whoever asked: 25 minutes as seconds, and the label as the task.
+    expect(deepLinks.at(-1)).toMatchObject({ seconds: 1500, task: "Organic chemistry" });
+    window.removeEventListener(FOCUS_DEEP_LINK_EVENT, onDeepLink);
+  });
+
+  it("does not dress up a failed action as success", async () => {
+    mockFetch({
+      "/api/coach/status": { body: { isPremium: false, allowance: { used: 0, limit: 10, remaining: 10 }, lockScreen: null } },
+      "/api/coach/session-tip": { body: { tip: "Ready.", fallback: false } },
+      "/api/coach/chat": {
+        body: {
+          reply: "I could not find that task.",
+          actions: [{ type: "complete_task", ok: false, summary: "No open task matched “the essay” — nothing was changed" }],
+        },
+      },
+    });
+
+    mount();
+    await act(async () => { await openPanel(); });
+    const input = screen.getByPlaceholderText("Ask your coach…");
+    fireEvent.change(input, { target: { value: "mark the essay done" } });
+    await act(async () => {
+      fireEvent.keyDown(input, { key: "Enter" });
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(screen.getByText(/nothing was changed/)).toBeTruthy());
   });
 });
 

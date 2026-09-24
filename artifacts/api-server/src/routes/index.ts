@@ -78,6 +78,8 @@ import { stripeRouter } from "./stripe";
 import { recapRouter } from "./recap";
 import { webhooksRouter } from "./webhooks";
 import { integrationsRouter } from "./integrations";
+import { voiceCaptureRouter } from "./voiceCapture";
+import { adminBattlePassRouter } from "./adminBattlePass";
 
 const router: IRouter = Router();
 
@@ -160,5 +162,9 @@ router.use(stripeRouter);
 router.use(recapRouter);
 router.use(webhooksRouter);
 router.use(integrationsRouter);
+// "Plan by voice": transcript → drafts → tasks/goals. Written long ago and
+// never mounted, so every call 404'd and the feature was missing in the UI too.
+router.use(voiceCaptureRouter);
+router.use(adminBattlePassRouter);
 
 export default router;

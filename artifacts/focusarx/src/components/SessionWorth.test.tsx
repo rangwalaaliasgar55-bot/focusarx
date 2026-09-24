@@ -23,10 +23,12 @@ describe("SessionWorth", () => {
   });
 
   it("warns about the marathon taper before it applies", () => {
-    render(<SessionWorth minutes={180} />);
+    const { unmount } = render(<SessionWorth minutes={180} />);
     expect(screen.getByText(/past 2 hours pays 75% per minute/i)).toBeTruthy();
+    unmount();
     // A 45-minute block must not carry the marathon copy.
-    screen.unmount?.();
+    render(<SessionWorth minutes={45} />);
+    expect(screen.queryByText(/past 2 hours/i)).toBeNull();
   });
 
   it("counts what is banked while running, and what finishing adds", () => {
