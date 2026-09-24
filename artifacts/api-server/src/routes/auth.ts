@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { db, usersTable, passwordResetTokensTable, emailLogsTable } from "@workspace/db";
+import { db, usersTable, userProfileExtrasTable, passwordResetTokensTable, emailLogsTable } from "@workspace/db";
 import { eq, and, gt, isNull, type AnyColumn } from "drizzle-orm";
 import type { SelectedFields } from "drizzle-orm/pg-core";
 import { logger } from "../lib/logger";
@@ -1119,13 +1119,31 @@ router.post("/auth/onboarding", async (req, res) => {
   }
 });
 
+const PROFILE_ICON_IDS = new Set([
+  "orbit", "reader", "mind", "coffee", "compass", "leaf", "moon", "mountain", "rocket", "spark", "waves", "atom",
+]);
+
+/** Read only the app-owned profile symbol selection. */
+router.get("/auth/profile-icon", async (req, res) => {
+  const userId = extractUserId(req);
+  if (!userId) { sendUnauthorized(res); return; }
+  try {
+    const [extra] = await db.select({ profileIcon: userProfileExtrasTable.profileIcon })
+      .from(userProfileExtrasTable).where(eq(userProfileExtrasTable.userId, userId)).limit(1);
+    res.json({ profileIcon: extra?.profileIcon ?? null });
+  } catch (err) {
+    logger.error({ err, userId }, "profile icon get error");
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Profile icon could not be loaded" } });
+  }
+});
+
 router.patch("/auth/profile", async (req, res) => {
   const userId = extractUserId(req);
   if (!userId) {
     sendUnauthorized(res);
     return;
   }
-  const { name, bio, timezone } = req.body as Record<string, unknown>;
+  const { name, bio, timezone, profileIcon } = req.body as Record<string, unknown>;
   const updates: Record<string, unknown> = {};
   if (typeof name === "string" && name.trim()) updates.name = name.trim().slice(0, 60);
   if (typeof bio === "string") updates.bio = bio.slice(0, 300);
@@ -1141,14 +1159,23 @@ router.patch("/auth/profile", async (req, res) => {
     }
     updates.timezone = tz;
   }
-  if (Object.keys(updates).length === 0) {
+  const iconRequested = Object.prototype.hasOwnProperty.call(req.body ?? {}, "profileIcon");
+  if (iconRequested && profileIcon !== null && (!PROFILE_ICON_IDS.has(profileIcon as string))) {
+    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Unknown profile icon" } });
+    return;
+  }
+  if (Object.keys(updates).length === 0 && !iconRequested) {
     res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "No valid fields to update" } });
     return;
   }
   try {
-    await db.update(usersTable).set(updates).where(eq(usersTable.id, userId));
+    if (Object.keys(updates).length > 0) await db.update(usersTable).set(updates).where(eq(usersTable.id, userId));
+    if (iconRequested) {
+      await db.insert(userProfileExtrasTable).values({ userId, profileIcon: profileIcon as string | null })
+        .onConflictDoUpdate({ target: userProfileExtrasTable.userId, set: { profileIcon: profileIcon as string | null, updatedAt: new Date() } });
+    }
     const [user] = await db.select({ id: usersTable.id, email: usersTable.email, name: usersTable.name }).from(usersTable).where(eq(usersTable.id, userId));
-    res.json({ ok: true, user });
+    res.json({ ok: true, user, ...(iconRequested ? { profileIcon } : {}) });
   } catch (err) {
     logger.error({ err }, "profile update error");
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });

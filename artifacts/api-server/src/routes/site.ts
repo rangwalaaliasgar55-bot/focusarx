@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { z } from "zod";
-import { db, siteSettingsTable, platformMetaTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, siteSettingsTable, platformMetaTable, ambientTracksTable, ambientTrackListensTable } from "@workspace/db";
+import { eq, desc, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
-import { adminLimiter } from "../lib/rateLimiter";
+import { adminLimiter, trackLimiter } from "../lib/rateLimiter";
 import { getSiteSettings, invalidateSiteSettingsCache } from "../lib/siteSettings";
 import { checkAdminAuth } from "../lib/adminAuth";
+import { extractUserId } from "./auth";
 import { sendForbidden, sendInternal, sendValidationError } from "../lib/httpErrors";
 
 const router = Router();
@@ -97,40 +98,89 @@ router.patch("/admin/site/settings", adminLimiter, async (req, res) => {
   }
 });
 
-// ─── ADMIN-ADDABLE AMBIENT TRACKS ────────────────────────────────────────────
-// The built-in ambient library is procedural (synthesized in the browser).
-// Admins can additionally publish streamed audio tracks (licensed lofi loops,
-// nature recordings, …) that show up in the ambient mixer for everyone.
-// Stored as a JSON array in platform_meta — no schema migration needed.
+// ─── AUDIO-FIRST AMBIENT CATALOG ────────────────────────────────────────────
+// Ambient recordings are modelled as rows rather than a JSON setting. This
+// gives admins a draft/release workflow, provenance fields, loop defaults, and
+// private listening insight. The client always uses native audio; YouTube URLs
+// are rejected instead of embedding a video or attempting to extract a stream.
 
-export const AMBIENT_TRACKS_META_KEY = "ambient_custom_tracks_v1";
+const YOUTUBE_HOST_RE = /(^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com)$/i;
+const AUDIO_STATUSES = ["draft", "published", "archived"] as const;
 
-const YOUTUBE_URL_RE = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/;
+type AmbientTrackStatus = typeof AUDIO_STATUSES[number];
 
-export function extractYouTubeId(url: string): string | null {
-  const match = url.match(YOUTUBE_URL_RE);
-  return match ? match[1]! : null;
+function isDirectAudioUrl(value: string): boolean {
+  const raw = value.trim();
+  if (!raw || raw.length > 2_000) return false;
+  try {
+    // Relative paths are first-party public assets, for example the bundled
+    // MIT-licensed recordings at /ambient/chillnsound/*.mp3.
+    const parsed = new URL(raw, "https://focusarx.local");
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return false;
+    if (YOUTUBE_HOST_RE.test(parsed.hostname)) return false;
+    return raw.startsWith("/") || /^https?:\/\//i.test(raw);
+  } catch {
+    return false;
+  }
 }
 
-const ambientTrackSchema = z.object({
-  id: z.string().min(1).max(64),
-  label: z.string().min(1).max(60),
-  emoji: z.string().max(8).optional().default("🎵"),
-  url: z.string().url().refine((u) => u.startsWith("https://") || u.startsWith("http://"), "Track URL must be valid"),
-  credit: z.string().max(120).optional().default(""),
-  type: z.enum(["audio", "youtube"]).optional(),
-  youtubeId: z.string().max(32).optional().nullable(),
+function isWebUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+const ambientTrackInputSchema = z.object({
+  label: z.string().trim().min(1).max(60),
+  emoji: z.string().trim().min(1).max(8).optional().default("🎵"),
+  url: z.string().trim().max(2_000).refine(isDirectAudioUrl, "Use a direct audio URL or a first-party /ambient path. YouTube links are not supported."),
+  credit: z.string().trim().max(160).optional().default(""),
+  sourceUrl: z.string().trim().max(2_000).refine((value) => !value || isWebUrl(value), "Source URL must be http(s)").optional().default(""),
+  license: z.string().trim().min(2).max(120),
+  looping: z.boolean().optional().default(true),
 });
 
-/** Public — the ambient mixer reads the admin-published track list. */
+const ambientTrackUpdateSchema = ambientTrackInputSchema.partial();
+
+function toPublicTrack(track: typeof ambientTracksTable.$inferSelect) {
+  return {
+    id: track.id,
+    label: track.label,
+    emoji: track.emoji,
+    url: track.audioUrl,
+    credit: track.credit,
+    sourceUrl: track.sourceUrl,
+    license: track.sourceLicense,
+    looping: track.looping,
+  };
+}
+
+async function ambientTrackAnalytics() {
+  const rows = await db.select({
+    trackId: ambientTrackListensTable.trackId,
+    starts: sql<number>`count(*)::int`,
+    listeners: sql<number>`count(distinct ${ambientTrackListensTable.userId})::int`,
+    starts30d: sql<number>`count(*) filter (where ${ambientTrackListensTable.listenedAt} >= now() - interval '30 days')::int`,
+    listeners30d: sql<number>`count(distinct ${ambientTrackListensTable.userId}) filter (where ${ambientTrackListensTable.listenedAt} >= now() - interval '30 days')::int`,
+    lastListenedAt: sql<Date | null>`max(${ambientTrackListensTable.listenedAt})`,
+  }).from(ambientTrackListensTable).groupBy(ambientTrackListensTable.trackId);
+  return new Map(rows.map((row) => [row.trackId, row]));
+}
+
+/** Public — only deliberately released, direct-audio tracks reach the mixer. */
 router.get("/site/ambient-tracks", async (_req, res) => {
   try {
-    const [row] = await db.select({ value: platformMetaTable.value })
-      .from(platformMetaTable)
-      .where(eq(platformMetaTable.key, AMBIENT_TRACKS_META_KEY))
-      .limit(1);
-    res.set("Cache-Control", "no-store");
-    res.json(Array.isArray(row?.value) ? row.value : []);
+    const tracks = await db.select().from(ambientTracksTable)
+      .where(eq(ambientTracksTable.status, "published"))
+      .orderBy(desc(ambientTracksTable.publishedAt), desc(ambientTracksTable.createdAt))
+      .limit(30);
+    // Published recordings are stable content but a short private cache keeps
+    // release/unpublish changes responsive without adding a render-blocking call.
+    res.set("Cache-Control", "public, max-age=120, stale-while-revalidate=600");
+    res.json(tracks.map(toPublicTrack));
   } catch (err) {
     logger.error({ err }, "ambient tracks get error");
     // Decorative feature: an outage yields an empty list, never a broken mixer.
@@ -138,41 +188,131 @@ router.get("/site/ambient-tracks", async (_req, res) => {
   }
 });
 
-const ambientTracksUpdateSchema = z.array(ambientTrackSchema).max(30, "At most 30 custom tracks");
-
-/** Admin — replace the whole published list (idempotent). */
-router.put("/admin/ambient-tracks", adminLimiter, async (req, res) => {
-  if (!await checkAuth(req)) { sendForbidden(res); return; }
-  const parsed = ambientTracksUpdateSchema.safeParse(req.body);
-  if (!parsed.success) {
-    sendValidationError(res, "Invalid track list");
-    return;
-  }
-  const tracks = parsed.data;
-  // Enforce unique ids client-side mistakes can't produce duplicates.
-  const seen = new Set<string>();
-  const normalized = tracks
-    .map((t) => {
-      const ytId = extractYouTubeId(t.url);
-      return {
-        ...t,
-        type: (ytId ? "youtube" : (t.type || "audio")) as "youtube" | "audio",
-        youtubeId: ytId || t.youtubeId || null,
-      };
-    })
-    .filter((t) => (seen.has(t.id) ? false : (seen.add(t.id), true)));
-
+/**
+ * Record an authenticated playback start. Anonymous listeners can still use
+ * sounds; we intentionally do not fingerprint them. These data are admin-only
+ * and are never returned by the public track endpoint.
+ */
+router.post("/site/ambient-tracks/:id/listen", trackLimiter, async (req, res) => {
+  const userId = extractUserId(req);
+  if (!userId) { res.status(204).end(); return; }
+  const id = String(req.params.id ?? "");
+  if (!id || id.length > 80) { res.status(204).end(); return; }
   try {
-    await db.insert(platformMetaTable)
-      .values({ key: AMBIENT_TRACKS_META_KEY, value: normalized })
-      .onConflictDoUpdate({ target: platformMetaTable.key, set: { value: normalized, updatedAt: new Date() } });
-    logger.info({ count: normalized.length }, "admin updated ambient track list");
-    res.json({ ok: true, tracks: normalized });
+    const [track] = await db.select({ id: ambientTracksTable.id, status: ambientTracksTable.status }).from(ambientTracksTable)
+      .where(eq(ambientTracksTable.id, id)).limit(1);
+    if (track?.status === "published") await db.insert(ambientTrackListensTable).values({ trackId: track.id, userId });
   } catch (err) {
-    logger.error({ err }, "ambient tracks update error");
+    // Playback must not depend on telemetry availability.
+    logger.warn({ err, trackId: id }, "ambient listen metric was not recorded");
+  }
+  res.status(204).end();
+});
+
+/** Admin — all records, including drafts and archived tracks, plus private insight. */
+router.get("/admin/ambient-tracks", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { sendForbidden(res); return; }
+  try {
+    const [tracks, analytics] = await Promise.all([
+      db.select().from(ambientTracksTable).orderBy(desc(ambientTracksTable.updatedAt)).limit(80),
+      ambientTrackAnalytics(),
+    ]);
+    res.json({ tracks: tracks.map((track) => ({
+      ...toPublicTrack(track),
+      status: track.status as AmbientTrackStatus,
+      createdAt: track.createdAt,
+      updatedAt: track.updatedAt,
+      publishedAt: track.publishedAt,
+      archivedAt: track.archivedAt,
+      insight: analytics.get(track.id) ?? { starts: 0, listeners: 0, starts30d: 0, listeners30d: 0, lastListenedAt: null },
+    })) });
+  } catch (err) {
+    logger.error({ err }, "admin ambient track list error");
     sendInternal(res);
   }
 });
+
+/** Admin — add a track as a non-public draft. Provenance and license are required. */
+router.post("/admin/ambient-tracks", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { sendForbidden(res); return; }
+  const parsed = ambientTrackInputSchema.safeParse(req.body);
+  if (!parsed.success) { sendValidationError(res, parsed.error.errors[0]?.message ?? "Invalid audio track"); return; }
+  try {
+    const count = await db.select({ count: sql<number>`count(*)::int` }).from(ambientTracksTable);
+    if ((count[0]?.count ?? 0) >= 80) { sendValidationError(res, "At most 80 ambient catalog entries are allowed"); return; }
+    const input = parsed.data;
+    const [track] = await db.insert(ambientTracksTable).values({
+      label: input.label,
+      emoji: input.emoji,
+      audioUrl: input.url,
+      credit: input.credit,
+      sourceUrl: input.sourceUrl,
+      sourceLicense: input.license,
+      looping: input.looping,
+      status: "draft",
+      createdById: extractUserId(req),
+    }).returning();
+    res.status(201).json({ track: track && toPublicTrack(track) });
+  } catch (err) {
+    logger.error({ err }, "admin ambient track create error");
+    sendInternal(res);
+  }
+});
+
+/** Admin — correct metadata or loop defaults without making a draft public. */
+router.patch("/admin/ambient-tracks/:id", adminLimiter, async (req, res) => {
+  if (!await checkAuth(req)) { sendForbidden(res); return; }
+  const id = String(req.params.id ?? "");
+  const parsed = ambientTrackUpdateSchema.safeParse(req.body);
+  if (!id || id.length > 80 || !parsed.success || Object.keys(parsed.data).length === 0) {
+    sendValidationError(res, "Provide a valid track update"); return;
+  }
+  const input = parsed.data;
+  try {
+    const [track] = await db.update(ambientTracksTable).set({
+      ...(input.label === undefined ? {} : { label: input.label }),
+      ...(input.emoji === undefined ? {} : { emoji: input.emoji }),
+      ...(input.url === undefined ? {} : { audioUrl: input.url }),
+      ...(input.credit === undefined ? {} : { credit: input.credit }),
+      ...(input.sourceUrl === undefined ? {} : { sourceUrl: input.sourceUrl }),
+      ...(input.license === undefined ? {} : { sourceLicense: input.license }),
+      ...(input.looping === undefined ? {} : { looping: input.looping }),
+      updatedAt: new Date(),
+    }).where(eq(ambientTracksTable.id, id)).returning();
+    if (!track) { res.status(404).json({ error: "Track not found" }); return; }
+    res.json({ track: toPublicTrack(track) });
+  } catch (err) {
+    logger.error({ err, trackId: id }, "admin ambient track update error");
+    sendInternal(res);
+  }
+});
+
+async function changeAmbientTrackStatus(id: string, status: AmbientTrackStatus) {
+  const now = new Date();
+  return db.update(ambientTracksTable).set({
+    status,
+    updatedAt: now,
+    ...(status === "published" ? { publishedAt: now, archivedAt: null } : {}),
+    ...(status === "draft" ? { archivedAt: null } : {}),
+    ...(status === "archived" ? { archivedAt: now } : {}),
+  }).where(eq(ambientTracksTable.id, id)).returning();
+}
+
+for (const [action, status] of [["publish", "published"], ["unpublish", "draft"], ["archive", "archived"]] as const) {
+  router.post(`/admin/ambient-tracks/:id/${action}`, adminLimiter, async (req, res) => {
+    if (!await checkAuth(req)) { sendForbidden(res); return; }
+    const id = String(req.params.id ?? "");
+    if (!id || id.length > 80) { sendValidationError(res, "Invalid track id"); return; }
+    try {
+      const [track] = await changeAmbientTrackStatus(id, status);
+      if (!track) { res.status(404).json({ error: "Track not found" }); return; }
+      res.json({ ok: true, track: toPublicTrack(track), status });
+    } catch (err) {
+      logger.error({ err, trackId: id, action }, "admin ambient track release action error");
+      sendInternal(res);
+    }
+  });
+}
 
 // ── Custom site settings ────────────────────────────────────────────────────
 /**

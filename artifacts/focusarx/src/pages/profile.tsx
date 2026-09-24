@@ -46,6 +46,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { PROFILE_ICON_OPTIONS, ProfileIcon } from "@/lib/profileIcons";
 
 interface BadgeDef {
   id: string;
@@ -217,7 +218,7 @@ interface CosmeticItem {
 interface CosmeticInventoryEntry { cosmeticId: string; equipped?: boolean }
 interface CosmeticsPayload { inventory: CosmeticInventoryEntry[]; catalog: CosmeticItem[] }
 
-function CustomizationTab() {
+function CustomizationTab({ profileIcon, savingProfileIcon, onProfileIconChange }: { profileIcon: string | null | undefined; savingProfileIcon: boolean; onProfileIconChange: (id: string | null) => void }) {
   const { toast } = useToast();
   const { isPremium } = usePremium();
   const { data, isLoading, refetch } = useQuery<CosmeticsPayload>({
@@ -258,6 +259,16 @@ function CustomizationTab() {
 
   return (
     <div className="space-y-4">
+      <Card>
+        <CardHeader><CardTitle>Profile symbol</CardTitle><CardDescription>Pick a small identity mark for your profile. These app-bundled Lucide symbols are ISC-licensed; no unreviewed icon font is loaded.</CardDescription></CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2" role="list" aria-label="Profile symbol options">
+            <button type="button" disabled={savingProfileIcon} onClick={() => onProfileIconChange(null)} aria-pressed={!profileIcon} className={`grid h-11 min-w-11 place-items-center rounded-xl border px-2 text-[11px] font-semibold transition-colors disabled:opacity-50 ${!profileIcon ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--border-subtle)] text-[var(--foreground-subtle)] hover:bg-[var(--surface-hover)]"}`}>Initials</button>
+            {PROFILE_ICON_OPTIONS.map(({ id, label, Icon }) => <button key={id} type="button" disabled={savingProfileIcon} onClick={() => onProfileIconChange(id)} aria-label={`Use ${label} as your profile symbol`} aria-pressed={profileIcon === id} title={label} className={`grid h-11 w-11 place-items-center rounded-xl border transition-colors disabled:opacity-50 ${profileIcon === id ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--border-subtle)] text-[var(--foreground-subtle)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"}`}><Icon size={19} aria-hidden="true" /></button>)}
+          </div>
+          <p className="mt-3 text-xs text-[var(--foreground-subtle)]">{savingProfileIcon ? "Saving symbol…" : profileIcon ? "Your selected symbol appears on your private and public profile." : "Your profile currently uses initials."}</p>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Palette size={16}/> Profile customization</CardTitle><CardDescription>Frames, nameplates, backgrounds, badges, aura, emotes. Premium unlocks exclusive styles with Focus Tokens.</CardDescription></CardHeader>
         <CardContent>
@@ -337,6 +348,7 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false);
   const [achievementFilter, setAchievementFilter] = useState<"all" | "unlocked" | "locked">("all");
   const [txFilter, setTxFilter] = useState<"all" | "earn" | "spend">("all");
+  const [savingProfileIcon, setSavingProfileIcon] = useState(false);
 
   /*
     Tab state lives in the URL so it survives a refresh and can be linked to —
@@ -394,6 +406,29 @@ export default function ProfilePage() {
   // Called with the other hooks, before any early return — the profile header
   // renders what the user is wearing, and hooks cannot be conditional.
   const { data: worn } = useWornItems();
+  const profileIconQuery = useQuery<{ profileIcon: string | null }>({
+    queryKey: ["profile-icon"],
+    queryFn: async () => {
+      const token = getToken();
+      const response = await fetch("/api/auth/profile-icon", { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (!response.ok) return { profileIcon: null };
+      return response.json();
+    },
+    staleTime: 60_000,
+  });
+  const profileIcon = profileIconQuery.data?.profileIcon ?? null;
+  const saveProfileIcon = async (id: string | null) => {
+    if (id === profileIcon || savingProfileIcon) return;
+    setSavingProfileIcon(true);
+    try {
+      const token = getToken();
+      const response = await fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ profileIcon: id }) });
+      if (!response.ok) throw new Error("Profile symbol could not be saved");
+      await profileIconQuery.refetch();
+      toast(id ? "Profile symbol updated" : "Profile initials restored", "success");
+    } catch (error) { toast(error instanceof Error ? error.message : "Profile symbol could not be saved", "error"); }
+    finally { setSavingProfileIcon(false); }
+  };
 
   if (query.isLoading) return <div className="page-container space-y-5" role="status" aria-label="Loading profile"><Skeleton className="h-32" /><Skeleton className="h-44" /><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 8 }).map((_, index) => <Skeleton key={index} className="h-40" />)}</div></div>;
   if (query.isError || !data) return <div className="page-container"><EmptyState icon={<UserRound />} title="Profile could not be loaded" description="Check your connection and try again. Your progress is safe." action={{ label: "Retry", onClick: () => void query.refetch() }} /></div>;
@@ -416,7 +451,7 @@ export default function ProfilePage() {
               style={worn?.frame ? { borderColor: WORN_RARITY[worn.frame.rarity ?? "common"]?.ring ?? "var(--card-border)", boxShadow: WORN_RARITY[worn.frame.rarity ?? "common"]?.glow } : undefined}
             >
               <AvatarFallback className="bg-[var(--brand-soft)] text-xl font-semibold text-[var(--brand-strong)]">
-                {worn?.avatar?.emoji ?? initials}
+                {worn?.avatar?.emoji ?? (profileIcon ? <ProfileIcon id={profileIcon} size={31} aria-label="Selected profile symbol" /> : initials)}
               </AvatarFallback>
             </Avatar>
             {worn?.effect && (
@@ -479,7 +514,7 @@ export default function ProfilePage() {
         </TabsContent>
 
         <TabsContent value="custom">
-          <CustomizationTab />
+          <CustomizationTab profileIcon={profileIcon} savingProfileIcon={savingProfileIcon} onProfileIconChange={(id) => void saveProfileIcon(id)} />
         </TabsContent>
       </Tabs>
 

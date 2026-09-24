@@ -2,13 +2,21 @@ import { useCallback, useState, useEffect } from "react";
 import { LoadingState, MotionTab, SectionHeader, adminFetch } from "./AdminHelpers";
 import type { AdminPanelProps, SiteSettings } from "./AdminTypes";
 
-type AdminTrack = { id: string; label: string; emoji?: string; url: string; credit?: string; type?: "audio" | "youtube"; youtubeId?: string | null };
+type AmbientInsight = { starts: number; listeners: number; starts30d: number; listeners30d: number; lastListenedAt: string | null };
+type AdminTrack = {
+  id: string;
+  label: string;
+  emoji?: string;
+  url: string;
+  credit?: string;
+  sourceUrl?: string;
+  license: string;
+  looping: boolean;
+  status: "draft" | "published" | "archived";
+  publishedAt?: string | null;
+  insight: AmbientInsight;
+};
 type CustomSetting = { key: string; value: string | number | boolean | null; public: boolean; note: string; updatedAt: string };
-
-function extractYouTubeId(url: string): string | null {
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
-  return match ? match[1]! : null;
-}
 
 export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
@@ -18,8 +26,9 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
   /* Curated ambient music tracks — streamed audio published to every user's
      ambient mixer (separate from the built-in synthesized soundscapes). */
   const [tracks, setTracks] = useState<AdminTrack[]>([]);
-  const [trackDraft, setTrackDraft] = useState({ label: "", emoji: "", url: "", credit: "" });
+  const [trackDraft, setTrackDraft] = useState({ label: "", emoji: "", url: "", credit: "", sourceUrl: "", license: "", looping: true });
   const [trackMsg, setTrackMsg] = useState<string | null>(null);
+  const [trackSaving, setTrackSaving] = useState<string | null>(null);
 
   /* Custom settings — the admin-defined key/value escape hatch. Anything the
      typed fields above do not cover can be registered, exposed publicly or kept
@@ -79,54 +88,66 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
 
   const loadTracks = useCallback(async () => {
     try {
-      const r = await adminFetch("/api/site/ambient-tracks", { headers: authHeaders(), credentials: "include" });
+      const r = await adminFetch("/api/admin/ambient-tracks", { headers: authHeaders(), credentials: "include" });
       if (r.ok) {
         const d = await r.json();
-        if (Array.isArray(d)) setTracks(d);
+        setTracks(Array.isArray(d.tracks) ? d.tracks : []);
       }
-    } catch { /* ignore */ }
+    } catch { /* The admin settings panel remains usable if this optional list fails. */ }
   }, [authHeaders]);
 
-  async function saveTracks(next: AdminTrack[]) {
-    setTrackMsg(null);
+  async function runTrackAction(path: string, options: RequestInit, success: string) {
+    setTrackMsg(null); setTrackSaving(path);
     try {
-      const r = await adminFetch("/api/admin/ambient-tracks", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
+      const r = await adminFetch(path, {
+        ...options,
+        headers: { ...authHeaders(), ...(options.body ? { "Content-Type": "application/json" } : {}) },
         credentials: "include",
-        body: JSON.stringify(next),
       });
-      if (r.ok) { setTracks(next); setTrackMsg("Track list published — live for all users."); }
-      else {
+      if (!r.ok) {
         const d = await r.json().catch(() => ({}));
-        const detail = typeof d?.error === "string" ? d.error : (d?.error?.message ?? "Failed to save tracks");
-        setTrackMsg("Error: " + detail);
+        setTrackMsg(`Error: ${typeof d?.error === "string" ? d.error : d?.error?.message ?? "Could not save track"}`);
+        return false;
       }
-    } catch (e) { setTrackMsg("Error: " + (e instanceof Error ? e.message : "Failed")); }
+      await loadTracks();
+      setTrackMsg(success);
+      return true;
+    } catch (error) {
+      setTrackMsg(`Error: ${error instanceof Error ? error.message : "Could not save track"}`);
+      return false;
+    } finally { setTrackSaving(null); }
   }
 
-  function addTrack() {
+  async function addTrack() {
     const label = trackDraft.label.trim();
     const url = trackDraft.url.trim();
-    if (!label || !url) { setTrackMsg("Error: a label and a valid URL are required."); return; }
-    if (!url.startsWith("https://") && !url.startsWith("http://")) { setTrackMsg("Error: track URL must use https."); return; }
-    if (tracks.length >= 30) { setTrackMsg("Error: at most 30 tracks — remove one first."); return; }
-    const ytId = extractYouTubeId(url);
-    const track: AdminTrack = {
-      id: `t-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      label: label.slice(0, 60),
-      emoji: trackDraft.emoji.trim() || (ytId ? "▶️" : "🎵"),
-      url,
-      credit: trackDraft.credit.trim() || undefined,
-      type: ytId ? "youtube" : "audio",
-      youtubeId: ytId || null,
-    };
-    void saveTracks([...tracks, track]);
-    setTrackDraft({ label: "", emoji: "", url: "", credit: "" });
+    if (!label || !url || !trackDraft.license.trim()) {
+      setTrackMsg("Error: label, direct audio URL, and license are required."); return;
+    }
+    if (/youtu(?:\.be|be\.com)|youtube\.com/i.test(url)) {
+      setTrackMsg("Error: YouTube links cannot be used as audio tracks. Add a licensed direct audio file instead."); return;
+    }
+    const ok = await runTrackAction("/api/admin/ambient-tracks", {
+      method: "POST",
+      body: JSON.stringify({
+        label, url, emoji: trackDraft.emoji.trim() || "🎵", credit: trackDraft.credit.trim(),
+        sourceUrl: trackDraft.sourceUrl.trim(), license: trackDraft.license.trim(), looping: trackDraft.looping,
+      }),
+    }, "Draft saved. Review it, then select Release when it is ready for listeners.");
+    if (ok) setTrackDraft({ label: "", emoji: "", url: "", credit: "", sourceUrl: "", license: "", looping: true });
   }
 
-  function removeTrack(id: string) {
-    void saveTracks(tracks.filter((t) => t.id !== id));
+  function releaseTrack(track: AdminTrack) {
+    void runTrackAction(`/api/admin/ambient-tracks/${encodeURIComponent(track.id)}/publish`, { method: "POST" }, `${track.label} is now released.`);
+  }
+  function unpublishTrack(track: AdminTrack) {
+    void runTrackAction(`/api/admin/ambient-tracks/${encodeURIComponent(track.id)}/unpublish`, { method: "POST" }, `${track.label} is back in draft.`);
+  }
+  function archiveTrack(track: AdminTrack) {
+    void runTrackAction(`/api/admin/ambient-tracks/${encodeURIComponent(track.id)}/archive`, { method: "POST" }, `${track.label} was archived.`);
+  }
+  function setTrackLoop(track: AdminTrack, looping: boolean) {
+    void runTrackAction(`/api/admin/ambient-tracks/${encodeURIComponent(track.id)}`, { method: "PATCH", body: JSON.stringify({ looping }) }, `Loop default updated for ${track.label}.`);
   }
 
   const load = useCallback(async () => {
@@ -319,76 +340,74 @@ export function AdminSitePanel({ authHeaders }: AdminPanelProps) {
           </div>
         </div>
         {/* Curated ambient tracks */}
-        <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 p-5 lg:col-span-2">
-          <h3 className="mb-1 text-sm font-semibold text-[var(--palette-zinc-100)]">🎵 Curated Ambient & YouTube Tracks</h3>
-          <p className="mb-4 text-xs text-[var(--palette-zinc-500)]">
-            Publish streamed music tracks or YouTube songs (lo-fi streams, ambient music, study playlists, binaural beats) to every user's ambient sound bar. Max 30.
-          </p>
+        <section className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 p-5 lg:col-span-2" aria-labelledby="ambient-catalog-heading">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 id="ambient-catalog-heading" className="text-sm font-semibold text-[var(--palette-zinc-100)]">🎵 Ambient audio catalog</h3>
+              <p className="mt-0.5 max-w-3xl text-xs leading-relaxed text-[var(--palette-zinc-500)]">
+                Add licensed direct-audio recordings as drafts, review their provenance, then explicitly release them. The mixer is audio-first: YouTube links are intentionally not accepted or embedded.
+              </p>
+            </div>
+            <span className="rounded-full border border-[var(--palette-zinc-700)] px-2 py-1 text-[11px] font-semibold text-[var(--palette-zinc-400)]">
+              {tracks.filter((track) => track.status === "published").length} released · {tracks.filter((track) => track.status === "draft").length} drafts
+            </span>
+          </div>
 
           {tracks.length > 0 && (
-            <ul className="mb-4 space-y-1.5">
-              {tracks.map((t) => (
-                <li key={t.id} className="flex items-center gap-2 rounded-lg border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-950)] px-3 py-2">
-                  <span aria-hidden>{t.emoji || (t.type === "youtube" ? "▶️" : "🎵")}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-1.5">
-                      <span className="truncate text-xs font-semibold text-[var(--palette-zinc-200)]">{t.label}</span>
-                      {t.type === "youtube" && (
-                        <span className="rounded bg-[var(--danger-soft)] border border-[var(--danger)]/30 px-1.5 py-0.5 text-[11px] font-bold text-[var(--danger)] uppercase tracking-wider">
-                          YouTube
-                        </span>
-                      )}
-                    </span>
-                    <span className="block truncate text-[11px] text-[var(--palette-zinc-500)]">{t.credit ? `${t.credit} · ` : ""}{t.url}</span>
-                  </span>
-                  <button type="button" onClick={() => removeTrack(t.id)}
-                    className="shrink-0 rounded-lg border border-[var(--palette-zinc-700)] px-2.5 py-1 text-[11px] font-semibold text-[var(--palette-zinc-400)] hover:border-[var(--palette-rose-500)]/50 hover:text-[var(--palette-rose-400)] transition">
-                    Remove
-                  </button>
-                </li>
-              ))}
+            <ul className="mt-4 space-y-2" aria-label="Ambient audio catalog">
+              {tracks.map((track) => {
+                const busy = trackSaving?.includes(encodeURIComponent(track.id));
+                const statusTone = track.status === "published" ? "border-[var(--palette-emerald-500)]/40 bg-[var(--palette-emerald-500)]/10 text-[var(--palette-emerald-400)]" : track.status === "draft" ? "border-[var(--palette-amber-500)]/40 bg-[var(--palette-amber-500)]/10 text-[var(--palette-amber-300)]" : "border-[var(--palette-zinc-600)] bg-[var(--palette-zinc-800)] text-[var(--palette-zinc-400)]";
+                return (
+                  <li key={track.id} className="rounded-lg border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-950)] px-3 py-3">
+                    <div className="flex flex-wrap items-start gap-2">
+                      <span aria-hidden className="pt-0.5">{track.emoji || "🎵"}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-semibold text-[var(--palette-zinc-200)]">{track.label}</span>
+                          <span className={`rounded border px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${statusTone}`}>{track.status}</span>
+                        </div>
+                        <p className="mt-1 truncate text-[11px] text-[var(--palette-zinc-500)]">{track.credit || "No creator credit supplied"} · {track.license}{track.sourceUrl ? ` · ${track.sourceUrl}` : ""}</p>
+                        <p className="mt-1 text-[11px] text-[var(--palette-zinc-500)]">
+                          <strong className="font-semibold text-[var(--palette-zinc-400)]">Private insight:</strong> {track.insight.listeners30d} signed-in listeners / {track.insight.starts30d} starts in 30d · {track.insight.listeners} all-time listeners
+                          {track.insight.lastListenedAt ? ` · last start ${new Date(track.insight.lastListenedAt).toLocaleDateString()}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {track.status !== "published" && <button type="button" disabled={busy} onClick={() => releaseTrack(track)} className="rounded-lg bg-[var(--palette-emerald-700)] px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[var(--palette-emerald-600)] disabled:opacity-50">Release</button>}
+                        {track.status === "published" && <button type="button" disabled={busy} onClick={() => unpublishTrack(track)} className="rounded-lg border border-[var(--palette-amber-500)]/50 px-2.5 py-1.5 text-[11px] font-semibold text-[var(--palette-amber-300)] transition hover:bg-[var(--palette-amber-500)]/10 disabled:opacity-50">Unpublish</button>}
+                        {track.status !== "archived" && <button type="button" disabled={busy} onClick={() => archiveTrack(track)} className="rounded-lg border border-[var(--palette-zinc-700)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--palette-zinc-400)] transition hover:border-[var(--palette-rose-500)]/50 hover:text-[var(--palette-rose-400)] disabled:opacity-50">Archive</button>}
+                      </div>
+                    </div>
+                    <label className="mt-2 flex items-center gap-2 text-[11px] text-[var(--palette-zinc-400)]">
+                      <input type="checkbox" checked={track.looping} disabled={busy} onChange={(event) => setTrackLoop(track, event.target.checked)} className="h-3.5 w-3.5 accent-[var(--palette-violet-500)]" />
+                      Loop by default — listeners can still change this in their own mixer.
+                    </label>
+                  </li>
+                );
+              })}
             </ul>
           )}
 
-          <div className="grid gap-2 sm:grid-cols-[1fr_4rem]">
-            <div>
-              <label htmlFor="adminsitepanel-track-label" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Track label</label>
-              <input id="adminsitepanel-track-label" value={trackDraft.label} onChange={(e) => setTrackDraft((d) => ({ ...d, label: e.target.value }))}
-                placeholder="Lofi Hip Hop Study Beats"
-                className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" />
+          <fieldset className="mt-4 rounded-lg border border-[var(--palette-zinc-800)] p-3">
+            <legend className="px-1 text-xs font-semibold text-[var(--palette-zinc-300)]">Add a licensed audio draft</legend>
+            <div className="grid gap-2 sm:grid-cols-[1fr_4rem]">
+              <div><label htmlFor="adminsitepanel-track-label" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Track label</label><input id="adminsitepanel-track-label" value={trackDraft.label} onChange={(event) => setTrackDraft((draft) => ({ ...draft, label: event.target.value }))} placeholder="Late-night rain" className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" /></div>
+              <div><label htmlFor="adminsitepanel-track-emoji" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Emoji</label><input id="adminsitepanel-track-emoji" value={trackDraft.emoji} onChange={(event) => setTrackDraft((draft) => ({ ...draft, emoji: event.target.value }))} placeholder="🌧️" maxLength={8} className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" /></div>
             </div>
-            <div>
-              <label htmlFor="adminsitepanel-track-emoji" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Emoji</label>
-              <input id="adminsitepanel-track-emoji" value={trackDraft.emoji} onChange={(e) => setTrackDraft((d) => ({ ...d, emoji: e.target.value }))}
-                placeholder="🎧" maxLength={8}
-                className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" />
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <div><label htmlFor="adminsitepanel-track-url" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Direct audio URL</label><input id="adminsitepanel-track-url" value={trackDraft.url} onChange={(event) => setTrackDraft((draft) => ({ ...draft, url: event.target.value }))} placeholder="https://cdn.example.com/rain.mp3 or /ambient/..." inputMode="url" className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" /></div>
+              <div><label htmlFor="adminsitepanel-track-credit" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Creator credit</label><input id="adminsitepanel-track-credit" value={trackDraft.credit} onChange={(event) => setTrackDraft((draft) => ({ ...draft, credit: event.target.value }))} placeholder="Creator / label" className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" /></div>
+              <div><label htmlFor="adminsitepanel-track-source" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Source URL</label><input id="adminsitepanel-track-source" value={trackDraft.sourceUrl} onChange={(event) => setTrackDraft((draft) => ({ ...draft, sourceUrl: event.target.value }))} placeholder="https://source.example.com" inputMode="url" className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" /></div>
+              <div><label htmlFor="adminsitepanel-track-license" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">License <span className="text-[var(--palette-rose-400)]">required</span></label><input id="adminsitepanel-track-license" value={trackDraft.license} onChange={(event) => setTrackDraft((draft) => ({ ...draft, license: event.target.value }))} placeholder="CC0, CC BY 4.0, MIT, commercial license…" className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" /></div>
             </div>
-          </div>
-          <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr]">
-            <div>
-              <label htmlFor="adminsitepanel-track-url" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Track Link (YouTube URL or Direct Audio .mp3/.ogg)</label>
-              <input id="adminsitepanel-track-url" value={trackDraft.url} onChange={(e) => setTrackDraft((d) => ({ ...d, url: e.target.value }))}
-                placeholder="https://www.youtube.com/watch?v=... or https://cdn.example.com/song.mp3" inputMode="url"
-                className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" />
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 text-xs text-[var(--palette-zinc-400)]"><input type="checkbox" checked={trackDraft.looping} onChange={(event) => setTrackDraft((draft) => ({ ...draft, looping: event.target.checked }))} className="h-3.5 w-3.5 accent-[var(--palette-violet-500)]" /> Loop by default</label>
+              <button type="button" disabled={trackSaving !== null} onClick={() => void addTrack()} className="rounded-lg bg-[var(--palette-teal-600)] px-4 py-2 text-xs font-semibold text-black transition hover:bg-[var(--palette-teal-500)] disabled:opacity-50">{trackSaving === "/api/admin/ambient-tracks" ? "Saving…" : "Save as draft"}</button>
+              {trackMsg && <span role="status" className={`text-xs ${trackMsg.startsWith("Error") ? "text-[var(--palette-rose-400)]" : "text-[var(--palette-emerald-400)]"}`}>{trackMsg}</span>}
             </div>
-            <div>
-              <label htmlFor="adminsitepanel-track-credit" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-500)]">Artist / Channel Credit (optional)</label>
-              <input id="adminsitepanel-track-credit" value={trackDraft.credit} onChange={(e) => setTrackDraft((d) => ({ ...d, credit: e.target.value }))}
-                placeholder="Lofi Girl / ChilledCow"
-                className="w-full rounded-lg border border-[var(--palette-zinc-700)] bg-[var(--palette-zinc-950)] px-3 py-2 text-sm text-[var(--palette-zinc-200)] outline-none focus:border-[var(--palette-violet-500)]" />
-            </div>
-          </div>
-
-          <div className="mt-3 flex items-center gap-3">
-            <button type="button" onClick={addTrack}
-              className="rounded-lg bg-[var(--palette-teal-600)] px-4 py-2 text-xs font-semibold text-[var(--palette-white)] hover:bg-[var(--palette-teal-500)] transition">
-              Add & publish track
-            </button>
-            {trackMsg && (
-              <span className={`text-xs ${trackMsg.startsWith("Error") ? "text-[var(--palette-rose-400)]" : "text-[var(--palette-emerald-400)]"}`}>{trackMsg}</span>
-            )}
-          </div>
-        </div>
+          </fieldset>
+        </section>
 
         {/* Custom settings — anything at all, added and deleted without a deploy */}
         <div className="rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 p-5 lg:col-span-2">

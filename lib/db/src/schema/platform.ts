@@ -84,6 +84,55 @@ export const adminDropClaimsTable = pgTable("admin_drop_claims", {
 
 export type AdminDropClaim = typeof adminDropClaimsTable.$inferSelect;
 
+// ─── C: CURATED AMBIENT AUDIO ────────────────────────────────────────────────
+
+/**
+ * Audio-first recordings curated by an administrator. These are deliberately
+ * normalised rather than kept in `platform_meta`: a track has a release state,
+ * provenance, a loop default, and listening events that need to be queryable.
+ *
+ * `status` is one of `draft` | `published` | `archived`. Only `published`
+ * rows are ever returned by the public ambient endpoint.
+ */
+export const ambientTracksTable = pgTable("ambient_tracks", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  label: text("label").notNull(),
+  emoji: text("emoji").notNull().default("🎵"),
+  audioUrl: text("audio_url").notNull(),
+  credit: text("credit").notNull().default(""),
+  sourceUrl: text("source_url").notNull().default(""),
+  sourceLicense: text("source_license").notNull().default(""),
+  looping: boolean("looping").notNull().default(true),
+  status: text("status").notNull().default("draft"),
+  createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  publishedAt: timestamp("published_at"),
+  archivedAt: timestamp("archived_at"),
+}, (t) => [
+  index("ambient_tracks_status_published_idx").on(t.status, t.publishedAt),
+  index("ambient_tracks_created_by_idx").on(t.createdById),
+]);
+
+export type AmbientTrack = typeof ambientTracksTable.$inferSelect;
+
+/**
+ * A start event is written only for an authenticated listener. The aggregate
+ * is visible exclusively to admins; no route exposes audience figures to
+ * regular users or visitors.
+ */
+export const ambientTrackListensTable = pgTable("ambient_track_listens", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  trackId: text("track_id").notNull().references(() => ambientTracksTable.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  listenedAt: timestamp("listened_at").defaultNow().notNull(),
+}, (t) => [
+  index("ambient_track_listens_track_date_idx").on(t.trackId, t.listenedAt),
+  index("ambient_track_listens_user_date_idx").on(t.userId, t.listenedAt),
+]);
+
+export type AmbientTrackListen = typeof ambientTrackListensTable.$inferSelect;
+
 // ─── F: IMMUTABLE SQL CONSOLE LOG ────────────────────────────────────────────
 
 /**
