@@ -14,7 +14,12 @@ paths = [
   '''artifacts/api-server/src/lib/webhooks\.test\.ts$''',
   '''artifacts/api-server/src/lib/secrets\.test\.ts$''',
   '''artifacts/api-server/src/lib/stripe\.test\.ts$''',
-  '''artifacts/focusarx/src/components/settings/IntegrationSettings\.test\.tsx$'''
+  '''artifacts/focusarx/src/components/settings/IntegrationSettings\.test\.tsx$''',
+  # `DailyMissionsStrip.test.tsx` states missions in the shape the API
+  # returns them, and that payload has a `key` field ("daily_first_session").
+  # The generic-api-key rule reads `key: "<value>"` as a credential; it is
+  # a mission identifier from the product's own seed data.
+  '''artifacts/focusarx/src/components/DailyMissionsStrip\.test\.tsx$'''
 ]
 regexes = [
   '''completion_s1''',

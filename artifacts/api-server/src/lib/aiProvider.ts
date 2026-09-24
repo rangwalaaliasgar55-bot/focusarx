@@ -143,8 +143,10 @@ async function callGemini(req: AiRequest, purpose: string, userId?: string | nul
 
   // Every candidate was rejected as a model ID. Before giving up (and before
   // dropping the request to Groq or to template text), ask the API what it
-  // serves and use that — see discoverGeminiModel.
-  if (retired && !authRejected) {
+  // serves and use that — see discoverGeminiModel. A model that answered with
+  // "auth" never reaches this line: the key is rejected, so a different model ID
+  // cannot help and the loop returns early.
+  if (retired) {
     const discovered = await discoverGeminiModel(apiKey);
     if (discovered && !geminiModelCandidates().includes(discovered)) {
       const result = await tryGeminiModel(discovered, req, purpose, userId);
