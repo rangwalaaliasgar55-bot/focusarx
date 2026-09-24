@@ -2,12 +2,14 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useId, useRef, useState } from "react";
 import { Pencil } from "lucide-react";
 import { formatTime } from "@/lib/timerUtils";
+import { computeSessionRewards } from "@/lib/sessionRewards";
 import { RollingClock } from "@/components/RollingClock";
 import { getTimerSkin, skinTextGradient, type MembershipTier } from "@/lib/membershipSkin";
 import type { TimerTheme } from "@/lib/timerTheme";
 import { useNow } from "@/hooks/useNow";
 import type { TimerMode } from "@/types/timer";
 import { FlipClockDisplay } from "@/components/FlipClockDisplay";
+import { TimerFaceBars, TimerFaceDots, TimerFaceRounds, TimerFaceSegments } from "@/components/timerfaces/TimerFaces";
 
 interface TimerDisplayProps {
   secondsLeft: number;
@@ -21,34 +23,44 @@ interface TimerDisplayProps {
   tier?: MembershipTier;
   /** Cosmetic face design (Classic / Neon / Zen). Paid skins override it. */
   theme?: TimerTheme;
+  /** Fires the completion burst for one beat. Owned by the timer, not the ring. */
+  justCompleted?: boolean;
 }
 
 /**
- * Timer face — Apple Clock / Fitness ring idiom.
+ * Timer face — the centrepiece of the product.
  *
- * One ring, drawn with a rounded cap and a soft trailing shadow, over a quiet
- * inner disc. The digits use the display face with tabular figures and roll
- * per-glyph as they change (the way iOS's clock does), rather than a whole
- * string that re-renders and flashes. Everything that moves is transform or
- * opacity only, and every animation collapses under `prefers-reduced-motion`.
+ * The ring is a real instrument rather than a progress bar bent into a circle:
  *
- * Membership skins (see `lib/membershipSkin.ts`) tint the *focus* ring only:
+ *   • a **gradient arc** traces the mode's hue over a recessed track, so the
+ *     countdown has direction and colour instead of one flat stroke;
+ *   • a **head node** rides the tip of the arc while running — the eye tracks
+ *     motion, so the session's progress is legible at a glance from across a
+ *     room without reading a single digit;
+ *   • a **breathing halo** sits behind everything, tinted to the mode and
+ *     brightening while the clock runs, so "working" and "resting" are
+ *     distinguishable by colour and rhythm alone;
+ *   • **minute ticks** around the bezel give the empty track a scale, which is
+ *     what makes a ring read as a clock face rather than a loading spinner.
+ *
+ * Everything that moves is transform/opacity, every animation collapses under
+ * `prefers-reduced-motion`, and the finish-time label and accessible name are
+ * unchanged (see `TimerDisplay.test.tsx`).
+ *
+ * `theme === "segments"` and `theme === "bars"` hand the whole face to
+ * `timerfaces/TimerFaces.tsx` — different layouts rather than different colours,
+ * wired through the same `AnimatePresence` so switching a face cross-fades
+ * instead of snapping.
+ *
+ * Membership skins (see `lib/membershipSkin.ts`) tint the focus ring:
  *   free  — solid brand ring
- *   plus  — brand → cyan gradient ring, slightly stronger halo
- *   pro   — violet → pink gradient, orbiting spark on the ring head
- *   elite — gold → amber gradient, spark, metallic digits, crown chip
+ *   plus  — brand → cyan gradient ring, stronger halo
+ *   pro   — violet → pink gradient, head node
+ *   elite — gold → amber gradient, node, metallic digits, crown chip
  * Break / long-break always keep their green / blue so the rest-vs-work
  * signal is identical for every member.
  */
-/**
- * Wall-clock label for when the current block will finish.
- *
- * The ring answers "how much is left" and the digits answer "how long left",
- * but neither answers "when can I stop" — which is the question that decides
- * whether the user starts at all, and the one that matters most to the
- * time-blind. `14:12 remaining` still needs arithmetic against an unknown
- * starting point; `ends 3:45 PM` does not.
- */
+
 /**
  * Natural-language remaining time for the accessible name.
  *
@@ -75,10 +87,47 @@ const SIZE = 300;
 const STROKE = 14;
 const EASE = [0.32, 0.72, 0, 1] as const;
 
-const MODE_CONFIG: Record<TimerMode, { label: string; ring: string; ringSoft: string }> = {
-  focus:     { label: "Focus",      ring: "var(--brand-500)",  ringSoft: "var(--brand-soft)" },
-  break:     { label: "Break",      ring: "var(--success)",    ringSoft: "var(--success-soft)" },
-  longBreak: { label: "Long break", ring: "var(--info)",       ringSoft: "var(--info-soft)" },
+interface ModePalette {
+  label: string;
+  /** Primary arc colour. */
+  ring: string;
+  /** Second gradient stop — only used when `gradient` is on. */
+  ringAlt: string;
+  /** Recessed track behind the arc. */
+  track: string;
+  /** Halo tint. */
+  glow: string;
+  label2: string;
+}
+
+const MODE_CONFIG: Record<TimerMode, ModePalette & { gradient: boolean }> = {
+  focus: {
+    label: "Focus",
+    ring: "var(--brand-500)",
+    ringAlt: "var(--brand-violet)",
+    track: "var(--brand-soft)",
+    glow: "var(--brand-500)",
+    gradient: true,
+    label2: "focus",
+  },
+  break: {
+    label: "Break",
+    ring: "var(--success)",
+    ringAlt: "var(--palette-teal-300, var(--success))",
+    track: "var(--success-soft)",
+    glow: "var(--success)",
+    gradient: true,
+    label2: "break",
+  },
+  longBreak: {
+    label: "Long break",
+    ring: "var(--info)",
+    ringAlt: "var(--palette-sky-300, var(--info))",
+    track: "var(--info-soft)",
+    glow: "var(--info)",
+    gradient: true,
+    label2: "long break",
+  },
 };
 
 export function TimerDisplay({
@@ -91,21 +140,22 @@ export function TimerDisplay({
   activeSecondsEarned = 0,
   tier = "free",
   theme = "classic",
+  justCompleted = false,
 }: TimerDisplayProps) {
   const { minutes, seconds } = formatTime(secondsLeft);
   const modeCfg = MODE_CONFIG[mode];
   const skin = getTimerSkin(tier);
   const skinned = mode === "focus" && skin.tier !== "free";
   const ring = skinned ? skin.ring : modeCfg.ring;
-  // Neon gives the *focus* ring a brand→pink gradient; break modes keep
-  // their rest colours in every design so work-vs-rest stays unmistakable.
-  const neonFocus = !skinned && theme === "neon" && mode === "focus";
-  const ringAlt = skinned ? skin.ringAlt : neonFocus ? "var(--brand-pink)" : modeCfg.ring;
-  const track = skinned ? skin.track : modeCfg.ringSoft;
+  const ringAlt = skinned ? skin.ringAlt : modeCfg.ringAlt;
+  const track = skinned ? skin.track : modeCfg.track;
+  const glowColor = skinned ? skin.ring : modeCfg.glow;
   const glow = skinned ? skin.glow : theme === "neon" ? 0.34 : theme === "zen" ? 0.08 : 0.22;
-  const useGradient = (skinned && skin.gradient) || neonFocus;
-  // Zen thins the ring right down; every other design keeps the 14px stroke.
+  // A gradient arc is the default face now; Zen deliberately opts out of every
+  // flourish (thinner stroke, no gradient, no head node) and is the one design
+  // that is purely a line and a number.
   const zen = !skinned && theme === "zen";
+  const useGradient = !zen && (skinned ? skin.gradient : true);
   const strokeWidth = zen ? 8 : STROKE;
   const radius = (SIZE - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -115,6 +165,7 @@ export function TimerDisplay({
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const gradId = `ring-grad-${uid}`;
   const shadowId = `ring-shadow-${uid}`;
+  const haloId = `ring-halo-${uid}`;
 
   // A single soft breath when the timer starts, not a per-second pulse.
   const wasRunning = useRef(isRunning);
@@ -132,21 +183,31 @@ export function TimerDisplay({
   // is invariant while the clock runs, so the label is stable rather than
   // counting down — which is exactly the point: the user wants the fixed
   // instant they are working towards, not another moving number.
-  //
-  // The clock is only subscribed while running; an idle timer schedules nothing.
   const now = useNow(isRunning);
   const endsAt = now === null ? null : formatEndTime(now + secondsLeft * 1000);
 
-  const xpEarned = Math.floor(activeSecondsEarned / 60) * 20;
-  const coinsEarned = Math.floor(activeSecondsEarned / 300) * 10;
+  // What this session will actually pay — the server's own arithmetic, mirrored
+  // in lib/sessionRewards (drift-tested against the api-server source). The
+  // previous flat `minutes * 20` / `blocks * 10` ignored the 2-hour taper, the
+  // 25-minute bonus and the premium multipliers, so a long session showed a
+  // number the wallet would never receive.
+  const projected = computeSessionRewards({
+    minutes: activeSecondsEarned / 60,
+    isPremium: tier !== "free",
+  });
+  const xpEarned = projected.xp;
+  const coinsEarned = projected.coins;
   const label = sessionType ? sessionType.replace(/_/g, " ") : modeCfg.label;
 
-  // Spark position on the ring head (Pro / Elite). The SVG is rotated -90°,
-  // so angle 0 is 12 o'clock; progress sweeps clockwise.
+  // Head node position. The SVG is rotated -90°, so angle 0 is 12 o'clock and
+  // progress sweeps clockwise.
   const sparkAngle = clamped * Math.PI * 2 - Math.PI / 2;
   const sparkX = SIZE / 2 + radius * Math.cos(sparkAngle);
   const sparkY = SIZE / 2 + radius * Math.sin(sparkAngle);
-  const showSpark = skinned && skin.spark && isRunning && clamped > 0.002 && clamped < 0.998;
+  const showSpark = clamped > 0.004 && clamped < 0.996;
+  // Zen has no node; members with the spark flag get an extra pulsing halo on
+  // the node so a paid face still reads as the fancier one.
+  const sparkRing = skinned && skin.spark;
 
   if (!skinned && theme === "flip") {
     return (
@@ -160,45 +221,106 @@ export function TimerDisplay({
     );
   }
 
+  // Layout faces own the whole face, skin or not: the geometry is the point, and
+  // a membership skin only supplies the accent colour it is drawn in. They are
+  // listed once, here, so a face added to the registry cannot silently render as
+  // a ring because this branch was not extended.
+  const LAYOUT_FACES = new Set<TimerTheme>(["segments", "bars", "dots", "rounds"]);
+  if (LAYOUT_FACES.has(theme)) {
+    const FaceProps = {
+      secondsLeft,
+      mode,
+      isRunning,
+      progress: clamped,
+      onEditClick,
+      sessionType,
+      accent: ring,
+      accentSoft: track,
+    };
+    return (
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={theme}
+          initial={reduced ? false : { opacity: 0, scale: 0.985 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 1.01 }}
+          transition={{ duration: 0.25, ease: EASE }}
+        >
+          {theme === "segments" ? <TimerFaceSegments {...FaceProps} />
+            : theme === "bars" ? <TimerFaceBars {...FaceProps} />
+            : theme === "dots" ? <TimerFaceDots {...FaceProps} />
+            : <TimerFaceRounds {...FaceProps} />}
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
   return (
     <motion.div
       className="relative grid place-items-center"
       style={{ width: SIZE, height: SIZE }}
       initial={false}
-      animate={{ scale: breathe ? 1.02 : 1 }}
+      animate={{ scale: breathe ? 1.025 : 1 }}
       transition={{ duration: 0.25, ease: EASE }}
       data-tier={skin.tier}
+      data-mode={mode}
     >
-      {/* Ambient halo — breathes slowly only while running */}
+      {/* Ambient halo — breathes slowly while running, tints to the mode */}
       <motion.div
         aria-hidden
         className="pointer-events-none absolute inset-[-12%] rounded-full"
         style={{
-          background: useGradient
-            ? `conic-gradient(from 180deg, color-mix(in srgb, ${ring} ${Math.round(glow * 100)}%, transparent), color-mix(in srgb, ${ringAlt} ${Math.round(glow * 100)}%, transparent), color-mix(in srgb, ${ring} ${Math.round(glow * 100)}%, transparent))`
-            : `radial-gradient(circle, color-mix(in srgb, ${ring} ${Math.round(glow * 100)}%, transparent) 0%, transparent 62%)`,
-          filter: "blur(24px)",
-          maskImage: useGradient ? "radial-gradient(circle, black 0%, black 40%, transparent 68%)" : undefined,
-          WebkitMaskImage: useGradient ? "radial-gradient(circle, black 0%, black 40%, transparent 68%)" : undefined,
+          background: `conic-gradient(from 180deg, color-mix(in srgb, ${glowColor} ${Math.round(glow * 100)}%, transparent), color-mix(in srgb, ${ringAlt} ${Math.round(glow * 100)}%, transparent), color-mix(in srgb, ${glowColor} ${Math.round(glow * 100)}%, transparent))`,
+          filter: "blur(26px)",
+          maskImage: "radial-gradient(circle, black 0%, black 38%, transparent 68%)",
+          WebkitMaskImage: "radial-gradient(circle, black 0%, black 38%, transparent 68%)",
         }}
-        animate={isRunning && !reduced && !zen ? { opacity: [0.55, 0.9, 0.55], scale: [0.98, 1.03, 0.98], rotate: useGradient ? 360 : 0 } : { opacity: zen ? 0.18 : isRunning ? 0.7 : 0.35, scale: 1 }}
-        transition={isRunning && !reduced
-          ? { opacity: { duration: 4.2, repeat: Infinity, ease: "easeInOut" }, scale: { duration: 4.2, repeat: Infinity, ease: "easeInOut" }, rotate: { duration: 38, repeat: Infinity, ease: "linear" } }
-          : { duration: 0.25}}
+        animate={
+          isRunning && !reduced && !zen
+            ? { opacity: [0.55, 0.95, 0.55], scale: [0.98, 1.04, 0.98], rotate: 360 }
+            : { opacity: zen ? 0.16 : isRunning ? 0.75 : 0.4, scale: 1 }
+        }
+        transition={
+          isRunning && !reduced
+            ? {
+                opacity: { duration: 4.2, repeat: Infinity, ease: "easeInOut" },
+                scale: { duration: 4.2, repeat: Infinity, ease: "easeInOut" },
+                rotate: { duration: 38, repeat: Infinity, ease: "linear" },
+              }
+            : { duration: 0.25 }
+        }
       />
 
-      {/* Inner disc */}
+      {/* Inner disc — one tone step down from the card, plus a faint radial
+          lift under the digits so the face has a floor rather than sitting
+          flat on the panel. */}
       <div
         aria-hidden
-        className="absolute rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] shadow-[var(--shadow-md),inset_0_1px_0_color-mix(in_srgb,var(--neutral-0)_10%,transparent)]"
-        style={{ inset: STROKE + 8 }}
+        className="absolute rounded-full border border-[var(--border-subtle)] bg-[var(--surface-1)]"
+        style={{
+          inset: STROKE + 8,
+          boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--neutral-0) 8%, transparent), inset 0 -18px 36px -24px color-mix(in srgb, var(--foreground) 30%, transparent)",
+          backgroundImage: `radial-gradient(circle at 50% 78%, color-mix(in srgb, ${glowColor} ${Math.round((zen ? 0.04 : 0.1) * 100)}%, transparent) 0%, transparent 62%)`,
+        }}
       />
 
       {/* Ring */}
       <svg width={SIZE} height={SIZE} className="absolute inset-0 -rotate-90" aria-hidden>
         <defs>
           <filter id={shadowId} x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="0" stdDeviation={zen ? 2 : skinned ? 3 + glow * 4 : 3} floodColor={ring} floodOpacity={zen ? 0.25 : skinned ? 0.55 : 0.45} />
+            <feDropShadow
+              dx="0"
+              dy="0"
+              stdDeviation={zen ? 2 : skinned ? 3 + glow * 4 : 3}
+              floodColor={ring}
+              floodOpacity={zen ? 0.25 : skinned ? 0.55 : 0.45}
+            />
+          </filter>
+          {/* Wide, faint copy of the arc used for the halo pass: one extra
+              draw, no compositor layer, and it keeps the glow attached to the
+              progress rather than washing the whole circle. */}
+          <filter id={haloId} x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation={zen ? 3 : 8} />
           </filter>
           {useGradient && (
             <linearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={SIZE} y2={SIZE}>
@@ -208,25 +330,67 @@ export function TimerDisplay({
             </linearGradient>
           )}
         </defs>
+
+        {/* Track */}
         <circle cx={SIZE / 2} cy={SIZE / 2} r={radius} fill="none" stroke={track} strokeWidth={strokeWidth} />
-        {/* Elite: faint tick marks every 5 minutes-worth of arc, like a chronograph bezel */}
-        {skinned && skin.tier === "elite" && (
-          <g opacity={0.35}>
-            {Array.from({ length: 12 }, (_, i) => {
-              const a = (i / 12) * Math.PI * 2;
-              const r0 = radius - strokeWidth / 2 - 5;
-              const r1 = radius - strokeWidth / 2 - 1;
+
+        {/* Bezel ticks — twelve marks, every fifth one longer. Gives the empty
+            track a scale so the ring reads as a clock face. Hidden in Zen. */}
+        {!zen && (
+          <g opacity={0.32}>
+            {Array.from({ length: 60 }, (_, i) => {
+              const major = i % 5 === 0;
+              const a = (i / 60) * Math.PI * 2;
+              const r1 = radius + strokeWidth / 2 + 3;
+              const r0 = r1 + (major ? 5 : 2.5);
               return (
                 <line
                   key={i}
-                  x1={SIZE / 2 + r0 * Math.cos(a)} y1={SIZE / 2 + r0 * Math.sin(a)}
-                  x2={SIZE / 2 + r1 * Math.cos(a)} y2={SIZE / 2 + r1 * Math.sin(a)}
-                  stroke={ring} strokeWidth={1.5} strokeLinecap="round"
+                  x1={SIZE / 2 + r0 * Math.cos(a)}
+                  y1={SIZE / 2 + r0 * Math.sin(a)}
+                  x2={SIZE / 2 + r1 * Math.cos(a)}
+                  y2={SIZE / 2 + r1 * Math.sin(a)}
+                  stroke={major ? ring : "var(--border-strong)"}
+                  strokeWidth={major ? 1.5 : 1}
+                  strokeLinecap="round"
+                  opacity={major ? 0.75 : 0.5}
                 />
               );
             })}
           </g>
         )}
+
+        {/* Elite: a slightly heavier bezel, like a chronograph. */}
+        {skinned && skin.tier === "elite" && (
+          <circle
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={radius + strokeWidth / 2 + 8}
+            fill="none"
+            stroke={ring}
+            strokeWidth={1}
+            opacity={0.35}
+          />
+        )}
+
+        {/* Halo pass — the same arc, blurred, drawn only while running. */}
+        {isRunning && !zen && clamped > 0.01 && (
+          <circle
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={radius}
+            fill="none"
+            stroke={useGradient ? `url(#${gradId})` : ring}
+            strokeWidth={strokeWidth + 6}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={dashOffset}
+            filter={`url(#${haloId})`}
+            opacity={0.5}
+          />
+        )}
+
+        {/* Progress arc */}
         <motion.circle
           cx={SIZE / 2}
           cy={SIZE / 2}
@@ -241,21 +405,44 @@ export function TimerDisplay({
           transition={reduced ? { duration: 0 } : { duration: isRunning ? 1 : 0.6, ease: isRunning ? "linear" : EASE }}
           filter={`url(#${shadowId})`}
         />
-        {showSpark && (
-          <motion.circle
-            cx={sparkX}
-            cy={sparkY}
-            r={STROKE / 2 + 1.5}
-            fill="var(--surface)"
-            stroke={ringAlt}
-            strokeWidth={2.5}
-            initial={false}
-            animate={reduced ? {} : { opacity: [0.85, 1, 0.85] }}
-            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-            style={{ filter: `drop-shadow(0 0 6px ${ringAlt})` }}
-          />
+
+        {/* Head node — the tip of the arc. Tracks motion, so progress is
+            readable without reading the digits. */}
+        {!zen && showSpark && (
+          <g>
+            {sparkRing && (
+              <motion.circle
+                cx={sparkX}
+                cy={sparkY}
+                r={STROKE * 0.85}
+                fill={ringAlt}
+                opacity={0.35}
+                initial={false}
+                animate={reduced ? {} : { r: [STROKE * 0.7, STROKE * 1.1, STROKE * 0.7], opacity: [0.4, 0.12, 0.4] }}
+                transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+              />
+            )}
+            <circle cx={sparkX} cy={sparkY} r={STROKE / 2 + 2.5} fill="var(--surface-1)" />
+            <circle cx={sparkX} cy={sparkY} r={(STROKE / 2 + 2.5) * 0.62} fill={useGradient ? ringAlt : ring} />
+          </g>
         )}
       </svg>
+
+      {/* Completion burst — one expanding ring, once, on the phase boundary. */}
+      <AnimatePresence>
+        {justCompleted && !reduced && (
+          <motion.div
+            aria-hidden
+            key="burst"
+            className="pointer-events-none absolute rounded-full border-2"
+            style={{ inset: 0, borderColor: ring }}
+            initial={{ opacity: 0.9, scale: 0.92 }}
+            animate={{ opacity: 0, scale: 1.35 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.9, ease: "easeOut" }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Face */}
       <div className="relative z-[var(--z-content)] flex flex-col items-center text-center">
@@ -266,7 +453,7 @@ export function TimerDisplay({
             animate={{ opacity: 1, y: 0 }}
             exit={reduced ? { opacity: 0 } : { opacity: 0, y: -4 }}
             transition={{ duration: 0.25, ease: EASE }}
-            className="mb-2 inline-flex items-center gap-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.18em]"
+            className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em]"
             style={{ color: ring }}
           >
             {isRunning && (
@@ -281,7 +468,7 @@ export function TimerDisplay({
             {label}
             {skinned && (
               <span
-                className="ml-1 inline-flex items-center gap-1 rounded-full px-1.5 py-[1px] text-[0.6875rem] font-bold tracking-[0.12em]"
+                className="ml-1 inline-flex items-center gap-1 rounded-full px-1.5 py-[1px] text-[11px] font-bold tracking-[0.12em]"
                 style={{
                   background: `color-mix(in srgb, ${ring} 14%, transparent)`,
                   border: `1px solid color-mix(in srgb, ${ring} 35%, transparent)`,
@@ -289,7 +476,7 @@ export function TimerDisplay({
                 }}
                 title={`${skin.label} member timer`}
               >
-                {skin.glyph && <span aria-hidden className="text-[0.6875rem] leading-none">{skin.glyph}</span>}
+                {skin.glyph && <span aria-hidden className="text-[11px] leading-none">{skin.glyph}</span>}
                 {skin.label}
               </span>
             )}
@@ -308,9 +495,10 @@ export function TimerDisplay({
             ]
               .filter(Boolean)
               .join(" ")}
-            className="font-display text-[4.25rem] font-semibold leading-none tracking-[-0.055em] text-[var(--foreground)] tabular-nums outline-none transition-opacity disabled:cursor-default enabled:hover:opacity-80 focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--surface)] rounded-md"
+            className="rounded-md font-display text-[4.25rem] font-semibold leading-none tracking-[-0.055em] text-[var(--foreground)] tabular-nums outline-none transition-opacity disabled:cursor-default enabled:hover:opacity-80 focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--surface)]"
             style={{
               fontFeatureSettings: '"tnum" 1, "ss01" 1',
+              textShadow: zen ? undefined : `0 0 34px color-mix(in srgb, ${glowColor} 26%, transparent)`,
               ...(skinned && skin.metallicDigits
                 ? {
                     backgroundImage: skinTextGradient(skin),
@@ -346,7 +534,7 @@ export function TimerDisplay({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25, ease: EASE }}
-              className="mt-2 flex items-center gap-2 text-[0.6875rem] font-semibold tabular-nums"
+              className="mt-2 flex items-center gap-2 text-[11px] font-semibold tabular-nums"
             >
               <span className="text-[var(--brand-strong)]">+{xpEarned} XP</span>
               <span className="text-[var(--foreground-subtle)]">·</span>

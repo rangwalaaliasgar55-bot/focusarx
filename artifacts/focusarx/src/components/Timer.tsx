@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { syncFocusSessionToCloud } from "@/lib/sync-focus-session";
 import { useSessionRecovery } from "@/components/SessionRecoveryContext";
 import { usePomodoro } from "@/hooks/usePomodoro";
+import { SessionWorth } from "@/components/SessionWorth";
 import { publishFocusState, resetFocusState } from "@/lib/focusSessionBus";
 import { useSessionHistory } from "@/hooks/useSessionHistory";
 import { useSessionPersistence } from "@/hooks/useSessionPersistence";
@@ -520,10 +521,19 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   const handleSessionTypeSelected = useCallback((type: SessionType) => {
     setSessionType(type);
     if (type === "recharge") { window.location.href = "/breathe"; return; }
-    playCoachVoice("session_start");
-    // Analytics: track session start (fired when user picks session type)
-    trackSessionStart(type, totalFocusSec, activeTasks.length > 0);
+    // Open the next step before anything optional runs. The audio cue used to
+    // be called first, and when it threw (see the note in lib/soundEngine.ts)
+    // the throw took this state update with it: the picker closed, no lock
+    // picker appeared, and the timer never started. Nothing between the user's
+    // click and a running countdown may depend on a cue or an event succeeding.
     setShowLockPicker(true);
+    try {
+      playCoachVoice("session_start");
+      // Analytics: track session start (fired when user picks session type)
+      trackSessionStart(type, totalFocusSec, activeTasks.length > 0);
+    } catch {
+      /* cues and analytics are best-effort; the session is not */
+    }
   }, [totalFocusSec, activeTasks.length]);
 
   const handleCompleteEarly = useCallback(async () => {
@@ -851,8 +861,18 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               activeSecondsEarned={activeSeconds}
               tier={membershipTier}
               theme={timerTheme}
+              justCompleted={justCompleted}
             />
           </div>
+
+          {/* What this block is worth — the one number that makes someone stay
+              for the last ten minutes. Server arithmetic, not an estimate. */}
+          <SessionWorth
+            minutes={Math.max(1, Math.round(totalSeconds / 60))}
+            activeSeconds={activeSeconds}
+            isPremium={isPremium}
+            running={isRunning}
+          />
 
           {/* Session dots */}
           <div className="mt-2 flex flex-col items-center gap-1">
@@ -865,10 +885,14 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             </p>
           </div>
 
-          {/* Timer face designs — cosmetic, remembered, and free-tier only:
-              paid membership skins already restyle the ring as their value,
-              so for members the picker stands down instead of fighting them. */}
-          {membershipTier === "free" && !isFlow && (
+          {/* Timer layouts — cosmetic, remembered, and available to everyone.
+              This used to hide itself for paying members on the grounds that a
+              skin already restyles the ring; that made "choose how your timer
+              looks" a free-user consolation prize and meant the two layouts that
+              change what the face *means* (segments, minute bars) could never be
+              reached by the people paying for the product. Skins still dress the
+              ring faces; the layout faces take the skin's colour as their accent. */}
+          {!isFlow && (
             <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5" role="group" aria-label="Timer face design">
               <span className="mr-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-600)]">
                 Face
@@ -888,6 +912,9 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                   </button>
                 );
               })}
+              <p key={timerTheme} className="mt-1.5 w-full text-center text-[11px] leading-snug text-[var(--foreground-subtle)]">
+                {TIMER_THEMES.find((t) => t.id === timerTheme)?.blurb}
+              </p>
             </div>
           )}
 

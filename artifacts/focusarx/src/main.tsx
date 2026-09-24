@@ -81,8 +81,47 @@ if (import.meta.env.VITE_SENTRY_DSN) {
     });
 }
 
+// Tell the pre-paint boot guard in index.html that the bundle took over, so it
+// stands down instead of reloading a page that is working. Set before render()
+// returns synchronously-mounted content — anything later would race the guard's
+// 12s timer on a slow device.
+declare global {
+  interface Window {
+    /** Set by main.tsx once the app has mounted; read by the index.html boot guard. */
+    __focusarxBooted?: boolean;
+  }
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App />
   </StrictMode>
 );
+
+window.__focusarxBooted = true;
+
+/**
+ * Page chunks are fetched on intent (hover/focus/tap) and warmed for the most
+ * likely next screens once the browser is idle, so a navigation renders instead
+ * of downloading.
+ *
+ * Imported *dynamically*, and this matters: `routePrefetch` statically imports
+ * the 109-entry route→chunk map, and that map is a few kilobytes of entry bundle
+ * for an optimisation that only pays off later. Loading it on the first idle
+ * callback keeps the entry chunk (the one blocking first paint, budget-checked
+ * at 55 kB gzip) free of it — the prefetch machinery becomes its own chunk,
+ * fetched when the browser has nothing better to do, and `shouldPrefetch()`
+ * inside it still refuses on save-data/slow links.
+ */
+function warmRoutePrefetch() {
+  void import("@/lib/routePrefetch")
+    .then((m) => m.installRoutePrefetch())
+    .catch(() => {
+      /* prefetching is an optimisation — never let it break the app */
+    });
+}
+if (typeof window.requestIdleCallback === "function") {
+  window.requestIdleCallback(warmRoutePrefetch, { timeout: 3000 });
+} else {
+  window.setTimeout(warmRoutePrefetch, 1500);
+}

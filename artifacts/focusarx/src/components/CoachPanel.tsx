@@ -4,16 +4,26 @@ import { apiJson, ApiError } from "@/lib/api";
 import { Volume2, Crown, Lock, Coins, ArrowRight, Sparkles } from "lucide-react";
 import { Brain } from "lucide-react";
 import { usePremium } from "@/hooks/usePremium";
+import { useAuth } from "@/lib/auth";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 
 type Message = { role: "user" | "assistant"; content: string };
 
+/**
+ * The quick prompts, rewritten as *requests for artefacts*.
+ *
+ * "Motivation boost" and "I'm procrastinating" invite a pep talk, and a pep talk
+ * is indistinguishable from an AI that ignored you — the single most common
+ * complaint about this panel. Each chip below names a deliverable (a plan, a
+ * breakdown, a ranking, notes), which is something the coach either produces or
+ * is visibly unable to produce.
+ */
 const QUICK_PROMPTS = [
-  "I'm feeling distracted 😵",
-  "Help me prioritise",
-  "I'm procrastinating",
-  "Motivation boost 🚀",
+  "Plan my next 3 hours",
+  "Break my assignment into steps",
+  "What should I work on first",
+  "Turn this topic into notes",
 ];
 
 const PROACTIVE_MESSAGES = [
@@ -25,9 +35,19 @@ const PROACTIVE_MESSAGES = [
 ];
 
 
+/** Daily allowance the server reports — how many messages are left today. */
+interface CoachAllowance {
+  used?: number;
+  limit?: number;
+  remaining?: number;
+  isPremium?: boolean;
+}
+
 interface CoachStatus {
   isPremium?: boolean;
+  allowance?: CoachAllowance;
   lockScreen?: {
+    title?: string;
     description?: string;
     benefits?: string[];
     currentBalance?: number; tokensNeeded?: number;
@@ -51,6 +71,7 @@ export default function CoachPanel() {
   });
 
   const { isPremium, isLoading: premiumLoading } = usePremium();
+  const { status: authStatus } = useAuth();
 
   const { data: coachStatus } = useQuery({
     queryKey: ["coach-status"],
@@ -59,8 +80,37 @@ export default function CoachPanel() {
     staleTime: 30_000,
   });
 
-  const isLocked = coachStatus ? !coachStatus.isPremium : !isPremium && !premiumLoading;
+  /**
+   * Who can talk to the coach.
+   *
+   * This used to be a premium wall: free students saw a lock screen and the
+   * client never even sent the request ("Do not load AI model for free users"),
+   * so the only thing a free student could learn about the AI was that it did
+   * not work. The server now gives every signed-in student a daily allowance
+   * (`COACH_DAILY_FREE`), and the panel's job is to show that allowance rather
+   * than to enforce it:
+   *
+   *   • signed out  → sign-in card (the endpoint requires an account);
+   *   • signed in   → the chat, with "N of 10 left today" in the header;
+   *   • spent       → the server's lock screen, which now only appears when the
+   *                   messages are genuinely used up.
+   *
+   * Optimistic while the status request is in flight (open, don't block): a
+   * student who types a message before the query resolves gets an answer, not a
+   * flash of a paywall.
+   */
+  const isGuest = authStatus !== "authenticated";
+  const isLocked = Boolean(coachStatus?.lockScreen) && !coachStatus?.isPremium;
   const lockScreen = coachStatus?.lockScreen;
+  const allowance = coachStatus?.allowance;
+
+  const allowanceLabel = isGuest
+    ? "Sign in to chat"
+    : isPremium || allowance?.isPremium
+      ? "Premium · unlimited messages"
+      : allowance && typeof allowance.remaining === "number"
+        ? `${allowance.remaining} of ${allowance.limit ?? 10} messages left today`
+        : "Productivity & neuroscience";
 
 
   useEffect(() => {
@@ -100,7 +150,7 @@ export default function CoachPanel() {
   }, [open]);
 
   const fetchTip = useCallback(async () => {
-    if (isLocked) return; // Do not load AI model for free users
+    if (isLocked || isGuest) return;
     try {
       const d = await apiJson<{ tip?: string | null; error?: string; fallback?: boolean }>("/api/coach/session-tip", { method: "POST" });
       if (d.fallback) setIsFallback(true);
@@ -117,7 +167,7 @@ export default function CoachPanel() {
   useEffect(() => {
     // Deferred a tick: fetchTip sets state, and a synchronous call here would
     // cascade renders during the effect phase.
-    if (open && messages.length === 0 && !isLocked) {
+    if (open && messages.length === 0 && !isLocked && !isGuest) {
       const t = setTimeout(() => void fetchTip(), 0);
       if (open) {
         const f = setTimeout(() => inputRef.current?.focus(), 300);
@@ -129,14 +179,14 @@ export default function CoachPanel() {
       const f = setTimeout(() => inputRef.current?.focus(), 300);
       return () => clearTimeout(f);
     }
-  }, [open, isLocked, messages.length, fetchTip]);
+  }, [open, isLocked, isGuest, messages.length, fetchTip]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
   const send = async () => {
-    if (isLocked) return; // Block AI requests for free users
+    if (isLocked || isGuest) return;
     const text = input.trim();
     if (!text || loading) return;
     setInput("");
@@ -157,9 +207,10 @@ export default function CoachPanel() {
       const reply = d.reply ?? "Stay focused — you've got this!";
       setMessages((h) => [...h, { role: "assistant", content: reply }]);
     } catch (e) {
-      if (e instanceof ApiError && e.status === 403) {
-        // Premium required — show lock
-        setMessages((h) => [...h, { role: "assistant", content: "Focus Coach is Premium-only. Unlock with Focus Tokens to continue." }]);
+      if (e instanceof ApiError && (e.status === 429 || e.status === 403)) {
+        // The server's own sentence says which limit was hit and when it
+        // resets; repeating it beats inventing a shorter one.
+        setMessages((h) => [...h, { role: "assistant", content: e.message }]);
         setLoading(false);
         return;
       }
@@ -223,7 +274,7 @@ export default function CoachPanel() {
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--brand-600)] text-sm"><Brain size={16} aria-hidden="true" /></div>
               <div>
                 <p className="text-sm font-bold text-[var(--foreground)]">FocusArx Coach</p>
-                <p className="text-[11px] text-[var(--foreground-subtle)]">{isLocked ? "Premium feature" : "Productivity & neuroscience"}</p>
+                <p className="text-[11px] text-[var(--foreground-subtle)]">{allowanceLabel}</p>
               </div>
               {!isLocked && (
                 <button
@@ -234,19 +285,56 @@ export default function CoachPanel() {
                   <Volume2 size={14} className={voiceEnabled ? "animate-pulse" : ""} />
                 </button>
               )}
-              {isFallback && !isLocked && (
-                <span className="ml-auto rounded border border-[var(--border-subtle)] px-1.5 py-0.5 text-[11px] text-[var(--palette-zinc-600)]">Basic</span>
+              {isFallback && !isLocked && !isGuest && (
+                <span
+                  className="ml-auto rounded border border-[var(--border-subtle)] px-1.5 py-0.5 text-[11px] text-[var(--palette-zinc-600)]"
+                  title="The model could not be reached, so this is the offline coach answering. It still gives you a plan — it just cannot use your topic."
+                >
+                  Offline
+                </span>
               )}
             </div>
 
-            {isLocked ? (
-              /* Premium lock screen — no AI model loaded */
+            {isGuest ? (
+              /* Signed out: the coach endpoint needs an account, so say that
+                 plainly instead of showing a premium wall to a visitor. */
+              <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
+                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[var(--brand-600)]/15 text-[var(--brand-400)]">
+                  <Brain size={24} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold">Sign in and your coach is ready</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-[var(--foreground-muted)]">
+                    Every account gets free coach messages each day — ask it to plan a session, break a
+                    task into blocks, or tell you what to start with. It reads your own focus history, so
+                    it needs to know who you are.
+                  </p>
+                </div>
+                <div className="flex w-full flex-col gap-2">
+                  <Link
+                    href="/login"
+                    className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-[var(--brand-600)] px-4 py-2.5 text-sm font-bold text-[var(--neutral-0)]"
+                    onClick={() => setOpen(false)}
+                  >
+                    Sign in <ArrowRight size={14} />
+                  </Link>
+                  <Link
+                    href="/focus"
+                    className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-hover)] px-4 py-2.5 text-sm font-medium"
+                    onClick={() => setOpen(false)}
+                  >
+                    Start a block instead
+                  </Link>
+                </div>
+              </div>
+            ) : isLocked ? (
+              /* Allowance spent for today — the one place a premium pitch belongs. */
               <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
                 <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[var(--palette-amber-500)]/10 text-[var(--palette-amber-400)]">
                   <Lock size={24} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold">Focus Coach is available with Premium access</h3>
+                  <h3 className="text-sm font-bold">{lockScreen?.title ?? "Focus Coach is available with Premium access"}</h3>
                   <p className="mt-2 text-xs leading-relaxed text-[var(--foreground-muted)]">
                     {lockScreen?.description ?? "Unlock personalized focus plans, session analysis, and productivity guidance using Focus Tokens."}
                   </p>

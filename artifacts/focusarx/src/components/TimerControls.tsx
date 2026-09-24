@@ -1,5 +1,4 @@
-
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import type { TimerMode, TimerStatus } from "@/types/timer";
 
 interface TimerControlsProps {
@@ -8,12 +7,23 @@ interface TimerControlsProps {
   onToggle: () => void;
   onReset: () => void;
   onSkip: () => void;
+  /** Optional label override for the primary button (mobile-first flows). */
+  primaryLabel?: string;
 }
 
-const MODE_COLORS: Record<TimerMode, { from: string; to: string; shadow: string; ring: string }> = {
-  focus:     { from: "var(--palette-f43f5e)", to: "var(--palette-ec4899)", shadow: "var(--rgba-244-63-94-0_45)", ring: "var(--rgba-244-63-94-0_3)" },
-  break:     { from: "var(--color-success)", to: "var(--palette-10b981)", shadow: "var(--rgba-34-197-94-0_45)",  ring: "var(--rgba-34-197-94-0_3)" },
-  longBreak: { from: "var(--brand-500)", to: "var(--palette-6366f1)", shadow: "var(--rgba-139-92-246-0_45)", ring: "var(--rgba-139-92-246-0_3)" },
+/**
+ * Mode palette for the primary control.
+ *
+ * These used to be hardcoded Tailwind zinc values plus a six-pixel accent halo
+ * — the one part of the timer the v5 token migration missed, which left a dark
+ * pre-v5 block sitting in the middle of a light, flat card. They are semantic
+ * tokens now, so the buttons follow the theme (and the user's accent) like
+ * everything around them.
+ */
+const MODE_COLORS: Record<TimerMode, { from: string; to: string; soft: string; text: string }> = {
+  focus:     { from: "var(--brand-500)", to: "var(--brand-violet)", soft: "var(--brand-soft)",   text: "var(--brand-strong)" },
+  break:     { from: "var(--success)",   to: "var(--palette-teal-400, var(--success))", soft: "var(--success-soft)", text: "var(--success)" },
+  longBreak: { from: "var(--info)",      to: "var(--palette-sky-400, var(--info))",   soft: "var(--info-soft)",    text: "var(--info)" },
 };
 
 /**
@@ -27,10 +37,15 @@ const MODE_COLORS: Record<TimerMode, { from: string; to: string; shadow: string;
 const FOCUS_RING =
   "outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]";
 
-export function TimerControls({ status, mode, onToggle, onReset, onSkip }: TimerControlsProps) {
+const SECONDARY =
+  "flex h-12 w-12 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]";
+
+export function TimerControls({ status, mode, onToggle, onReset, onSkip, primaryLabel }: TimerControlsProps) {
   const isRunning = status === "running";
   const isPaused = status === "paused";
+  const reduced = !!useReducedMotion();
   const mc = MODE_COLORS[mode];
+  const label = primaryLabel ?? (isRunning ? "Pause session" : isPaused ? "Resume session" : "Start session");
 
   return (
     <div className="mt-8 flex items-center justify-center gap-5">
@@ -38,9 +53,9 @@ export function TimerControls({ status, mode, onToggle, onReset, onSkip }: Timer
         type="button"
         onClick={onReset}
         aria-label="Reset timer"
-        whileHover={{ scale: 1.08 }}
-        whileTap={{ scale: 0.93 }}
-        className={`flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--palette-zinc-700)]/60 bg-[var(--palette-zinc-900)]/60 text-[var(--palette-zinc-400)] transition-all hover:border-[var(--palette-zinc-600)] hover:bg-[var(--palette-zinc-800)]/70 hover:text-[var(--palette-zinc-200)] ${FOCUS_RING}`}
+        whileHover={reduced ? undefined : { scale: 1.06 }}
+        whileTap={reduced ? undefined : { scale: 0.94 }}
+        className={`${SECONDARY} ${FOCUS_RING}`}
       >
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -48,44 +63,52 @@ export function TimerControls({ status, mode, onToggle, onReset, onSkip }: Timer
         </svg>
       </motion.button>
 
-      <motion.button
-        type="button"
-        onClick={onToggle}
-        aria-label={isRunning ? "Pause focus session" : isPaused ? "Resume focus session" : "Start focus session"}
-        whileHover={{ scale: 1.06 }}
-        whileTap={{ scale: 0.93 }}
-        className={`relative flex h-20 w-20 items-center justify-center rounded-[1.4rem] font-bold text-[var(--palette-white)] shadow-[var(--shadow-lg)] ${FOCUS_RING}`}
-        style={{
-          background: `linear-gradient(135deg, ${mc.from}, ${mc.to})`,
-          boxShadow: `0 0 0 6px ${mc.ring}, 0 12px 32px ${mc.shadow}`,
-        }}
-      >
-        {isRunning ? (
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
-            <rect x="5" y="3" width="5" height="18" rx="1.5" />
-            <rect x="14" y="3" width="5" height="18" rx="1.5" />
-          </svg>
-        ) : (
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" className="ml-1">
-            <path d="M5 3l14 9-14 9V3z" />
-          </svg>
-        )}
-        {isRunning && (
+      <div className="relative">
+        {/* Idle aura — a slow, mode-coloured breath behind the primary button,
+            so "press this" is legible from across the room. Paused is
+            deliberately still: nothing is happening, and saying so with a
+            frozen halo is the point. */}
+        {isRunning && !reduced && (
           <motion.span
-            className="absolute inset-0 rounded-[1.4rem]"
-            animate={{ boxShadow: [`0 0 0 0px ${mc.shadow}`, `0 0 0 12px transparent`] }}
-            transition={{ repeat: Infinity, duration: 1.8, ease: "easeOut" }}
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-full"
+            style={{ boxShadow: `0 0 0 0 ${mc.from}`, opacity: 0.5 }}
+            animate={{ scale: [1, 1.35, 1], opacity: [0.45, 0, 0.45] }}
+            transition={{ duration: 2.6, repeat: Infinity, ease: "easeOut" }}
           />
         )}
-      </motion.button>
+        <motion.button
+          type="button"
+          onClick={onToggle}
+          aria-label={label}
+          whileHover={reduced ? undefined : { scale: 1.04 }}
+          whileTap={reduced ? undefined : { scale: 0.95 }}
+          className={`relative flex h-20 w-20 items-center justify-center rounded-full font-bold text-[var(--neutral-0)] ${FOCUS_RING}`}
+          style={{
+            background: `linear-gradient(140deg, ${mc.from}, ${mc.to})`,
+            boxShadow: `var(--shadow-lg), 0 10px 30px -12px color-mix(in srgb, ${mc.from} 55%, transparent)`,
+          }}
+        >
+          {isRunning ? (
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <rect x="5" y="3" width="5" height="18" rx="1.5" />
+              <rect x="14" y="3" width="5" height="18" rx="1.5" />
+            </svg>
+          ) : (
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" className="ml-1" aria-hidden>
+              <path d="M5 3l14 9-14 9V3z" />
+            </svg>
+          )}
+        </motion.button>
+      </div>
 
       <motion.button
         type="button"
         onClick={onSkip}
         aria-label="Skip to next session"
-        whileHover={{ scale: 1.08 }}
-        whileTap={{ scale: 0.93 }}
-        className={`flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--palette-zinc-700)]/60 bg-[var(--palette-zinc-900)]/60 text-[var(--palette-zinc-400)] transition-all hover:border-[var(--palette-zinc-600)] hover:bg-[var(--palette-zinc-800)]/70 hover:text-[var(--palette-zinc-200)] ${FOCUS_RING}`}
+        whileHover={reduced ? undefined : { scale: 1.06 }}
+        whileTap={reduced ? undefined : { scale: 0.94 }}
+        className={`${SECONDARY} ${FOCUS_RING}`}
       >
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polygon points="5 4 15 12 5 20 5 4" />

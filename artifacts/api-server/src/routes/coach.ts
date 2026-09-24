@@ -7,7 +7,7 @@ import { logger } from "../lib/logger";
 import { userZone } from "../lib/userZone";
 import { dayKeyInZone } from "../lib/timezone";
 import { aiCoachLimiter } from "../lib/rateLimiter";
-import { requirePremium, premiumStatusMiddleware } from "../lib/premiumCheck";
+import { premiumStatusMiddleware } from "../lib/premiumCheck";
 import { getActivePlans } from "../lib/premiumPlans";
 import { getTokenBalance } from "../lib/tokenLedger";
 import { userPurposeCalls } from "../lib/aiBudget";
@@ -30,31 +30,70 @@ const coachChatSchema = z.object({
   })).max(20).optional(),
 });
 
+/**
+ * The offline coach.
+ *
+ * `builtinReply` is what a student gets when every provider is unavailable —
+ * no key configured, both budgets spent, or an outage. It used to be a keyword
+ * match over seven tips, so "plan my thermodynamics revision" (a *task*) got a
+ * motivational quote back, which reads exactly like an AI that ignored the
+ * request. If the gateway is down we cannot know the topic, but we can still
+ * return the shape of the answer — a plan, a breakdown, a next action — and say
+ * that the topic-specific version needs the model. The rule the system prompt
+ * enforces is enforced here too: answer, never ask, and name the assumption.
+ */
 function builtinReply(userMessage: string): string {
   const msg = userMessage.toLowerCase();
-  const tips = [
-    "Break your work into 25-minute focused blocks with 5-minute breaks. Consistency beats intensity.",
-    "The best time to start was yesterday. The second best time is now.",
-    "Eliminate distractions before they happen — phone in another room, notifications off, water nearby.",
-    "Review what you accomplished today, not what you didn't. Progress compounds over time.",
-    "Energy management matters more than time management. Match hard tasks to your peak energy hours.",
-    "One focused hour beats three distracted hours. Close all tabs except what you need right now.",
-    "Your brain needs recovery. A proper 5-minute break makes the next session sharper.",
-  ];
-  if (msg.includes("distract") || msg.includes("focus"))
-    return "Close everything except the one thing you're working on. Set a 25-minute timer and commit fully.";
-  if (msg.includes("tired") || msg.includes("energy") || msg.includes("exhausted"))
-    return "Take a real 10-minute break — walk outside if you can. Tired focus sessions waste more time than they save.";
-  if (msg.includes("motivat") || msg.includes("stuck") || msg.includes("procrastinat"))
-    return "Start with the smallest possible version of the task. Open the file. Write one sentence. Momentum builds from tiny actions.";
-  if (msg.includes("plan") || msg.includes("priorit"))
-    return "Pick your 3 most important tasks. Do the hardest one first while your willpower is highest.";
-  if (msg.includes("overwhelm") || msg.includes("stress") || msg.includes("anxious"))
-    return "When everything feels urgent, nothing is. Take 3 deep breaths, then pick ONE thing to do in the next 25 minutes.";
-  return tips[Math.floor(Date.now() / 1000) % tips.length]!;
+  const asksForPlan = /\b(plan|schedule|timetable|routine|revise|revision|prepare|prepare for|study for)\b/.test(msg);
+  const asksForBreakdown = /\b(break|split|chunk|decompose|steps|subtask|outline|structure)\b/.test(msg);
+  const asksWhat = /\b(what should i|where do i start|which one|prioriti[sz]e|pick)\b/.test(msg);
+  const asksForNotes = /\b(notes|summar|flashcard|mind ?map|explain)\b/.test(msg);
+
+  if (asksForBreakdown) {
+    return "Take the task and cap it at four steps, each small enough to finish in one 25-minute block: (1) gather what you already have — files, notes, references; (2) produce the ugliest possible first version; (3) fix the part that is most wrong; (4) check it against the requirement and stop. I assumed one 25-minute block per step; tell me the deadline and I will compress it.";
+  }
+  if (asksForPlan) {
+    return "Assumed you have tonight. Three 50-minute blocks with 10-minute breaks: first block the topic you understand least, second block past questions on it, third block recall with the book shut. Write the block's one deliverable on paper before you start. Give me the subject and days left and I will lay this out across the week.";
+  }
+  if (asksForNotes) {
+    return "Make the notes you would want an hour before the exam: one page per topic, headings only, and every line phrased as a question you must be able to answer. Anything you cannot phrase as a question is not a note yet, it is a copy. I assumed one page per topic; give me the syllabus and I will order them by weightage.";
+  }
+  if (asksWhat) {
+    return "Pick by cost of delay, not by size: the item whose deadline moves first is the one to start. Write the three candidates down, give each a deadline, and begin the earliest one for 25 minutes. If two share a deadline, start the one you are least prepared for. Tell me the three and I will rank them for you.";
+  }
+  if (/\b(distract|phone|scroll|instagram|youtube)\b/.test(msg)) {
+    return "Move the phone to another room — not face-down, another room — and write the one sentence you will have finished before you look at it again. Then start a 25-minute block on that sentence.";
+  }
+  if (/\b(tired|energy|exhaust|sleep)\b/.test(msg)) {
+    return "Take 20 minutes lying down with no screen, then one 25-minute block on the easiest real task on your list. Tired focus on an easy task beats wide-awake focus on nothing.";
+  }
+  if (/\b(motivat|stuck|procrastinat|can'?t start|overwhelm|stress|anxious)\b/.test(msg)) {
+    return "Open the file and write one bad sentence. Momentum comes after starting, not before it. The first 2 minutes are the whole fight — commit to those and stop if you still want to.";
+  }
+  return "Start a 25-minute block on the single thing that would make today count, and put the phone in another room. I am in offline mode right now, so give me the specific task and I will break it into blocks as soon as the model is back.";
 }
 
-router.post("/coach/chat", authMiddleware, requirePremium, aiCoachLimiter, async (req: AuthRequest, res) => {
+/** Per-tier daily coach allowance — the entitlement, in one place. */
+export const COACH_DAILY_FREE = 10;
+export const COACH_DAILY_PREMIUM = 60;
+
+function coachDailyLimit(isPremium: boolean): number {
+  return isPremium ? COACH_DAILY_PREMIUM : COACH_DAILY_FREE;
+}
+
+/**
+ * The coach is deliberately NOT premium-only any more.
+ *
+ * It used to be `requirePremium` on the server *and* a hard `isLocked` check in
+ * the panel on the client, so a free student never sent a request and never saw
+ * a model. Every complaint of the form "the AI does not do what I ask" is this
+ * wall: the only text they could reach was a canned reply or a lock screen.
+ * The entitlement now lives in the daily allowance below — free students get
+ * enough messages to feel the product work, premium removes the ceiling — while
+ * the per-IP guardrails, input sanitisation, injection detection and budget caps
+ * all stay exactly as they were.
+ */
+router.post("/coach/chat", authMiddleware, premiumStatusMiddleware, aiCoachLimiter, async (req: AuthRequest, res) => {
   const ip = req.ip ?? "unknown";
   if (!checkIpLimit(ip)) {
     res.status(429).json({ error: { code: "RATE_LIMITED", message: "Daily AI limit for this IP reached" } });
@@ -81,15 +120,22 @@ router.post("/coach/chat", authMiddleware, requirePremium, aiCoachLimiter, async
     return;
   }
 
-  // Per-user daily limit (free tier discipline)
+  // Per-user daily allowance, by tier. Checked before any model call, and the
+  // count is taken from the AI call log, so it survives restarts and is shared
+  // with every other AI feature that logs the same purpose.
+  let coachUsed = 0;
   try {
-    const isPremium = Boolean(req.isPremium);
-    if (!isPremium) {
-      const used = await userPurposeCalls(req.userId, "coach_chat");
-      if (used >= 30) {
-        res.status(429).json({ error: { code: "BUDGET_EXCEEDED", message: "Daily AI coach limit reached (30/day). Upgrade for unlimited." } });
-        return;
-      }
+    coachUsed = await userPurposeCalls(req.userId, "coach_chat");
+    const limit = coachDailyLimit(Boolean(req.isPremium));
+    if (coachUsed >= limit) {
+      res.status(429).json({
+        error: {
+          code: "BUDGET_EXCEEDED",
+          message: `That is all ${limit} coach messages for today — the count resets at midnight IST. Premium removes the daily limit.`,
+        },
+        allowance: { used: coachUsed, limit, remaining: 0, isPremium: Boolean(req.isPremium) },
+      });
+      return;
     }
   } catch (err) {
     logger.warn({ err }, "budget check failed, continuing with fallback allowed");
@@ -133,7 +179,13 @@ router.post("/coach/chat", authMiddleware, requirePremium, aiCoachLimiter, async
       context.push(`Recent distractions: ${recentDistractions.map(d => d.reason).join(", ")}`);
     }
 
-    const systemPrompt = `You are FocusArx Coach — an expert productivity and deep-work coach powered by neuroscience and Google Gemini. You have real-time context about this user below. Be warm, sharp, direct. Under 80 words unless the user asks for more. Never use bullet points.\n\nUser context:\n${context.length > 0 ? context.join("\n") : "No context available yet."}`;
+    // The closing instruction is doing real work: asked "make me a plan for
+    // thermodynamics", a model with a coach persona tends to reply "Sure! How
+    // many hours a day do you have?" — a question back instead of the thing the
+    // user asked for. Users read that as the AI not doing the task. There is no
+    // second turn unless the user chooses to send one, so the coach answers with
+    // the artefact, states any assumption it had to make, and offers to adjust.
+    const systemPrompt = `You are FocusArx Coach — an expert productivity and deep-work coach powered by neuroscience and Google Gemini. You have real-time context about this user below. Be warm, sharp, direct. Under 80 words unless the user asks for more. Never use bullet points.\n\nWhen the user asks you to DO something — plan a session, break down a task, decide what to study next — do it in this reply using your best assumption and say what you assumed. Never ask a clarifying question, never end with "let me know if…" as a substitute for an answer, and never reply with only a question. If the request is genuinely ambiguous, pick the most likely reading and complete it.\n\nUser context:\n${context.length > 0 ? context.join("\n") : "No context available yet."}`;
 
     const history = (parsed.data.conversationHistory ?? []).slice(-6);
     const historyFormatted = history.map(h => `${h.role === "user" ? "User" : "Coach"}: ${h.content}`).join("\n");
@@ -158,7 +210,15 @@ router.post("/coach/chat", authMiddleware, requirePremium, aiCoachLimiter, async
       reply = builtinReply(sanitized);
     }
 
-    res.json({ reply, fallback: isFallback, provider: aiResult?.provider ?? "template" });
+    const limit = coachDailyLimit(Boolean(req.isPremium));
+    res.json({
+      reply,
+      fallback: isFallback,
+      provider: aiResult?.provider ?? "template",
+      // The panel shows this, so a student can see the allowance rather than
+      // discovering it by being refused.
+      allowance: { used: coachUsed + 1, limit, remaining: Math.max(0, limit - coachUsed - 1), isPremium: Boolean(req.isPremium) },
+    });
   } catch (err) {
     logger.error({ err }, "coach chat error");
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
@@ -168,11 +228,21 @@ router.post("/coach/chat", authMiddleware, requirePremium, aiCoachLimiter, async
 router.get("/coach/status", authMiddleware, premiumStatusMiddleware, async (req: AuthRequest, res) => {
   try {
     const isPremium = Boolean(req.isPremium);
+    const limit = coachDailyLimit(isPremium);
+    const used = await userPurposeCalls(req.userId!, "coach_chat").catch(() => 0);
+    const allowance = { used, limit, remaining: Math.max(0, limit - used), isPremium };
+
     if (isPremium) {
-      res.json({ isPremium: true });
+      res.json({ isPremium: true, allowance });
       return;
     }
-    // Free user — show lock screen data without loading AI
+    // Free student with messages left: open the chat. Showing a lock screen to
+    // someone who still has an allowance is how the coach became "broken".
+    if (allowance.remaining > 0) {
+      res.json({ isPremium: false, allowance, lockScreen: null });
+      return;
+    }
+    // Allowance spent — now the upgrade copy is honest and useful.
     const [plans, balance] = await Promise.all([
       getActivePlans().catch(() => []),
       getTokenBalance(req.userId!).catch(() => 0),
@@ -182,9 +252,10 @@ router.get("/coach/status", authMiddleware, premiumStatusMiddleware, async (req:
     const needed = Math.max(0, required - balance);
     res.json({
       isPremium: false,
+      allowance,
       lockScreen: {
-        title: "Focus Coach is available with Premium access",
-        description: "Unlock personalized focus plans, session analysis, and productivity guidance using Focus Tokens.",
+        title: `That is all ${limit} coach messages for today`,
+        description: "Your daily messages reset at midnight IST. Premium removes the limit and adds session analysis and weekly reviews.",
         benefits: [
           "Personalized focus plan",
           "Session reflection & analysis",
@@ -201,7 +272,9 @@ router.get("/coach/status", authMiddleware, premiumStatusMiddleware, async (req:
       },
     });
   } catch {
-    res.json({ isPremium: false });
+    // Never fail closed on the entitlement read: an unknown state opens the
+    // chat and lets the request itself decide.
+    res.json({ isPremium: false, allowance: { used: 0, limit: COACH_DAILY_FREE, remaining: COACH_DAILY_FREE, isPremium: false } });
   }
 });
 
@@ -212,7 +285,11 @@ const sessionTipHandler = async (req: AuthRequest, res: Response) => {
       .from(readinessLogsTable)
       .where(and(eq(readinessLogsTable.userId, req.userId), eq(readinessLogsTable.date, today)));
 
-    const systemPrompt = "You are a focus coach powered by neuroscience and Google Gemini. Give ONE ultra-concise focus tip (max 2 sentences, plain text, no bullet points).";
+    // No vendor name here: whichever provider the gateway picks answers this
+    // (Gemini when it is up, Groq otherwise), and the AI policy page tells
+    // users which providers receive their text. Claiming "Google Gemini" in
+    // a prompt does not make it true.
+    const systemPrompt = "You are a focus coach grounded in neuroscience. Give ONE ultra-concise focus tip (max 2 sentences, plain text, no bullet points). Do not ask a question — give the tip.";
     const userMessage = `Quick tip for a user about to start a focus session.${readiness ? ` Readiness: ${readiness.score}/100.` : ""}`;
 
     const aiResult = await generateAi({
@@ -232,7 +309,7 @@ const sessionTipHandler = async (req: AuthRequest, res: Response) => {
     res.json({ tip: "Start your timer, close every other tab." });
   }
 };
-router.get("/coach/session-tip", authMiddleware, requirePremium, sessionTipHandler);
-router.post("/coach/session-tip", authMiddleware, requirePremium, sessionTipHandler);
+router.get("/coach/session-tip", authMiddleware, premiumStatusMiddleware, sessionTipHandler);
+router.post("/coach/session-tip", authMiddleware, premiumStatusMiddleware, sessionTipHandler);
 
 export { router as coachRouter };

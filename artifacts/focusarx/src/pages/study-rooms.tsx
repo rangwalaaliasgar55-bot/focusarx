@@ -7,7 +7,7 @@ import {
   Copy, Check, Timer as TimerIcon, Play, Pause, RotateCcw, Sparkles, Bot, Shield, Search, Flame,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { apiJson, ApiError } from "@/lib/api";
+import { apiJson, ApiError, asArray } from "@/lib/api";
 import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { PageTransition } from "@/components/PageTransition";
@@ -15,6 +15,14 @@ import { EmotePicker } from "@/components/EmotePicker";
 import { AdSlot } from "@/components/AdSlot";
 import { Button } from "@/components/ui/button";
 import { ambientEngine, AMBIENT_PRESETS } from "@/lib/ambientEngine";
+import {
+  STUDY_ENVIRONMENTS,
+  environmentsForRoom,
+  matchEnvironment,
+  roomMatchesEnvironment,
+  suggestedRoomName,
+  type StudyEnvironment,
+} from "@/lib/studyEnvironments";
 
 // ─── Types (mirror artifacts/api-server/src/routes/studyRooms.ts) ────────────
 
@@ -387,9 +395,35 @@ const DEFAULT_FORM: CreateForm = {
   name: "", description: "", topic: "", mode: "pomodoro", ambiance: "lofi", timerDuration: 1500, maxParticipants: 20, isPublic: true,
 };
 
-function CreateRoomPanel({ onClose, onCreated }: { onClose: () => void; onCreated: (room: Room) => void }) {
+/**
+ * Create a room, usually from an environment.
+ *
+ * `environment` is what makes this panel answerable: instead of asking a student
+ * to choose a mode, an ambiance, a timer length and a seat count before they have
+ * any idea what they are building, picking "The Silent Library" fills all four in
+ * and shows what the room will be. Every field stays editable — an environment is
+ * a starting point, not a schema.
+ */
+function CreateRoomPanel({ onClose, onCreated, environment, initialTopic }: {
+  onClose: () => void;
+  onCreated: (room: Room) => void;
+  environment?: StudyEnvironment | null;
+  initialTopic?: string;
+}) {
   const { toast } = useToast();
-  const [form, setForm] = useState<CreateForm>(DEFAULT_FORM);
+  const [form, setForm] = useState<CreateForm>(() =>
+    environment
+      ? {
+          ...DEFAULT_FORM,
+          name: suggestedRoomName(environment, initialTopic),
+          topic: initialTopic?.trim() ?? "",
+          mode: environment.mode,
+          ambiance: environment.ambiance,
+          timerDuration: environment.sessionMinutes * 60,
+          maxParticipants: environment.seats,
+        }
+      : DEFAULT_FORM,
+  );
   const set = <K extends keyof CreateForm>(key: K, value: CreateForm[K]) => setForm((f) => ({ ...f, [key]: value }));
 
   const createMut = useMutation({
@@ -405,7 +439,19 @@ function CreateRoomPanel({ onClose, onCreated }: { onClose: () => void; onCreate
     <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}
       className="mb-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--card)] p-5">
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm font-semibold text-[var(--foreground)]">Create a study room</p>
+        <div className="flex items-center gap-2.5">
+          {environment ? (
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl" style={{ background: `color-mix(in srgb, ${environment.accent} 14%, transparent)`, color: environment.accent }}>
+              <environment.icon size={15} aria-hidden="true" />
+            </span>
+          ) : null}
+          <div>
+            <p className="text-sm font-semibold text-[var(--foreground)]">
+              {environment ? `Open a room in ${environment.name}` : "Create a study room"}
+            </p>
+            {environment ? <p className="text-[11px] text-[var(--foreground-subtle)]">{environment.tagline}</p> : null}
+          </div>
+        </div>
         <Button size="icon-sm" variant="ghost" onClick={onClose} aria-label="Close"><X /></Button>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
@@ -516,6 +562,19 @@ function RoomCard({ room, expanded, authed, onToggle, onJoin, onLeave, onEnd, bu
             ) : (
               <span className="flex items-center gap-1">○ Quiet</span>
             )}
+            {environmentsForRoom(room).length > 0 ? (
+              <span
+                className="flex items-center gap-1 rounded-full px-2 py-0.5 font-medium"
+                style={{
+                  background: `color-mix(in srgb, ${environmentsForRoom(room)[0]!.accent} 12%, transparent)`,
+                  color: environmentsForRoom(room)[0]!.accent,
+                }}
+                title={environmentsForRoom(room)[0]!.tagline}
+              >
+                {(() => { const Icon = environmentsForRoom(room)[0]!.icon; return <Icon size={10} aria-hidden="true" />; })()}
+                {environmentsForRoom(room)[0]!.name}
+              </span>
+            ) : null}
             <span>{mode.emoji} {mode.label}</span>
             <span>{amb.emoji} {amb.label}</span>
             <span>⏱ {Math.round(room.timerDuration / 60)} min</span>
@@ -571,6 +630,126 @@ function RoomCard({ room, expanded, authed, onToggle, onJoin, onLeave, onEnd, bu
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
+// ─── Environments ────────────────────────────────────────────────────────────
+
+/**
+ * "What kind of room do you want to be in?"
+ *
+ * A room list answers "which room exists"; this answers "where should I go",
+ * which is the question a student actually has. Each card is a complete place —
+ * a name, a promise, what everyone in it does, and one tap that either drops you
+ * into a matching live room or opens a new one already set up.
+ *
+ * The rules are shown as text rather than as settings because that is what makes
+ * a room feel real: "chat stays off" is a place, "mode: silent, ambiance:
+ * silence" is a config screen.
+ */
+function EnvironmentCard({ env, liveCount, authed, active, onSelect, onOpen }: {
+  env: StudyEnvironment;
+  liveCount: number;
+  authed: boolean;
+  active: boolean;
+  onSelect: () => void;
+  onOpen: () => void;
+}) {
+  const Icon = env.icon;
+  return (
+    <motion.article
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+      className={`flex flex-col rounded-2xl border p-4 transition-colors ${active ? "border-[var(--brand-500)] bg-[var(--brand-soft)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] hover:border-[var(--border-strong)]"}`}
+    >
+      <button type="button" onClick={onSelect} aria-pressed={active} className="text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring-focus)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--surface-1)]">
+        <div className="flex items-start gap-3">
+          <span
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+            style={{ background: `color-mix(in srgb, ${env.accent} 14%, transparent)`, color: env.accent }}
+            aria-hidden="true"
+          >
+            <Icon size={18} />
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-[var(--foreground)]">{env.name}</h3>
+            <p className="mt-0.5 text-xs font-medium" style={{ color: env.accent }}>{env.tagline}</p>
+          </div>
+        </div>
+        <p className="mt-3 text-xs leading-relaxed text-[var(--foreground-muted)]">{env.vibe}</p>
+        <ul className="mt-3 space-y-1">
+          {env.houseRules.map((rule) => (
+            <li key={rule} className="flex items-start gap-1.5 text-[11px] text-[var(--foreground-subtle)]">
+              <Check size={11} className="mt-0.5 shrink-0 text-[var(--success)]" aria-hidden="true" />
+              {rule}
+            </li>
+          ))}
+        </ul>
+      </button>
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--border-subtle)] pt-3 text-[11px] text-[var(--foreground-subtle)]">
+        <span className="flex items-center gap-1"><TimerIcon size={10} aria-hidden="true" /> {env.sessionMinutes} min blocks</span>
+        <span className="flex items-center gap-1"><Users size={10} aria-hidden="true" /> {env.seats} seats</span>
+        <span>{env.bestFor}</span>
+      </div>
+
+      <div className="mt-3 flex items-center gap-2">
+        {liveCount > 0 ? (
+          <span className="flex items-center gap-1.5 rounded-full bg-[var(--success-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--success)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" aria-hidden="true" />
+            {liveCount} live now
+          </span>
+        ) : (
+          <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] text-[var(--foreground-subtle)]">Quiet right now</span>
+        )}
+        {authed ? (
+          <button type="button" onClick={onOpen} className="ml-auto text-[11px] font-semibold text-[var(--brand-strong)] underline-offset-4 hover:underline">
+            Open a room like this
+          </button>
+        ) : (
+          <Link href="/focus" className="ml-auto text-[11px] font-semibold text-[var(--brand-strong)] underline-offset-4 hover:underline">
+            Run this vibe solo
+          </Link>
+        )}
+      </div>
+    </motion.article>
+  );
+}
+
+/** Three steps, for someone who has never been in a shared study room. */
+function HowRoomsWork({ authed }: { authed: boolean }) {
+  const steps = [
+    { icon: Radio, title: "Someone opens a room", body: "They pick a place — silent library, rainy café, exam hall — and it appears here for everyone." },
+    { icon: TimerIcon, title: "Everyone runs the same block", body: "The room has one timer. You all work, you all break, and nobody has to say anything." },
+    { icon: Users, title: "You can see who showed up", body: "Small avatars and how long each person has focused today. That quiet presence is the whole point." },
+  ];
+  return (
+    <section aria-labelledby="how-rooms-work" className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-5">
+      <h2 id="how-rooms-work" className="text-sm font-semibold text-[var(--foreground)]">How a study room works</h2>
+      <p className="mt-1 text-xs text-[var(--foreground-muted)]">
+        Studying alone at midnight is hard because nothing is happening around you. A room fixes that in one tap.
+      </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        {steps.map((step, index) => (
+          <div key={step.title} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
+            <span className="mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--brand-soft)] text-[var(--brand-400)]" aria-hidden="true">
+              <step.icon size={14} />
+            </span>
+            <p className="text-xs font-semibold text-[var(--foreground)]">
+              <span className="mr-1 text-[var(--foreground-subtle)]">{index + 1}.</span>{step.title}
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-[var(--foreground-subtle)]">{step.body}</p>
+          </div>
+        ))}
+      </div>
+      {!authed ? (
+        <p className="mt-4 text-[11px] text-[var(--foreground-subtle)]">
+          You can look around without an account. Joining needs one — it is free, and there is no card anywhere in FocusArx.
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 export default function StudyRoomsPage() {
   const { status } = useAuth();
   const authed = status === "authenticated";
@@ -583,10 +762,23 @@ export default function StudyRoomsPage() {
   const [inviteCode, setInviteCode] = useState("");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "mine" | "live">("all");
+  /** Which environment the student picked, used both to filter the list and to
+   *  prefill the create panel. `prefill` is separate because the prefill has to
+   *  survive the panel being closed and reopened. */
+  const [envFilter, setEnvFilter] = useState<string | null>(null);
+  const [prefill, setPrefill] = useState<StudyEnvironment | null>(null);
 
+  // `= []` covers the first render (react-query has no data yet); the queryFn's
+  // `asArray` covers a response whose shape is not a list. Removing either one
+  // brings back the blank page, so both stay.
   const { data: rooms = [], isLoading, isError, refetch } = useQuery<Room[]>({
     queryKey: ["study-rooms"],
-    queryFn: fetchRooms,
+    // `fetchRooms` returns whatever the server sent, cast to Room[]. A 200 with
+    // an unexpected body made `rooms` a non-array (the `= []` default only
+    // covers `undefined`), and `rooms.filter(...)` below threw
+    // "rooms.filter is not a function" — a blank page for every visitor,
+    // including guests, on the one page that is public and social.
+    queryFn: async () => asArray<Room>(await fetchRooms()),
     staleTime: 10_000,
     refetchInterval: 20_000,
   });
@@ -614,11 +806,23 @@ export default function StudyRoomsPage() {
     onError: (err) => toast(errorMessage(err, "Invalid invite code"), "danger"),
   });
 
+  /** Live rooms per environment, so each card can say whether anyone is there. */
+  const liveByEnvironment = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const room of rooms) {
+      if (!room.isLive) continue;
+      const env = matchEnvironment(room);
+      if (env) counts.set(env.id, (counts.get(env.id) ?? 0) + 1);
+    }
+    return counts;
+  }, [rooms]);
+
   const visibleRooms = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rooms.filter((r) => {
       if (filter === "mine" && !r.isMember) return false;
       if (filter === "live" && !r.isLive) return false;
+      if (envFilter && !roomMatchesEnvironment(r, envFilter)) return false;
       if (!q) return true;
       return r.name.toLowerCase().includes(q) || (r.topic ?? "").toLowerCase().includes(q) || (r.description ?? "").toLowerCase().includes(q);
     });
@@ -654,11 +858,55 @@ export default function StudyRoomsPage() {
           <AnimatePresence>
             {showCreate && authed && (
               <CreateRoomPanel
-                onClose={() => setShowCreate(false)}
-                onCreated={(room) => { setShowCreate(false); setExpandedId(room.id); void invalidate(); }}
+                key={prefill?.id ?? "blank"}
+                environment={prefill}
+                initialTopic={search.trim().length > 1 ? search.trim() : undefined}
+                onClose={() => { setShowCreate(false); setPrefill(null); }}
+                onCreated={(room) => { setShowCreate(false); setPrefill(null); setExpandedId(room.id); void invalidate(); }}
               />
             )}
           </AnimatePresence>
+
+          {/* Where should I go? The room list below answers "what exists"; this
+              answers the question a student actually has. */}
+          <section aria-labelledby="environments-title" className="mb-6">
+            <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <h2 id="environments-title" className="text-base font-semibold text-[var(--foreground)]">Pick a place to study</h2>
+                <p className="mt-0.5 text-xs text-[var(--foreground-muted)]">
+                  Each one is a different kind of room — a library, a café, an exam hall. Tap one to see who is in there.
+                </p>
+              </div>
+              {envFilter ? (
+                <button
+                  type="button"
+                  onClick={() => setEnvFilter(null)}
+                  className="rounded-full border border-[var(--border-strong)] px-3 py-1 text-[11px] font-semibold text-[var(--foreground-muted)] transition-colors hover:text-[var(--foreground)]"
+                >
+                  Showing: {STUDY_ENVIRONMENTS.find((e) => e.id === envFilter)?.name ?? envFilter} · clear
+                </button>
+              ) : null}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {STUDY_ENVIRONMENTS.map((env) => (
+                <EnvironmentCard
+                  key={env.id}
+                  env={env}
+                  authed={authed}
+                  active={envFilter === env.id}
+                  liveCount={liveByEnvironment.get(env.id) ?? 0}
+                  onSelect={() => setEnvFilter((current) => (current === env.id ? null : env.id))}
+                  onOpen={() => { setPrefill(env); setShowCreate(true); }}
+                />
+              ))}
+            </div>
+          </section>
+
+          {/* A student who has never been in a shared room does not know what
+              it is for. Explaining it costs one card and removes the guess. */}
+          <div className="mb-6">
+            <HowRoomsWork authed={authed} />
+          </div>
 
           {/* Toolbar: search, filters, invite code */}
           <div className="mb-5 grid gap-3 md:grid-cols-[1fr_auto_auto]">
@@ -698,13 +946,34 @@ export default function StudyRoomsPage() {
           )}
 
           {!isLoading && !isError && visibleRooms.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-[var(--border-strong)] p-12 text-center">
-              <Radio size={32} className="mx-auto mb-3 text-[var(--foreground-subtle)]" />
-              <p className="font-medium text-[var(--foreground)]">{rooms.length === 0 ? "No open rooms yet" : "No rooms match"}</p>
-              <p className="mt-1 text-sm text-[var(--foreground-muted)]">
-                {rooms.length === 0 ? "Open one — the first person in a room sets its rhythm." : "Try a different search or filter."}
+            <div className="rounded-2xl border border-dashed border-[var(--border-strong)] p-10 text-center">
+              <Radio size={30} className="mx-auto mb-3 text-[var(--foreground-subtle)]" aria-hidden="true" />
+              <p className="font-medium text-[var(--foreground)]">{rooms.length === 0 ? "No open rooms right now" : "No rooms match"}</p>
+              <p className="mx-auto mt-1 max-w-md text-sm text-[var(--foreground-muted)]">
+                {rooms.length === 0
+                  ? "That is normal outside peak hours — a room only exists while someone is in it. Opening one takes a tap, and the first person in sets the rhythm."
+                  : "Try a different search, or clear the place filter above to see everything that is open."}
               </p>
-              {authed && rooms.length === 0 && <Button className="mt-4" onClick={() => setShowCreate(true)}><Plus /> Create the first room</Button>}
+              {envFilter ? (
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  <Button variant="outline" onClick={() => setEnvFilter(null)}>Show all rooms</Button>
+                  {authed ? (
+                    <Button onClick={() => { const env = STUDY_ENVIRONMENTS.find((e) => e.id === envFilter); setPrefill(env ?? null); setShowCreate(true); }}>
+                      <Plus /> Open one here
+                    </Button>
+                  ) : (
+                    <Link href="/login" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--border-strong)] px-4 text-sm font-medium text-[var(--brand-strong)] hover:bg-[var(--brand-soft)]">
+                      Sign in to open one
+                    </Link>
+                  )}
+                </div>
+              ) : authed ? (
+                <Button className="mt-4" onClick={() => setShowCreate(true)}><Plus /> Open the first room</Button>
+              ) : (
+                <Link href="/login" className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--brand-600)] px-4 text-sm font-semibold text-[var(--neutral-0)] hover:bg-[var(--brand-700)]">
+                  Sign in free to join one
+                </Link>
+              )}
             </div>
           )}
 

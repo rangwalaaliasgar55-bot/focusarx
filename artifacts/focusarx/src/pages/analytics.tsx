@@ -13,7 +13,7 @@ import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { usePremium } from "@/hooks/usePremium";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { apiJson } from "@/lib/api";
+import { apiJson, asArray, asNumber, asRecord, asString } from "@/lib/api";
 import { QueryError } from "@/components/ui/QueryError";
 import { TrendPill } from "@/components/ui/trend-pill";
 import type { Trend } from "@/types/trend";
@@ -44,6 +44,54 @@ interface AnalyticsData {
     totalSessions: number;
     totalMinutes: number;
     longestStreak: number;
+  };
+}
+
+/**
+ * A complete `AnalyticsData`, whatever the server sent.
+ *
+ * Reached from the dashboard and from the nav, by students who are looking for
+ * the answer to "is this working". The render reads `data.personalBests.*`,
+ * `data.chartData14`, `data.hourDist` and `data.heatmap` unconditionally, so a
+ * payload missing any one of them was a blank page rather than a truthful "no
+ * sessions yet" — which at zero sessions is the *only* thing this page has to
+ * say, and must therefore never be the thing that breaks it.
+ */
+function readAnalytics(payload: unknown): AnalyticsData {
+  const raw = asRecord(payload);
+  const bests = asRecord(raw.personalBests);
+  const week = asRecord(raw.weekComparison);
+  return {
+    heatmap: (raw.heatmap && typeof raw.heatmap === "object" ? raw.heatmap : {}) as Record<string, number>,
+    chartData14: asArray<{ date: string; minutes: number }>(raw.chartData14).map((d) => ({
+      date: asString(asRecord(d).date),
+      minutes: asNumber(asRecord(d).minutes),
+    })),
+    hourDist: asArray<{ hour: number; minutes: number }>(raw.hourDist).map((d) => ({
+      hour: asNumber(asRecord(d).hour),
+      minutes: asNumber(asRecord(d).minutes),
+    })),
+    timeDayHeatmap: asArray<AnalyticsData["timeDayHeatmap"][number]>(raw.timeDayHeatmap),
+    historyDays: raw.historyDays === undefined ? undefined : asNumber(raw.historyDays),
+    isPremium: raw.isPremium === true,
+    // Always an array (see the note on readAnalytics): "no bars" and "no field"
+    // are the same fact, and the render already coalesces with `?? []`.
+    weekBarData: asArray<{ day: string; date: string; minutes: number }>(raw.weekBarData),
+    weekComparison: raw.weekComparison === undefined
+      ? undefined
+      : {
+          thisWeekMinutes: asNumber(week.thisWeekMinutes),
+          lastWeekMinutes: asNumber(week.lastWeekMinutes),
+          changePercent: asNumber(week.changePercent),
+          trend: week.trend as AnalyticsData["weekComparison"] extends { trend?: infer T } ? T : never,
+        },
+    personalBests: {
+      longestSessionMinutes: asNumber(bests.longestSessionMinutes),
+      bestDayMinutes: asNumber(bests.bestDayMinutes),
+      totalSessions: asNumber(bests.totalSessions),
+      totalMinutes: asNumber(bests.totalMinutes),
+      longestStreak: asNumber(bests.longestStreak),
+    },
   };
 }
 
@@ -173,7 +221,10 @@ export default function AnalyticsPage() {
    */
   const { data, isLoading, isError, refetch, isRefetching } = useQuery<AnalyticsData>({
     queryKey: ["analytics"],
-    queryFn: () => apiJson<AnalyticsData>("/api/analytics"),
+    // Normalised, because `data.personalBests.totalMinutes` on a payload that
+    // arrived without `personalBests` was a blank analytics page — and analytics
+    // is where a student goes to decide whether the method is working at all.
+    queryFn: async () => readAnalytics(await apiJson("/api/analytics")),
     staleTime: 60_000,
   });
   const loading = isLoading;

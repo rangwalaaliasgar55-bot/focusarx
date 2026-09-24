@@ -25,6 +25,18 @@ type ProviderStatus = {
   coolUntil: string | null;
 };
 
+type SelfTest = {
+  ok: boolean;
+  provider: string | null;
+  model: string | null;
+  reply: string | null;
+  latencyMs: number;
+  modelChanged?: boolean;
+  geminiConfigured: boolean;
+  groqConfigured: boolean;
+  diagnosis: string;
+};
+
 type StatusData = {
   availability: { gemini: ProviderStatus; groq: ProviderStatus };
   budget: { gemini: number; geminiCap: number; geminiAvailable: boolean; coolUntil: string | null };
@@ -89,6 +101,12 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
   const [actionTheme, setActionTheme] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
   const [actionResult, setActionResult] = useState<string | null>(null);
+  /* Live self-test — see the server's `/admin/gemini/self-test`. Budgets,
+     keys and past latencies cannot answer "is the AI working right now?": a
+     key that has never been used and a model ID that 404s on every request
+     both show zero calls. This makes one real request and reports it. */
+  const [selfTest, setSelfTest] = useState<SelfTest | null>(null);
+  const [selfTestBusy, setSelfTestBusy] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -284,6 +302,26 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
     }
   };
 
+  const runSelfTest = async () => {
+    setSelfTestBusy(true);
+    setSelfTest(null);
+    try {
+      const r = await adminFetch("/api/admin/gemini/self-test", {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({}),
+      });
+      setSelfTest(r.ok
+        ? ((await r.json()) as SelfTest)
+        : { ok: false, provider: null, model: null, reply: null, latencyMs: 0, geminiConfigured: false, groqConfigured: false, diagnosis: "The self-test endpoint rejected the request — check the admin session." });
+    } catch {
+      setSelfTest({ ok: false, provider: null, model: null, reply: null, latencyMs: 0, geminiConfigured: false, groqConfigured: false, diagnosis: "Could not reach the server for the self-test." });
+    } finally {
+      setSelfTestBusy(false);
+    }
+  };
+
   const pct = (n: number, cap: number) => (cap > 0 ? Math.min(100, Math.round((n / cap) * 100)) : 0);
 
   return (
@@ -325,6 +363,43 @@ export function GeminiPanel({ authHeaders }: { authHeaders: () => Record<string,
             </div>
           );
         })}
+        <div className="rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:col-span-2 lg:col-span-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--foreground-muted)]">
+                <Sparkles size={13} /> Is the AI working?
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed text-[var(--foreground-subtle)]">
+                Sends one real 16-token prompt through the gateway and reports which provider and model answered.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void runSelfTest()}
+              disabled={selfTestBusy}
+              className="flex min-h-[36px] items-center gap-2 rounded-full bg-[var(--brand-strong)] px-4 text-xs font-semibold text-[var(--neutral-0)] disabled:opacity-50"
+            >
+              <RefreshCw size={13} className={selfTestBusy ? "animate-spin" : ""} />
+              {selfTestBusy ? "Testing…" : "Run test"}
+            </button>
+          </div>
+          {selfTest && (
+            <div className={cn(
+              "mt-3 rounded-xl border p-3 text-xs leading-relaxed",
+              selfTest.ok ? "border-[var(--success)]/40 bg-[var(--success-soft)]" : "border-[var(--danger)]/40 bg-[var(--danger-soft)]"
+            )}>
+              <p className="font-semibold text-[var(--foreground)]">
+                {selfTest.ok ? "Working" : "Not working"} · {selfTest.provider ?? "no provider"} · {selfTest.model ?? "no model"} · {selfTest.latencyMs} ms
+                {selfTest.modelChanged ? " · model changed during this call" : ""}
+              </p>
+              <p className="mt-1 text-[var(--foreground-muted)]">{selfTest.diagnosis}</p>
+              {selfTest.reply && <p className="mt-1 text-[var(--foreground-subtle)]">Model said: “{selfTest.reply}”</p>}
+              <p className="mt-1 text-[var(--foreground-subtle)]">
+                Gemini key {selfTest.geminiConfigured ? "set" : "missing"} · Groq key {selfTest.groqConfigured ? "set" : "missing"}
+              </p>
+            </div>
+          )}
+        </div>
         <div className="rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface)] p-4">
           <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--foreground-muted)]">
             <Gauge size={13} /> 7-day cost (est.)

@@ -112,7 +112,10 @@ export default function AmbientSoundBar({ variant = "pill", className = "" }: Pr
     el.addEventListener("error", () => { if (trackAudioRef.current === el) stopTrack(); });
     trackAudioRef.current = el;
     setPlayingTrackId(t.id);
-    void el.play().catch(() => stopTrack());
+    // `play()` has no guaranteed return value (jsdom, some in-app browsers) —
+    // guard before subscribing, or the ambient mixer throws on every play.
+    const played = el.play();
+    if (played && typeof played.catch === "function") played.catch(() => stopTrack());
   };
 
   const setTrackVolume = (id: string, v: number) => {

@@ -2,6 +2,114 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [2026-09-24] — The AI answers, the pages arrive early, six more timer faces
+
+Three complaints, three root causes. "Gemini doesn't do what I ask" was an
+entitlement bug. "Loading time of each thing" was every page chunk being fetched
+*after* the click. "The timer is still boring" was a gap in what the picker
+offered.
+
+### The AI was locked, not broken
+
+- **`POST /coach/chat` was `requirePremium`.** A free student never reached a
+  model: the server refused with 403 and the panel refused to send at all
+  ("Do not load AI model for free users", `isLocked`), so the only text they
+  could get was a canned reply or a lock screen. That is what "the AI does not do
+  what I asked" was. The route now runs on a **daily allowance** —
+  `COACH_DAILY_FREE = 10` messages (`COACH_DAILY_PREMIUM = 60`, and premium keeps
+  its unlimited feel), counted from the AI call log. The per-IP cap, input
+  sanitisation, prompt-injection detection and budget caps are unchanged.
+- **The panel shows the allowance instead of a paywall**: "N of 10 messages left
+  today" in the header, the chat for every signed-in student, a sign-in card for
+  visitors (the endpoint needs an account), and the server's own sentence — with
+  the reset time — on the one screen where an upgrade pitch is honest.
+- **The offline coach now performs the task.** `builtinReply` was a keyword match
+  over seven motivational lines, so "plan my thermodynamics revision" came back
+  as a quote. It now returns the *shape* of the answer for plans, breakdowns,
+  note-making and "what should I do first", names its assumption, and never asks
+  a question back.
+- **Gemini survives its own model churn.** The candidate list is a guess about a
+  remote catalogue (1.5 retired 2025-09, 2.0 in 2026-06, 2.5 restricted
+  2026-09). When every candidate is rejected as a model ID, the gateway now asks
+  `models.list` what the key can actually reach, ranks the answer (newest
+  generation, flash over pro, stable over preview, `-latest` aliases first) and
+  uses it — so a retirement costs one extra call, not the whole integration.
+  401/403 are now logged as an account problem instead of looking like silence.
+- **Admin → AI has a "Run test" button** (`POST /admin/gemini/self-test`): one
+  real 16-token request, reporting provider, model, latency, whether the model
+  changed mid-call, and a plain-language diagnosis. Budgets and past latencies
+  cannot answer "is it working right now" — a never-used key and a 404-ing model
+  both read as zero calls.
+
+### Pages arrive before the click
+
+- **Route prefetching** (`src/lib/routePrefetch.ts` + generated
+  `src/lib/routeChunks.ts`, 109 routes derived from `App.tsx`). Every page is a
+  lazy chunk fetched *when the route renders*, so every navigation paid the
+  download while the student watched a spinner. Chunks are now fetched on intent
+  (`pointerover`, `focusin`, `touchstart`, `pointerdown` on same-origin links),
+  for the three most likely next screens once the browser is idle, and on
+  `popstate` — while `saveData`, `2g`/`slow-2g` and `/admin` are never
+  prefetched. A `routeChunks.test.ts` assertion fails if a route is added to the
+  router without a prefetch entry.
+- **The prefetch layer is itself a lazy chunk** (19.8 kB) loaded on the first
+  idle callback, because shipping the 109-entry map in the entry bundle pushed it
+  over the 55 kB gzip budget — measured, not assumed.
+
+### The timer, and how each layout works
+
+- **Six faces → eight.** Two new layouts: **Block grid** (one dot per five
+  minutes, five to a row; dots disappear as the session is used, so a two-hour
+  block is 24 dots you can count) and **Pomodoro rounds** (the session counted in
+  25-minute rounds — finished rounds fill in, the current round closes like a
+  gauge — because "two more rounds" finishes sessions that "58 minutes left"
+  abandons). `LAYOUT_FACES` in `TimerDisplay` is a single explicit set, and
+  `timerTheme.test.ts` fails if a registered face has no renderer or no blurb.
+- **`docs/TIMER_LAYOUTS.md`** explains all eight faces — what the picture is, how
+  it works, what it is best for — plus the five rules every face follows
+  (accessible name carries the state, one self-moving element, reduced-motion
+  escapes, no blur/glow, tap-to-edit while idle) and how to add a ninth.
+- **The timer now says what staying is worth** (`components/SessionWorth.tsx`):
+  "this 45-minute block pays 900 XP and 90 coins", the "+50 coin bonus for a
+  full 25 minutes", how far a short block is from it, and — past two hours — the
+  75% taper, stated rather than hidden. While running it switches to what is
+  banked and what finishing adds. The figures come from the shared reward maths
+  (drift-tested against the server), so the number on the timer is the number
+  that lands in the wallet; the old component-level formula was wrong by a third
+  on a marathon.
+- **The quick prompts became tasks**: "Motivation boost" and "I'm
+  procrastinating" invite a pep talk, and a pep talk is indistinguishable from an
+  AI that ignored you. They now name artefacts — "Plan my next 3 hours", "Break
+  my assignment into steps", "What should I work on first", "Turn this topic into
+  notes".
+
+### First run, and empty states that teach
+
+- **`/focus` says what to do** for a genuine first run: three steps ("pick a
+  length", "press start and put the phone face-down", "you will see exactly what
+  it earned"), dismissible, remembered, and shown only to a signed-out visitor
+  with no completed session.
+- **Quests with nothing on them** get the one card that fills the board: what a
+  quest is derived from, what a 25-minute block pays, and a link to start one —
+  replacing "check back after your next session".
+- **Achievements and the marketplace** now say how far away the nearest thing is
+  in *sessions*, not units: "3 blocks of 25 minutes away", "earn it in a block"
+  (`src/lib/progressCopy.ts`, built on the real `computeSessionRewards`).
+
+### Verified
+
+- Full suite green: **95 files / 821 tests** (frontend), **58 files / 656 tests**
+  (api-server); `tsc` clean on both.
+- Build PASS: 132 prerendered pages, `seo-validate` PASS, bundle budget PASS —
+  entry 54.2 kB gzip (limit 55), initial JS 115.4 kB gzip (limit 140).
+- New regression tests: `CoachPanel.access.test.tsx` (a free student's message
+  reaches `/api/coach/chat` and the reply renders), `coachEntitlement.test.ts`
+  (no premium wall on the coach routes; allowance is real; guardrails intact),
+  `aiModelDiscovery.test.ts` (ranking/selection), `routePrefetch.test.ts`,
+  `SessionWorth.test.tsx` (the projected payout equals the server's maths for every
+  preset length), `timerTheme.test.ts` (every registered face has a renderer, a
+  blurb and a row in the layouts doc).
+
 ## [2026-09-23] — Design system v5: "Quiet tools"
 
 The interface had accumulated the visual vocabulary of a template: black-violet

@@ -69,7 +69,13 @@ export default defineConfig({
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),
     },
-    dedupe: ["react", "react-dom", "@workspace/api-client-react"],
+    // `three` is deduped for the same reason it is chunked deliberately below:
+    // @react-three/fiber and @react-three/drei resolve it through different
+    // paths, and two copies in one page make three.js print
+    // "Multiple instances of Three.js being imported" on every 3D surface —
+    // a warning in DevTools that the icon-hygiene gate cannot see because the
+    // console is clean only on the pages the test happens to render.
+    dedupe: ["react", "react-dom", "three", "@workspace/api-client-react"],
   },
   root: path.resolve(import.meta.dirname),
   build: {

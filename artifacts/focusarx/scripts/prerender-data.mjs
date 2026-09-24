@@ -23,6 +23,14 @@ import {
   cellText,
 } from "../src/content/seo-pages.mjs";
 import { BLOG_POSTS } from "../src/content/blog.mjs";
+// Policy documents live in one module that both this manifest and the React
+// pages import, so the static HTML a crawler reads and the document a visitor
+// reads cannot drift. Before this, these five routes declared `sections: []`
+// while `src/pages/*.tsx` held the full text — the prerender carried the
+// heading, a one-line lead and a "keep reading" list, which is why Search
+// Console could not tell /acceptable-use apart from /terms and chose its own
+// canonical. See the header of policy-pages.mjs.
+import { policySections } from "../src/content/policy-pages.mjs";
 import { localeRouteEntries } from "../src/content/locale-pages.mjs";
 import { FUNNEL_ANGLES } from "../src/content/exam-funnel.mjs";
 import {
@@ -1243,7 +1251,7 @@ export const ROUTES = [
       "How FocusArx collects, uses, and protects your data. Optional webcam attention monitoring is processed on-device — video never leaves your browser.",
     h1: "FocusArx privacy policy",
     lead: "What data FocusArx collects, how it's used, and the choices you control — including the principle that optional attention monitoring never uploads video.",
-    sections: [],
+    sections: policySections("/privacy"),
     related: relatedFor("/privacy", POLICY_LINKS, ["/contact|Contact us"], COMPANY_LINKS.slice(0, 1)),
   },
   {
@@ -1252,7 +1260,7 @@ export const ROUTES = [
     description: "The terms governing your use of the FocusArx AI productivity platform.",
     h1: "FocusArx terms of service",
     lead: "The agreement between you and FocusArx when you use the platform.",
-    sections: [],
+    sections: policySections("/terms"),
     related: relatedFor("/terms", POLICY_LINKS, COMPANY_LINKS.slice(0, 1)),
   },
   {
@@ -1261,7 +1269,7 @@ export const ROUTES = [
     description: "How FocusArx uses cookies — minimal, for authentication and analytics. No third-party tracking cookies.",
     h1: "FocusArx cookie policy",
     lead: "We use the minimum number of cookies needed to keep you signed in and improve the product.",
-    sections: [],
+    sections: policySections("/cookie-policy"),
     related: relatedFor("/cookie-policy", POLICY_LINKS, COMPANY_LINKS.slice(0, 1)),
   },
   {
@@ -1270,7 +1278,7 @@ export const ROUTES = [
     description: "Guidelines for responsible use of the FocusArx platform and community standards.",
     h1: "FocusArx acceptable use policy",
     lead: "The short list of things that keep FocusArx safe and useful for everyone.",
-    sections: [],
+    sections: policySections("/acceptable-use"),
     related: relatedFor("/acceptable-use", POLICY_LINKS, ["/contact|Report a problem"], COMPANY_LINKS.slice(0, 1)),
   },
   {
@@ -1279,7 +1287,7 @@ export const ROUTES = [
     description: "How FocusArx uses artificial intelligence — our AI features, data handling, and privacy-first approach to machine learning.",
     h1: "How FocusArx uses AI",
     lead: "Where AI appears in the product, what it does and doesn't touch, and the privacy-first rules it operates under.",
-    sections: [],
+    sections: policySections("/ai-policy"),
     related: relatedFor("/ai-policy", POLICY_LINKS, ["/focus-guide|How to focus guide"], COMPANY_LINKS.slice(0, 1)),
   },
 

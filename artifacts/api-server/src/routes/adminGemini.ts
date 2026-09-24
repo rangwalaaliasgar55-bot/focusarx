@@ -29,6 +29,7 @@ import { queueBotReplies } from "../lib/botEngine";
 import { extractUserId } from "./auth";
 import { checkBudget, usageByPurpose, estimatedCost, istDayKey } from "../lib/aiBudget";
 import { providerAvailability } from "../lib/aiProvider";
+import { currentGeminiModel } from "../lib/aiBudgetCore";
 import { generateAi } from "../lib/aiProvider";
 import { briefingTemplate, seoBriefingTemplate, dailySeoSuggestions, sanitizeNeverNegative } from "../lib/aiTemplates";
 import { sendUnauthorized } from "../lib/httpErrors";
@@ -269,6 +270,67 @@ router.get("/admin/gemini/status", async (req, res) => {
   } catch (err) {
     logger.error({ err }, "gemini status error");
     res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// ── G8: is the AI actually working? ──────────────────────────────────────────
+/**
+ * The question "does Gemini work?" used to be unanswerable from inside the
+ * app: the status endpoint reports budgets, keys and latency *of previous
+ * calls*, so a key that was never used — or a model ID that 404s on every
+ * request — looked exactly the same as a healthy provider (both show zero
+ * calls). This makes one real request and reports the result, including the
+ * provider-specific error, so a broken integration is one click from an answer
+ * instead of a guess.
+ *
+ * It is deliberately cheap (16 output tokens), reads nothing from the database
+ * and writes nothing except the ordinary AI call log.
+ */
+router.post("/admin/gemini/self-test", async (req, res) => {
+  if (!(await guard(req, res))) return;
+  const prompt = typeof req.body?.prompt === "string" && req.body.prompt.trim().length > 0
+    ? req.body.prompt.trim().slice(0, 300)
+    : "Reply with the single word: ready";
+
+  const geminiConfigured = Boolean(process.env.GEMINI_API_KEY);
+  const groqConfigured = Boolean(process.env.GROQ_API_KEY);
+  const t0 = Date.now();
+  try {
+    const before = await currentGeminiModel();
+    const result = await generateAi({ purpose: "self_test", prompt, maxTokens: 16 });
+    const after = await currentGeminiModel();
+    const ok = Boolean(result?.source === "llm");
+    res.json({
+      ok,
+      provider: result?.provider ?? null,
+      model: result?.model ?? null,
+      reply: result?.text?.slice(0, 300) ?? null,
+      latencyMs: Date.now() - t0,
+      // A silent switch between models is how a retirement goes unnoticed, so
+      // report it: `before` is the remembered winner, `after` is what answered.
+      modelChanged: before !== after,
+      geminiConfigured,
+      groqConfigured,
+      diagnosis: ok
+        ? result?.provider === "gemini"
+          ? "Gemini answered this request."
+          : `Gemini did not answer; ${result?.provider} did. Check GEMINI_API_KEY, GEMINI_MODEL and the Generative Language API quota.`
+        : geminiConfigured || groqConfigured
+          ? "No provider answered. Check the server log for the exact upstream status (401/403 = key or API not enabled, 404 = model retired, 429 = quota)."
+          : "No AI key is configured on this deployment (GEMINI_API_KEY / GROQ_API_KEY), so every AI feature is serving template text by design.",
+    });
+  } catch (err) {
+    logger.error({ err }, "gemini self-test error");
+    res.json({
+      ok: false,
+      provider: null,
+      model: null,
+      reply: null,
+      latencyMs: Date.now() - t0,
+      geminiConfigured,
+      groqConfigured,
+      diagnosis: "The self-test threw before a reply came back — see the server log.",
+    });
   }
 });
 

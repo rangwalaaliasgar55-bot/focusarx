@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { formatClock, useFocusSessionState } from "@/lib/focusSessionBus";
 import { useAuth } from "@/lib/auth";
-import { apiJson } from "@/lib/api";
+import { apiJson, asArray, asNumber, asRecord, asString } from "@/lib/api";
 import { useTasks } from "@/hooks/useTasks";
 import { useSwipeToComplete } from "@/hooks/useSwipeToComplete";
 import { useToast } from "@/components/Toast";
@@ -64,6 +64,59 @@ type Trends = {
   weekly: WeeklySummary;
   longestStreak: number;
 };
+
+/**
+ * A complete `DashboardStats`, whatever the server actually sent.
+ *
+ * The screen has an `isError || !stats` guard, and it is not enough: `{}` is
+ * truthy, so a 200 with an unexpected body walked past the guard and died at
+ * `stats.chartData.map(...)` — a blank dashboard and an error boundary, for a
+ * request that "succeeded". Every field the render touches is defaulted here, so
+ * a thin payload draws a zeroed dashboard (which is the honest reading) while a
+ * genuinely failed request still takes the error path above.
+ */
+function readDashboardStats(payload: unknown): DashboardStats {
+  const raw = asRecord(payload);
+  return {
+    totalStudyMinutesToday: asNumber(raw.totalStudyMinutesToday),
+    avgFocusScore: raw.avgFocusScore === null || raw.avgFocusScore === undefined ? null : asNumber(raw.avgFocusScore),
+    dominantStability: asString(raw.dominantStability, "—"),
+    sessionsToday: asNumber(raw.sessionsToday),
+    currentStreak: asNumber(raw.currentStreak),
+    completedTasks: asNumber(raw.completedTasks),
+    chartData: asArray<{ day: string; date: string; minutes: number }>(raw.chartData).map((d) => ({
+      day: asString(asRecord(d).day),
+      date: asString(asRecord(d).date),
+      minutes: asNumber(asRecord(d).minutes),
+    })),
+    recentSessions: asArray<DashboardStats["recentSessions"][number]>(raw.recentSessions),
+    trends: raw.trends ? (raw.trends as DashboardStats["trends"]) : undefined,
+  } as DashboardStats;
+}
+
+/**
+ * The header chip's wallet: every field `Wallet` declares, numbers or zeros.
+ *
+ * `level` is derived from total XP when the payload omits it, using the same
+ * curve the XP bar draws (`level * level * 100`) — so a wallet written by an
+ * older build still shows a level consistent with its own progress bar instead
+ * of "0" next to a bar that is visibly not empty.
+ */
+function readWallet(payload: unknown): Wallet {
+  const raw = asRecord(payload);
+  const totalXp = asNumber(raw.totalXp);
+  const level = asNumber(raw.level, 1) || 1;
+  const currentXp = asNumber(raw.currentXp, totalXp - (level - 1) ** 2 * 100);
+  return {
+    coins: asNumber(raw.coins),
+    totalXp,
+    level,
+    currentXp: Math.max(0, currentXp),
+    nextLevelXp: asNumber(raw.nextLevelXp, level ** 2 * 100),
+    streak: asNumber(raw.streak),
+    freezeTokens: asNumber(raw.freezeTokens),
+  };
+}
 
 type DashboardStats = {
   totalStudyMinutesToday: number;
@@ -444,16 +497,19 @@ export default function DashboardPage() {
   const greeting = now.getHours() < 12 ? "Good morning" : now.getHours() < 17 ? "Good afternoon" : "Good evening";
   const firstName = session?.user?.name?.split(" ")[0] || session?.user?.email?.split("@")[0] || "there";
 
+  // Both payloads are normalised to a complete shape before they reach render.
+  // `stats.chartData.map(...)` on an undefined field was a blank dashboard; the
+  // fix is for this screen to be able to draw a zeroed one.
   const statsQuery = useQuery<DashboardStats>({
     queryKey: ["dashboard-stats"],
-    queryFn: () => apiJson<DashboardStats>("/api/stats"),
+    queryFn: async () => readDashboardStats(await apiJson("/api/stats")),
     staleTime: 60_000,
     enabled: status === "authenticated",
   });
 
   const walletQuery = useQuery<Wallet>({
     queryKey: ["wallet"],
-    queryFn: () => apiJson<Wallet>("/api/gamification/wallet"),
+    queryFn: async () => readWallet(await apiJson("/api/gamification/wallet")),
     staleTime: 60_000,
     enabled: status === "authenticated",
   });

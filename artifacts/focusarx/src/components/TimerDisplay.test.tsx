@@ -95,18 +95,46 @@ describe("TimerDisplay finish time", () => {
     expect(screen.getByRole("button").getAttribute("aria-label")).not.toMatch(/Finishes at/);
   });
 
-  it("classic (default) draws the 14px ring with no gradient", () => {
+  /**
+   * The face was flattened to a single flat stroke in the v5 swing toward
+   * quiet surfaces, and the countdown — the one thing on the page that is
+   * supposed to hold attention — became the least interesting object in the
+   * product. A gradient arc is the default now; Zen is the deliberate
+   * exception (a line and a number, nothing else).
+   */
+  it("classic (default) draws the 14px ring painted with the mode gradient", () => {
     const { container } = render(<TimerDisplay {...base()} />);
     const circles = container.querySelectorAll("circle[stroke-dasharray]");
     expect(circles.length).toBeGreaterThan(0);
     expect(circles[0].getAttribute("stroke-width")).toBe("14");
-    expect(container.querySelector("linearGradient")).toBeNull();
+    expect(circles[0].getAttribute("stroke")).toMatch(/^url\(#/);
+    expect(container.querySelector("linearGradient")).toBeTruthy();
   });
 
-  it("zen thins the ring to 8px", () => {
-    const { container } = render(<TimerDisplay {...base({ theme: "zen" })} />);
+  it("zen is the one face that is a line and a number — thin, ungraded, no head node", () => {
+    const { container } = render(<TimerDisplay {...base({ theme: "zen", isRunning: true, progress: 0.4 })} />);
     const circle = container.querySelector("circle[stroke-dasharray]");
     expect(circle?.getAttribute("stroke-width")).toBe("8");
+    expect(container.querySelector("linearGradient")).toBeNull();
+    expect(circle?.getAttribute("stroke")).not.toMatch(/^url\(#/);
+  });
+
+  it("draws a head node on the arc so progress is visible without reading digits", () => {
+    const { container } = render(<TimerDisplay {...base({ isRunning: true, progress: 0.35 })} />);
+    // The node is a filled circle with no dash pattern, unlike the arc/track.
+    const node = Array.from(container.querySelectorAll("circle")).find(
+      (c) => !c.getAttribute("stroke-dasharray") && c.getAttribute("r") === "9.5",
+    );
+    expect(node, "the arc head should be drawn while a session is in progress").toBeTruthy();
+  });
+
+  it("hides the head node when the block is untouched", () => {
+    const { container } = render(<TimerDisplay {...base({ isRunning: true, progress: 0 })} />);
+    expect(
+      Array.from(container.querySelectorAll("circle")).some(
+        (c) => !c.getAttribute("stroke-dasharray") && c.getAttribute("r") === "9.5",
+      ),
+    ).toBe(false);
   });
 
   it("neon paints a gradient ring on focus", () => {
@@ -116,9 +144,16 @@ describe("TimerDisplay finish time", () => {
     expect(circle?.getAttribute("stroke")).toMatch(/^url\(#/);
   });
 
-  it("neon keeps break/long-break rings solid so rest reads as rest", () => {
-    const { container } = render(<TimerDisplay {...base({ theme: "neon", mode: "break" })} />);
-    expect(container.querySelector("linearGradient")).toBeNull();
+  it("keeps rest in the rest palette — a break never wears the focus gradient", () => {
+    for (const mode of ["break", "longBreak"] as const) {
+      const { container } = render(<TimerDisplay {...base({ theme: "neon", mode })} />);
+      const stops = Array.from(container.querySelectorAll("linearGradient stop")).map((s) =>
+        s.getAttribute("stop-color"),
+      );
+      expect(stops.length).toBeGreaterThan(0);
+      expect(stops.join(" ")).not.toMatch(/brand/);
+      cleanup();
+    }
   });
 
   it("a paid membership skin wins over a chosen theme", () => {

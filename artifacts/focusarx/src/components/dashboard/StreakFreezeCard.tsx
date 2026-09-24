@@ -34,9 +34,9 @@ export default function StreakFreezeCard() {
   const [protectedToday, setProtectedToday] = useState(() => localStorage.getItem(protectionKey()) === "1");
 
   const enabled = status === "authenticated";
-  const streakQuery = useQuery<StreakInfo>({
+  const streakQuery = useQuery<StreakInfo | null>({
     queryKey: ["stats-streak"],
-    queryFn: async () => (await apiJson<{ streak: StreakInfo }>("/api/stats/streak")).streak,
+    queryFn: async () => (await apiJson<{ streak?: StreakInfo }>("/api/stats/streak")).streak ?? null,
     enabled,
     staleTime: 60_000,
   });

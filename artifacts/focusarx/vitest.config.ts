@@ -18,7 +18,10 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "src"),
       "@assets": path.resolve(import.meta.dirname, "..", "..", "attached_assets"),
     },
-    dedupe: ["react", "react-dom"],
+    // Mirrors vite.config.ts: without it @react-three/fiber pulls its own copy
+    // of three into the jsdom graph and every 3D surface warns about duplicate
+    // instances — noise that would otherwise be blamed on the page under test.
+    dedupe: ["react", "react-dom", "three"],
   },
   test: {
     environment: "jsdom",

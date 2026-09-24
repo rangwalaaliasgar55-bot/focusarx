@@ -27,9 +27,12 @@ export default function StreakNudge() {
   const { focusSessionsToday } = useSessionHistory();
   const [dismissed, setDismissed] = useState(() => localStorage.getItem(dismissKey()) === "1");
 
-  const query = useQuery<StreakInfo>({
+  const query = useQuery<StreakInfo | null>({
     queryKey: ["stats-streak"],
-    queryFn: async () => (await apiJson<{ streak: StreakInfo }>("/api/stats/streak")).streak,
+    // `?? null`, never `undefined`: react-query treats an undefined return as a
+    // broken query function and logs an error on a page that is otherwise fine.
+    // A response without a `streak` key means "no streak", not "failed".
+    queryFn: async () => (await apiJson<{ streak?: StreakInfo }>("/api/stats/streak")).streak ?? null,
     enabled: status === "authenticated",
     staleTime: 60_000,
   });

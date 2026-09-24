@@ -290,12 +290,20 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
     pauseRef.current = pause;
   }, [pause]);
 
-  useEffect(() => {
-    if (status !== "running") return;
-
-    const worker = createTimerWorker();
-
-    worker.start(() => {
+  /**
+   * One tick of the live countdown.
+   *
+   * Deliberately reads the wall clock rather than subtracting a fixed second:
+   * every value is derived from `deadlineMsRef`, so a tick that arrives late
+   * (a throttled background tab, a locked phone, a cold resume) still lands on
+   * the correct remaining time instead of drifting one second per missed beat.
+   *
+   * Shared by the worker (and its interval fallback) and by the wake-up
+   * resync below, which is why the tick body lives here rather than inline in
+   * the worker effect.
+   */
+  const tick = useCallback(
+    () => {
       const now = Date.now();
       if (lastTickRef.current !== null) {
         const delta = (now - lastTickRef.current) / 1000;
@@ -343,10 +351,56 @@ export function usePomodoro(options: UsePomodoroOptions = {}) {
           advancePhase(true);
         });
       }
-    });
+    },
+    [advancePhase, enableLeader, publishScene, tabId],
+  );
+
+  const tickRef = useRef(tick);
+  useEffect(() => {
+    tickRef.current = tick;
+  }, [tick]);
+
+  useEffect(() => {
+    if (status !== "running") return;
+
+    const worker = createTimerWorker();
+    worker.start(() => tickRef.current());
 
     return () => worker.destroy();
-  }, [status, advancePhase, publishScene, enableLeader, tabId]);
+  }, [status]);
+
+  /**
+   * Wake-up resync.
+   *
+   * A locked phone freezes JavaScript entirely, and a background tab is
+   * throttled to roughly one tick a minute. Both cases end with the user
+   * looking at a clock that is wrong by however long they were away — or, at
+   * the end of a block, a timer that finished minutes ago and has not noticed.
+   *
+   * Recomputing from the deadline the instant the page is visible again fixes
+   * both in one line of arithmetic: the remaining time is corrected and a
+   * deadline that has already passed completes immediately (the tick's
+   * `left <= 0` branch runs `advancePhase`).
+   *
+   * Subscribed while running only, so an idle timer schedules nothing.
+   */
+  useEffect(() => {
+    if (status !== "running") return;
+
+    const resync = () => {
+      if (document.visibilityState === "hidden") return;
+      tickRef.current();
+    };
+
+    document.addEventListener("visibilitychange", resync);
+    window.addEventListener("pageshow", resync);
+    window.addEventListener("focus", resync);
+    return () => {
+      document.removeEventListener("visibilitychange", resync);
+      window.removeEventListener("pageshow", resync);
+      window.removeEventListener("focus", resync);
+    };
+  }, [status]);
 
   const toggle = useCallback(() => {
     if (status === "running") {

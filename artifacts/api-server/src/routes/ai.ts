@@ -3,9 +3,9 @@ import { logger } from "../lib/logger";
 import { aiRoadmapLimiter } from "../lib/rateLimiter";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { premiumStatusMiddleware } from "../lib/premiumCheck";
-import { checkBudget, recordCall, recordRateLimit, userPurposeCalls } from "../lib/aiBudget";
-import { MODELS } from "../lib/aiBudgetCore";
-import { sanitizeAiInput, detectPromptInjection, checkIpLimit, isSafeFallbackError } from "../lib/aiGuardrails";
+import { userPurposeCalls } from "../lib/aiBudget";
+import { generateAi } from "../lib/aiProvider";
+import { sanitizeAiInput, detectPromptInjection, checkIpLimit } from "../lib/aiGuardrails";
 import { z } from "zod";
 
 const router = Router();
@@ -41,7 +41,28 @@ const roadmapDaySchema = z.object({
   })).max(5).optional(),
 });
 
-async function generateRoadmapWithGemini(
+/**
+ * Ask a real model for the roadmap.
+ *
+ * This used to be called only when `premium` was true, and it called Gemini
+ * directly with a hardcoded model ID. The two together meant that for a free
+ * account — which is every account until 9,000 coins are earned — the page
+ * **never contacted an AI at all**, and for a premium account it contacted a
+ * model Google retired in September 2025. Both roads ended at
+ * `buildRoadmapFallback`, whose output is the same four placeholder sentences
+ * with the goal's first four words pasted in: "Foundations: learn X block 1",
+ * "Complete a measurable X practice task". That is why the roadmap read as if
+ * the AI ignored the request.
+ *
+ * Now: everyone gets a real attempt through the unified gateway (budget-checked,
+ * 8s timeout, Gemini→Groq fallback, logged), the response is validated with the
+ * same Zod schema the client expects, and templates are what happens when *no*
+ * provider could serve — not what happens by default.
+ *
+ * The free/premium difference moves to what the prompt asks for (depth,
+ * milestones, resources) and to the retry budget, which is where it belongs.
+ */
+async function generateRoadmapWithAi(
   goal: string,
   dailyHours: number,
   level: string,
@@ -49,113 +70,76 @@ async function generateRoadmapWithGemini(
   currentProgress?: string,
   premium = false,
 ): Promise<RoadmapDay[] | null> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
-
-  // Budget check
-  try {
-    const budget = await checkBudget("gemini");
-    if (!budget.available) {
-      logger.warn({ budget }, "gemini budget exhausted");
-      return null;
-    }
-  } catch {
-    // continue, budget check is best-effort
-  }
-
   const pomodoros = Math.max(1, Math.round((dailyHours * 60) / 25));
-  const prompt = `You are an expert study planner. Create a ${numDays}-day structured study roadmap.
+
+  const prompt = `You are an expert study planner. Create a ${numDays}-day structured study roadmap for this specific goal.
 
 Goal: "${goal}"
 Level: ${level}
 Daily study hours: ${dailyHours} (= ${pomodoros} Pomodoro sessions of 25 min per day)
-${currentProgress?.trim() ? `Current progress: "${currentProgress}"` : ""}
+${currentProgress?.trim() ? `Current progress: "${currentProgress}"` : "Current progress: none stated"}
 
-Return ONLY a JSON array with exactly ${numDays} objects. Each object must have:
+Return ONLY a JSON array with exactly ${numDays} objects — no prose, no markdown fence, no explanation. Each object:
 - "day": number (1 to ${numDays})
-- "focusSessions": array of exactly ${pomodoros} short descriptive session titles (max 8 words each, specific to the goal)
-- "tasks": array of 3–4 concrete actionable tasks for that day (specific, measurable, tied to the goal)
-- "estimatedTime": number (total minutes = ${pomodoros * 25 + (pomodoros - 1) * 5})
-${premium ? `- "milestone": a measurable outcome for the day
+- "focusSessions": array of exactly ${pomodoros} short session titles, max 8 words each, naming the actual topic for that day (not "study session")
+- "tasks": array of 3-4 concrete tasks for that day, each something the person can finish and verify
+- "estimatedTime": number (${pomodoros * 25 + (pomodoros - 1) * 5})
+${premium
+  ? `- "milestone": a measurable outcome for the day
 - "progressCheck": a concrete self-test
-- "resources": 1–3 reputable public learning links, each with title, full https URL, and type` : ""}
+- "resources": 1-3 reputable public learning links, each with title, full https URL, and type`
+  : ""}
 
-Make each day progressively build on the previous. ${premium ? "This is a Premium roadmap: make it more detailed, measurable, resource-rich, and adaptive." : "Keep the free roadmap concise."} Be specific to the goal, not generic. No markdown, no explanation — pure JSON array only.`;
+Rules that matter more than style:
+- Name real topics, techniques, chapters or problem types for THIS goal — never generic filler.
+- Never ask the user a question and never request clarification. There is no follow-up turn: produce the finished ${numDays}-day plan now.
+- Each day must build on the previous one.
+${premium ? "This is a Premium roadmap: make it more detailed, measurable, resource-rich, and adaptive." : "Keep the free roadmap concise but concrete."}`;
 
-  const model = MODELS.gemini;
-  const start = Date.now();
+  const result = await generateAi({
+    purpose: "roadmap",
+    prompt,
+    json: true,
+    maxTokens: premium ? 4096 : 3000,
+    userId: null,
+    system:
+      "You output only valid JSON. You never ask clarifying questions — you complete the request in one reply, using concrete domain-specific detail.",
+  });
+  if (!result) return null;
+
+  let parsed: unknown;
   try {
-    const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            responseMimeType: "application/json",
-            temperature: 0.8,
-            maxOutputTokens: 4096,
-          },
-        }),
-        signal: AbortSignal.timeout(25_000),
-      },
-    );
-
-    const latencyMs = Date.now() - start;
-
-    if (!resp.ok) {
-      if (resp.status === 429) {
-        await recordRateLimit("gemini").catch(() => {});
-        await recordCall({
-          provider: "gemini",
-          model,
-          purpose: "roadmap",
-          status: "rate_limited",
-          latencyMs,
-        }).catch(() => {});
-      }
-      logger.warn({ status: resp.status }, "Gemini API error");
-      return null;
-    }
-
-    const data = await resp.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>; usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number } };
-    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!raw) return null;
-
-    const parsed = JSON.parse(raw) as RoadmapDay[];
-
-    if (!Array.isArray(parsed) || parsed.length === 0) return null;
-
-    // Validate with Zod
-    const validated: RoadmapDay[] = [];
-    for (const day of parsed.slice(0, numDays)) {
-      const v = roadmapDaySchema.safeParse(day);
-      if (v.success) validated.push(v.data);
-    }
-
-    if (validated.length === 0) return null;
-
-    await recordCall({
-      provider: "gemini",
-      model,
-      purpose: "roadmap",
-      tokensIn: data.usageMetadata?.promptTokenCount,
-      tokensOut: data.usageMetadata?.candidatesTokenCount,
-      latencyMs,
-      status: "ok",
-    }).catch(() => {});
-
-    return validated;
+    parsed = JSON.parse(extractJsonArray(result.text));
   } catch (err) {
-    const fallbackReason = isSafeFallbackError(err);
-    if (fallbackReason) {
-      logger.warn({ err, fallbackReason }, "Gemini roadmap safe fallback");
-    } else {
-      logger.warn({ err }, "Gemini roadmap generation failed — not a safe fallback");
-    }
+    logger.warn({ err, model: result.model }, "roadmap: provider returned unparseable JSON");
     return null;
   }
+  if (!Array.isArray(parsed) || parsed.length === 0) return null;
+
+  const validated: RoadmapDay[] = [];
+  for (const day of parsed.slice(0, numDays)) {
+    const v = roadmapDaySchema.safeParse(day);
+    if (v.success) validated.push(v.data);
+  }
+  // A roadmap with holes is worse than an honest fallback: a user cannot tell a
+  // truncated plan from a complete one, and the missing days are the ones that
+  // would have carried the goal to the end.
+  if (validated.length < numDays) {
+    logger.warn({ got: validated.length, want: numDays }, "roadmap: model returned an incomplete plan");
+    return null;
+  }
+  return validated;
+}
+
+/**
+ * Models wrap JSON in a markdown fence often enough that treating that as a
+ * failure would throw away usable answers. Take the outermost array.
+ */
+function extractJsonArray(text: string): string {
+  const trimmed = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+  const first = trimmed.indexOf("[");
+  const last = trimmed.lastIndexOf("]");
+  return first >= 0 && last > first ? trimmed.slice(first, last + 1) : trimmed;
 }
 
 function buildRoadmapFallback(
@@ -235,10 +219,16 @@ router.post("/ai/roadmap", authMiddleware, premiumStatusMiddleware, aiRoadmapLim
       }
     }
 
-    let roadmap: RoadmapDay[] | null = null;
-    if (premium) {
-      roadmap = await generateRoadmapWithGemini(sanitizedGoal, hours, level ?? "intermediate", numDays, sanitizedProgress, premium);
-    }
+    // Everyone gets a real attempt — see generateRoadmapWithAi. `premium` now
+    // buys a richer prompt, not the difference between AI and no AI.
+    const roadmap = await generateRoadmapWithAi(
+      sanitizedGoal,
+      hours,
+      level ?? "intermediate",
+      numDays,
+      sanitizedProgress,
+      premium,
+    );
     const finalRoadmap = roadmap ?? buildRoadmapFallback(sanitizedGoal, hours, level ?? "intermediate", numDays, sanitizedProgress, premium);
 
     // Final validation before sending to frontend

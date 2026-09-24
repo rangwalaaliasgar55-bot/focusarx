@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, lazy, Suspense } from "react";
+import { useCallback, useEffect, useRef, useState, lazy, Suspense } from "react";
 import { AnimatePresence, motion, motion as m } from "framer-motion";
-import { Check, ChevronDown, ClipboardList, Coins, Flame, Plus, X } from "lucide-react";
+import { Check, ChevronDown, ClipboardList, Coins, Flame, Plus, Rocket, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiJson } from "@/lib/api";
 import { useFocusSessionState } from "@/lib/focusSessionBus";
@@ -275,16 +275,54 @@ function SidePanel() {
   );
 }
 
+interface WalletSnapshot {
+  coins: number;
+  totalXp: number;
+  level: number;
+  weeklyXp: number;
+}
+
+/**
+ * The wallet, with every field the header renders actually present.
+ *
+ * `useQuery<T>` is a *cast*, not a check: a 200 carrying anything other than a
+ * wallet row — an error envelope, a proxy's `{}`, an API older than this build
+ * — satisfied the type and then made `wallet.coins.toLocaleString()` throw
+ * inside the timer page's render. `/focus` is the page this whole product is
+ * about (and the Instagram funnel's landing), and a bad payload must degrade
+ * to "no chip" rather than take the countdown down with it.
+ */
+function readWallet(payload: unknown): WalletSnapshot | null {
+  if (!payload || typeof payload !== "object") return null;
+  const raw = payload as Partial<Record<keyof WalletSnapshot, unknown>>;
+  const num = (value: unknown): number => (typeof value === "number" && Number.isFinite(value) ? value : NaN);
+  const coins = num(raw.coins);
+  const totalXp = num(raw.totalXp);
+  const weeklyXp = num(raw.weeklyXp);
+  // The three counters are the chip's whole content; missing any of them means
+  // this is not a wallet, so render nothing instead of a row of NaNs.
+  if ([coins, totalXp, weeklyXp].some(Number.isNaN)) return null;
+  const level = num(raw.level);
+  return {
+    coins,
+    totalXp,
+    weeklyXp,
+    // `level` is derivable from total XP, and the two must agree: the schema
+    // stores a level, but a wallet written by an older build may not carry one.
+    level: Number.isNaN(level) || level < 1 ? Math.floor(Math.sqrt(totalXp / 100)) + 1 : level,
+  };
+}
+
 function useWalletLive() {
   const { status } = useAuth();
-  const query = useQuery<{ coins: number; totalXp: number; level: number; weeklyXp: number }>({
+  const query = useQuery<unknown>({
     queryKey: ["wallet"],
     queryFn: () => apiJson("/api/gamification/wallet"),
     enabled: status === "authenticated",
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
-  return query.data ?? null;
+  return readWallet(query.data);
 }
 
 function CoinXPBar({ focusSessionsToday }: { focusSessionsToday: number }) {
@@ -497,10 +535,81 @@ function FocusChamberHeader() {
   );
 }
 
+/**
+ * First run, for someone who has never used a focus timer.
+ *
+ * Every shared link, every Instagram bio and every `/go` redirect lands on this
+ * screen, and until now the first thing a visitor read was "Good morning,
+ * there" followed by a ring, six face options and a dozen chips. That is a lot
+ * of interface in front of a student whose real question is "what do I do".
+ *
+ * So: three sentences, one per step, dismissible, and remembered — `localStorage`
+ * so it never comes back once it has been read, and only shown to people with no
+ * sign-in and no finished session, because the advice is only useful once.
+ */
+function FirstRunHint({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+      className="mx-4 mt-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] px-4 py-3 sm:mx-6"
+    >
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-soft)] text-[var(--brand-400)]" aria-hidden="true">
+          <Rocket size={15} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-[var(--foreground)]">First time here? It takes three steps.</p>
+          <ol className="mt-1.5 space-y-1 text-xs leading-relaxed text-[var(--foreground-muted)]">
+            <li><span className="font-semibold text-[var(--foreground)]">1.</span> Pick a length — 25 minutes is the usual starting point.</li>
+            <li><span className="font-semibold text-[var(--foreground)]">2.</span> Press start, then put the phone face-down. That is the whole trick.</li>
+            <li><span className="font-semibold text-[var(--foreground)]">3.</span> When the block ends, you will see exactly what it earned. No account needed to try it — signing up later keeps the history.</li>
+          </ol>
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss the getting-started hint"
+          className="shrink-0 rounded-lg p-1.5 text-[var(--foreground-subtle)] transition-colors hover:text-[var(--foreground)]"
+        >
+          <X size={14} />
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+const FIRST_RUN_KEY = "focusarx:first-run-dismissed";
+
 export default function FocusHomePage() {
   const feedback = useFeedbackTrigger();
   const isMobile = useIsMobile();
   const { trackSessionCompleted } = useNotificationPermission();
+  const { status } = useAuth();
+  const { focusSessionsToday } = useSessionHistory();
+  const [showFirstRun, setShowFirstRun] = useState(() => {
+    try {
+      return localStorage.getItem(FIRST_RUN_KEY) !== "1";
+    } catch {
+      return true;
+    }
+  });
+
+  const dismissFirstRun = useCallback(() => {
+    setShowFirstRun(false);
+    try {
+      localStorage.setItem(FIRST_RUN_KEY, "1");
+    } catch {
+      /* private mode: it will simply show again next visit */
+    }
+  }, []);
+
+  // Signed-in students with sessions already know all of this, and saying it
+  // again is the fastest way to make a product feel like it is talking to a
+  // beginner. The hint is only ever for a genuine first run.
+  const firstRunVisible = showFirstRun && status === "unauthenticated" && focusSessionsToday === 0;
 
   const handleSessionComplete = () => {
     trackSessionCompleted();
@@ -522,8 +631,19 @@ export default function FocusHomePage() {
   return (
     <SessionRecoveryProvider>
       <div className="flex flex-col min-h-[100dvh] focus-chamber relative">
+        {/* The screen a shared link and an Instagram bio both land on had no
+            heading of any kind — the first thing a visitor saw was a greeting
+            ("Good morning, there") and a ring. Screen readers announced a page
+            with no title, and the funnel's one indexable element was missing.
+            Visually hidden on purpose: this page is the timer, and a headline
+            above it would push the ring below the fold on a phone. The
+            prerendered document keeps its own visible H1 for crawlers. */}
+        <h1 className="sr-only">
+          FocusArx focus timer — start a session free, no account needed
+        </h1>
         <SceneBackdrop />
         <FocusChamberHeader />
+        <AnimatePresence>{firstRunVisible ? <FirstRunHint onDismiss={dismissFirstRun} /> : null}</AnimatePresence>
         <StreakNudge />
         <SmartSuggestion />
         <div className="flex-1 flex flex-col lg:flex-row gap-0 overflow-auto">

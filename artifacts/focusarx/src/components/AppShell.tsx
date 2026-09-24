@@ -100,7 +100,7 @@ const NAV_GROUPS: NavGroup[] = [
     entries: [
       { href: "/flashcards", label: "Flashcards", icon: Library },
       { href: "/forge-room", label: "Study room", icon: GraduationCap },
-      { href: "/ai-insights", label: "AI coach", icon: Brain, premium: true },
+      { href: "/ai-insights", label: "Focus coach", icon: Brain, premium: true },
       { href: "/analytics", label: "Analytics", icon: BarChart3, premium: true },
     ],
   },

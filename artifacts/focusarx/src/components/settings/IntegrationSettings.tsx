@@ -222,9 +222,18 @@ export function IntegrationSettings() {
           apiJson<{ endpoints: WebhookEndpoint[]; available: boolean }>("/api/webhooks"),
         ]);
         if (cancelled) return;
-        setProviders(integrations.providers);
-        setEndpoints(hooks.endpoints);
-        setAvailable(hooks.available);
+        // `apiJson<T>` is a cast, not a check — a 200 carrying `{}` (an older
+        // API, a proxy, an error envelope) produced `undefined` here, and
+        // `setProviders(undefined)` left the render branch below past its
+        // `providers === null` guard and straight into `providers.map(...)`:
+        // a TypeError inside IntegrationSettings, thrown during the profile
+        // page's render, which took the *entire* profile route down to the
+        // error boundary. The user saw a page that did nothing, with no styles
+        // and no output — this line was why. Every field is validated now, and
+        // a malformed payload degrades to "nothing connected", never to a crash.
+        setProviders(Array.isArray(integrations?.providers) ? integrations.providers : []);
+        setEndpoints(Array.isArray(hooks?.endpoints) ? hooks.endpoints : []);
+        setAvailable(hooks?.available === true);
         // Cleared after the request resolves, not before it starts. Clearing at
         // the top renders a frame that is neither "failed" nor "loading", which
         // reads as a flash of "you have no connections".
