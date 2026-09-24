@@ -17,6 +17,7 @@ import { Coins } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useTasks } from "@/hooks/useTasks";
 import { useSessionHistory } from "@/hooks/useSessionHistory";
+import { DailyMissionsStrip } from "@/components/DailyMissionsStrip";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { TrendPill } from "@/components/ui/trend-pill";
@@ -135,6 +136,9 @@ export function MobileDashboard({ onStartFocus, stats, recentSessions, wallet, t
             : `You've focused ${todayMinutes} min today. Keep the momentum.`}
         </p>
       </div>
+
+      {/* Today's missions — the daily loop, visible on the page phones land on. */}
+      <DailyMissionsStrip />
 
       {/* Start Focus card - primary CTA, above fold */}
       <motion.div

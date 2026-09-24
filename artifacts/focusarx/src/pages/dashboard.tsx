@@ -49,6 +49,8 @@ import { StatCard } from "@/components/ui/stat-card";
 import type { Trend } from "@/types/trend";
 import type { Wallet } from "@/types/gamification";
 import { MobileDashboard } from "@/components/mobile/MobileDashboard";
+import { DailyMissionsStrip } from "@/components/DailyMissionsStrip";
+import { PremiumWeeklyChallenge } from "@/components/PremiumWeeklyChallenge";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
 const FocusChart = lazy(() => import("@/components/dashboard/FocusChart"));
@@ -594,6 +596,17 @@ export default function DashboardPage() {
             metrics in a grid.
           */}
           <FocusHero onStart={startFocus} minutes={stats.totalStudyMinutesToday} sessions={stats.sessionsToday} streak={stats.currentStreak} tasks={activeTasks} />
+
+          {/*
+            Today's missions sit directly under the hero: the hero says what to
+            do now, this says what today is worth — which is what brings a
+            student back tomorrow. It renders nothing when the missions payload
+            is unavailable, so it can never be the reason the dashboard is empty.
+          */}
+          <DailyMissionsStrip />
+
+          {/* Premium only — one thing that is different every Monday. */}
+          <PremiumWeeklyChallenge requirePremium />
 
           <section aria-labelledby="pulse-title">
             <div className="mb-3 flex items-center justify-between gap-3">

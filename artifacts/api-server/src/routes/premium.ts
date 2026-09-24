@@ -10,7 +10,19 @@ import {
 import { eq, desc, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getActivePlans, purchasePremiumWithTokens, getEntitlementHistory, hasActivePremium, seedPremiumPlans, resolveMembershipTier, type MembershipTier } from "../lib/premiumPlans";
-import { getTokenBalance } from "../lib/tokenLedger";
+import { earnTokens, getTokenBalance, hasTokenGrant } from "../lib/tokenLedger";
+import { mintCoins } from "../lib/coinLedger";
+import { focusSessionsTable, tasksTable } from "@workspace/db";
+import { and, gte, lt } from "drizzle-orm";
+import { premiumStatusMiddleware } from "../lib/premiumCheck";
+import {
+  challengeProgress,
+  isoWeekKey,
+  premiumChallengeClaimKey,
+  premiumChallengeForWeek,
+  weekWindow,
+  type ChallengeStats,
+} from "../lib/premiumChallenge";
 import { z } from "zod";
 
 const router = Router();
@@ -277,6 +289,158 @@ router.get("/premium/benefits", async (_req, res) => {
       { id: "history", name: "Basic History", description: "Recent sessions" },
     ],
   });
+});
+
+/**
+ * ── The premium weekly challenge ────────────────────────────────────────────
+ *
+ * Premium's real problem is not a shortage of features, it is that day fifty
+ * looks exactly like day one. This gives premium one thing that is *different
+ * every week*: a target drawn from the ISO week, a countdown to the reset, and a
+ * token payout. See `lib/premiumChallenge.ts` for the rotation.
+ *
+ * Both routes are premium-only, and both are honest about it: a free student
+ * gets `{ requiresPremium: true }` with the challenge visible but unclaimable,
+ * which is a better advert than a hidden endpoint.
+ */
+async function weeklyStats(userId: string): Promise<ChallengeStats> {
+  const { start, end } = weekWindow();
+  const sessions = await db
+    .select({ durationSec: focusSessionsTable.durationSec, completedAt: focusSessionsTable.completedAt, focusScore: focusSessionsTable.focusScore })
+    .from(focusSessionsTable)
+    .where(and(
+      eq(focusSessionsTable.userId, userId),
+      eq(focusSessionsTable.mode, "focus"),
+      gte(focusSessionsTable.completedAt, start),
+      lt(focusSessionsTable.completedAt, end),
+    ));
+
+  const days = new Set<string>();
+  let minutes = 0;
+  let quality = 0;
+  for (const row of sessions) {
+    minutes += Math.floor((row.durationSec ?? 0) / 60);
+    if (row.completedAt) days.add(row.completedAt.toISOString().slice(0, 10));
+    if ((row.focusScore ?? 0) >= 80) quality += 1;
+  }
+
+  let tasks = 0;
+  try {
+    const completedTasks = await db
+      .select({ id: tasksTable.id })
+      .from(tasksTable)
+      .where(and(
+        eq(tasksTable.userId, userId),
+        eq(tasksTable.completed, true),
+        gte(tasksTable.completedAt, start),
+        lt(tasksTable.completedAt, end),
+      ));
+    tasks = completedTasks.length;
+  } catch (err) {
+    logger.warn({ err }, "premium challenge task count failed");
+  }
+
+  return { minutes, sessions: sessions.length, days: days.size, quality, tasks };
+}
+
+async function challengePayload(userId: string, isPremium: boolean) {
+  const weekKey = isoWeekKey();
+  const challenge = premiumChallengeForWeek(weekKey);
+  const stats = await weeklyStats(userId);
+  const progress = challengeProgress(challenge, stats, weekKey);
+  const claimKey = premiumChallengeClaimKey(userId, weekKey);
+  const claimed = await hasTokenGrant(claimKey);
+  const { end } = weekWindow();
+  return {
+    weekKey,
+    requiresPremium: !isPremium,
+    challenge: {
+      id: challenge.id,
+      title: challenge.title,
+      description: challenge.description,
+      metric: challenge.metric,
+      target: progress.target,
+      tokenReward: challenge.tokenReward,
+      coinReward: challenge.coinReward,
+      xpReward: challenge.xpReward,
+    },
+    progress: { current: progress.current, target: progress.target, percent: progress.percent, complete: progress.complete },
+    stats,
+    claimed,
+    // A claim needs all three: entitlement, a met target, and an unclaimed week.
+    claimable: isPremium && progress.complete && !claimed,
+    resetsAt: end.toISOString(),
+  };
+}
+
+router.get("/premium/challenge", authMiddleware, premiumStatusMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    res.json(await challengePayload(req.userId!, Boolean(req.isPremium)));
+  } catch (err) {
+    logger.error({ err }, "premium challenge read error");
+    res.status(500).json({ error: "Could not load this week's challenge" });
+  }
+});
+
+router.post("/premium/challenge/claim", authMiddleware, premiumStatusMiddleware, async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    if (!req.isPremium) {
+      res.status(403).json({ error: "Premium membership is required for the weekly challenge", requiresPremium: true });
+      return;
+    }
+    const weekKey = isoWeekKey();
+    const challenge = premiumChallengeForWeek(weekKey);
+    const stats = await weeklyStats(userId);
+    const progress = challengeProgress(challenge, stats, weekKey);
+    if (!progress.complete) {
+      res.status(400).json({
+        error: "Not there yet",
+        progress: { current: progress.current, target: progress.target, percent: progress.percent },
+      });
+      return;
+    }
+
+    const claimKey = premiumChallengeClaimKey(userId, weekKey);
+    if (await hasTokenGrant(claimKey)) {
+      res.json({ alreadyClaimed: true, weekKey, tokenReward: challenge.tokenReward });
+      return;
+    }
+
+    // Tokens first (idempotent on the week key), then coins on their own key, so
+    // a retry after a partial failure pays only the missing half.
+    const tokens = await earnTokens(userId, "weekly_quest", claimKey, {
+      description: `Premium weekly challenge ${weekKey}: ${challenge.title}`,
+      metadata: { challengeId: challenge.id, weekKey },
+    }, challenge.tokenReward).catch((err) => {
+      logger.warn({ err, weekKey }, "premium challenge token payout failed");
+      return null;
+    });
+
+    if (challenge.coinReward > 0) {
+      try {
+        await mintCoins(userId, challenge.coinReward, "challenge_reward", {
+          description: `Premium weekly challenge ${weekKey}: +${challenge.coinReward} coins`,
+          metadata: { idempotencyKey: `${claimKey}_coins`, challengeId: challenge.id },
+        });
+      } catch (err) {
+        logger.warn({ err, weekKey }, "premium challenge coin payout failed");
+      }
+    }
+
+    res.json({
+      ok: true,
+      weekKey,
+      tokenReward: challenge.tokenReward,
+      coinReward: challenge.coinReward,
+      xpReward: challenge.xpReward,
+      balanceAfter: tokens?.balanceAfter,
+      nextChallengeAt: weekWindow().end.toISOString(),
+    });
+  } catch (err) {
+    logger.error({ err }, "premium challenge claim error");
+    res.status(500).json({ error: "Could not claim this week's challenge" });
+  }
 });
 
 export { router as premiumRouter };

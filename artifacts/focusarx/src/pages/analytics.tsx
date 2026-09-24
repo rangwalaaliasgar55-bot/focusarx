@@ -16,6 +16,8 @@ import { useQuery } from "@tanstack/react-query";
 import { apiJson, asArray, asNumber, asRecord, asString } from "@/lib/api";
 import { QueryError } from "@/components/ui/QueryError";
 import { TrendPill } from "@/components/ui/trend-pill";
+import { buildInsights, formatHours, type Insight } from "@/lib/analyticsInsights";
+import { Sun, Sunrise, CalendarCheck, Repeat } from "lucide-react";
 import type { Trend } from "@/types/trend";
 
 interface AnalyticsData {
@@ -105,6 +107,45 @@ function HeatmapCell({ minutes, date }: { minutes: number; date: string }) {
       style={{ background: color, outline: "1px solid var(--rgba-124-58-237-0_06)" }}
       title={`${date}: ${minutes}m`}
     />
+  );
+}
+
+/**
+ * One derived conclusion.
+ *
+ * The icon and its colour carry the tone (an upward week, a dip, something to
+ * do), so the row is scannable without reading every word. Tone is stated in
+ * text as well, for anyone who does not get colour.
+ */
+function InsightRow({ insight }: { insight: Insight }) {
+  const tone = insight.tone;
+  const Icon =
+    insight.id === "window" ? Sunrise
+    : insight.id === "trend" ? TrendingUp
+    : insight.id === "consistency" ? CalendarCheck
+    : insight.id === "strength" ? Sun
+    : Repeat;
+  const toneClass =
+    tone === "up" ? "text-[var(--palette-emerald-400)]"
+    : tone === "down" ? "text-[var(--palette-amber-400)]"
+    : tone === "action" ? "text-[var(--brand-teal)]"
+    : "text-[var(--foreground-subtle)]";
+  const toneLabel =
+    tone === "up" ? "Improving"
+    : tone === "down" ? "Below last week"
+    : tone === "action" ? "Do this"
+    : "Observation";
+  return (
+    <li className="flex gap-3">
+      <span className={`mt-0.5 shrink-0 ${toneClass}`} aria-hidden>
+        <Icon size={16} />
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-[var(--foreground)]">{insight.title}</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-[var(--foreground-muted)]">{insight.detail}</p>
+        <p className={`mt-0.5 text-[11px] font-medium ${toneClass}`}>{toneLabel}</p>
+      </div>
+    </li>
   );
 }
 
@@ -246,6 +287,24 @@ export default function AnalyticsPage() {
       fill: HOUR_COLORS[i] ?? "var(--brand-600)",
     }));
 
+  /*
+   * The charts above answer questions the student has to think to ask. This
+   * closes the loop: the same numbers, read back as conclusions, with the one
+   * action worth taking attached. Derived from the payload that is already on
+   * the page — no extra request.
+   */
+  const insights = data
+    ? buildInsights({
+        chart14: data.chartData14,
+        hourDist: data.hourDist,
+        timeDayHeatmap: data.timeDayHeatmap,
+        weekComparison: data.weekComparison
+          ? { thisWeekMinutes: data.weekComparison.thisWeekMinutes, lastWeekMinutes: data.weekComparison.lastWeekMinutes }
+          : undefined,
+        personalBests: data.personalBests,
+      })
+    : [];
+
   const wc = data?.weekComparison;
   const weekBar = data?.weekBarData ?? [];
 
@@ -299,6 +358,30 @@ export default function AnalyticsPage() {
                   </motion.div>
                 ))}
               </div>
+
+              {/* Read of your week — the conclusion, not another chart. */}
+              <section aria-labelledby="read-title" className="rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] p-6">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 id="read-title" className="text-sm font-semibold text-[var(--foreground)]">Read of your week</h2>
+                  {insights.length > 0 && (
+                    <Link href="/focus?duration=25&src=analytics" className="text-xs font-semibold text-[var(--brand-teal)] hover:underline">
+                      Start a 25-minute block
+                    </Link>
+                  )}
+                </div>
+                {insights.length === 0 ? (
+                  <p className="mt-2 text-xs text-[var(--foreground-muted)]">
+                    Two or three sessions is all this needs. Come back after your next block and it will tell you which hours
+                    are carrying your week.
+                  </p>
+                ) : (
+                  <ul className="mt-3 space-y-3">
+                    {insights.map((insight) => (
+                      <InsightRow key={insight.id} insight={insight} />
+                    ))}
+                  </ul>
+                )}
+              </section>
 
               {/* Weekly comparison — premium */}
               {wc ? (

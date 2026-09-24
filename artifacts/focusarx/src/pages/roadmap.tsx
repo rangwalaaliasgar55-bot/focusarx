@@ -6,7 +6,8 @@ import { QueryError } from "@/components/ui/QueryError";
 import { aiRoadmapSchema } from "@/lib/validators";
 import { getToken } from "@/lib/auth";
 import { trackSiteEvent } from "@/lib/site-analytics";
-import { BookmarkPlus, Trash2, Map, Sparkles, Target, Clock, ArrowRight } from "lucide-react";
+import { queryClient } from "@/lib/queryClient";
+import { BookmarkPlus, Trash2, Map, Sparkles, Target, Clock, ArrowRight, ListPlus, CheckCircle2 } from "lucide-react";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { BLUR_IN, STAGGER } from "@/lib/animations";
 
@@ -41,6 +42,9 @@ export default function RoadmapPage() {
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [committing, setCommitting] = useState(false);
+  const [committedCount, setCommittedCount] = useState<number | null>(null);
+  const [commitGoal, setCommitGoal] = useState(false);
   const [savedRoadmaps, setSavedRoadmaps] = useState<SavedRoadmap[]>([]);
   const [loadingList, setLoadingList] = useState(false);
   const [listError, setListError] = useState(false);
@@ -115,7 +119,55 @@ export default function RoadmapPage() {
     finally { setLoading(false); }
   }
 
-  async function saveRoadmap() {
+  /**
+   * Turn the plan that is on screen into dated tasks.
+   *
+   * The whole point of asking an AI for a study plan is to *have* one. Until
+   * this existed the plan was React state: beautiful, interactive, and gone on
+   * refresh — which is exactly "the AI does not do what I ask".
+   */
+  const commitPlan = useCallback(async (horizonDays: number, createGoal: boolean) => {
+    if (!roadmap || roadmap.length === 0 || committing) return;
+    setCommitting(true);
+    try {
+      const res = await fetch("/api/roadmap/commit", {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: goal.trim().slice(0, 200) || "Study plan",
+          horizonDays,
+          createGoal,
+          days: roadmap.slice(0, 7).map((day) => ({
+            day: day.day,
+            tasks: (day.tasks ?? []).slice(0, 12),
+            focusSessions: (day.focusSessions ?? []).slice(0, 12),
+          })),
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        toast(typeof body.error === "string" ? body.error : "Could not add the plan to your tasks.", "error");
+        return;
+      }
+      const body = await res.json() as { created?: number; skipped?: number; days?: number; goalId?: string | null };
+      const created = Number(body.created ?? 0);
+      const skipped = Number(body.skipped ?? 0);
+      setCommittedCount((previous) => (previous ?? 0) + created);
+      const parts = [`${created} task${created === 1 ? "" : "s"} added to your list`];
+      if (skipped > 0) parts.push(`${skipped} already there`);
+      if (body.goalId) parts.push("goal created");
+      toast(parts.join(" · "), "success");
+      void queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      void queryClient.invalidateQueries({ queryKey: ["goals"] });
+    } catch {
+      toast("Network error — the plan was not added.", "error");
+    } finally {
+      setCommitting(false);
+    }
+  }, [roadmap, committing, goal, authHeaders, toast, queryClient]);
+
+  const saveRoadmap = useCallback(async () => {
     if (!roadmap || saving) return;
     setSaving(true);
     try {
@@ -133,7 +185,7 @@ export default function RoadmapPage() {
       }
     } catch { toast("Network error — roadmap not saved.", "error"); }
     setSaving(false);
-  }
+  }, [roadmap, saving, goal, authHeaders, fetchSavedList, toast]);
 
   async function loadRoadmap(id: string) {
     try {
@@ -292,6 +344,46 @@ export default function RoadmapPage() {
                         </button>
                       )}
                    </div>
+
+                   {authStatus === "authenticated" && (
+                     <div className="rounded-[var(--radius-xl)] border border-[var(--palette-white)]/5 bg-[var(--palette-white)]/[0.01] p-5 text-left">
+                       <div className="flex flex-wrap items-center justify-between gap-4">
+                         <div className="max-w-md">
+                           <p className="text-sm font-semibold text-[var(--palette-white)]">Make this plan real</p>
+                           <p className="mt-1 text-xs leading-relaxed text-[var(--foreground-subtle)]">
+                             Turns the next days into dated tasks on your dashboard. Blocks you already have are skipped, so adding twice is safe.
+                           </p>
+                           {committedCount !== null && (
+                             <p className="mt-2 text-xs font-semibold text-[var(--brand-400)] tabular-nums">
+                               On your list: {committedCount} block{committedCount === 1 ? "" : "s"} from this plan.
+                             </p>
+                           )}
+                         </div>
+                         <div className="flex flex-wrap items-center gap-2">
+                           <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-[var(--palette-white)]/5 px-3 text-xs text-[var(--foreground-subtle)]">
+                             <input type="checkbox" checked={commitGoal} onChange={(event) => setCommitGoal(event.target.checked)} className="h-4 w-4 accent-[var(--brand-400)]" />
+                             Create a goal for this plan
+                           </label>
+                           <button
+                             type="button"
+                             onClick={() => void commitPlan(3, commitGoal)}
+                             disabled={committing}
+                             className="flex min-h-11 items-center gap-2 rounded-xl bg-[var(--brand-500)] px-4 text-xs font-semibold text-[var(--palette-white)] transition-opacity hover:opacity-90 disabled:opacity-50"
+                           >
+                             <ListPlus size={14} /> Add to my tasks
+                           </button>
+                           <button
+                             type="button"
+                             onClick={() => void commitPlan(7, commitGoal)}
+                             disabled={committing}
+                             className="flex min-h-11 items-center gap-2 rounded-xl border border-[var(--brand-400)]/30 px-4 text-xs font-semibold text-[var(--brand-400)] transition-colors hover:bg-[var(--brand-400)]/10 disabled:opacity-50"
+                           >
+                             <CheckCircle2 size={14} /> Add all 7 days
+                           </button>
+                         </div>
+                       </div>
+                     </div>
+                   )}
 
                    <div className="grid gap-4">
                       {roadmap.map((day) => (

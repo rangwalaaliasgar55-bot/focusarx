@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { PageSEO } from "@/components/PageSEO";
 import StripeCheckoutCard from "@/components/StripeCheckoutCard";
+import { PremiumWeeklyChallenge } from "@/components/PremiumWeeklyChallenge";
 import { Link } from "wouter";
 import { apiJson } from "@/lib/api";
 import { errorMessage } from "@/lib/api";
@@ -325,6 +326,11 @@ export default function PremiumPage() {
           </div>
 
           <div className="space-y-4">
+            {/* This week's premium challenge — the recurring part of premium.
+                Rendered for everyone: locked for free students, because a perk
+                list describes premium and this shows it working. */}
+            <PremiumWeeklyChallenge />
+
             {/* How to earn tokens */}
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-5">
               <h3 className="flex items-center gap-2 text-sm font-semibold">

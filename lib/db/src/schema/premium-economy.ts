@@ -227,3 +227,37 @@ export const assetCatalogTable = pgTable("asset_catalog", {
 ]);
 
 export type AssetCatalog = typeof assetCatalogTable.$inferSelect;
+
+/**
+ * Hosted payment orders, bound to a user before the callback is accepted.
+ *
+ * This table was in the schema SQL (`drizzle/0023_payment_checkout_intents.sql`)
+ * but not in the TypeScript schema, so `routes/razorpay.ts` imported a member
+ * that did not exist: the only failing typecheck in the API, and the reason the
+ * route was never mounted. A payment flow that half exists is worse than none —
+ * either the callback can be trusted against a stored order, or there is no
+ * order to trust.
+ *
+ * The unique indexes on `(provider, provider_order_id)` and
+ * `(provider, provider_payment_id)` are what make a replayed callback a no-op
+ * rather than a second subscription.
+ */
+export const paymentCheckoutIntentsTable = pgTable("payment_checkout_intents", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(),
+  providerOrderId: text("provider_order_id").notNull(),
+  interval: text("interval").notNull(),
+  amountMinor: integer("amount_minor").notNull(),
+  currency: text("currency").notNull(),
+  status: text("status").notNull().default("pending"),
+  providerPaymentId: text("provider_payment_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+}, (t) => [
+  uniqueIndex("payment_checkout_intents_provider_order_uidx").on(t.provider, t.providerOrderId),
+  uniqueIndex("payment_checkout_intents_provider_payment_uidx").on(t.provider, t.providerPaymentId),
+  index("payment_checkout_intents_user_created_idx").on(t.userId, t.createdAt),
+]);
+
+export type PaymentCheckoutIntent = typeof paymentCheckoutIntentsTable.$inferSelect;
