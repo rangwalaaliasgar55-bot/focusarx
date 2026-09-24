@@ -7,6 +7,7 @@ import FloatingTimer from "@/components/FloatingTimer";
 import { InAppBrowserPill } from "@/components/InAppBrowserPill";
 import LiveAnnouncer from "@/components/LiveAnnouncer";
 import { MaintenanceGate } from "@/components/MaintenanceGate";
+import { DropBanner } from "@/components/DropBanner";
 import PageBackground from "@/components/PageBackground";
 import SeasonalBanner from "@/components/SeasonalBanner";
 import { connectSocket, disconnectSocket } from "@/lib/socket";
@@ -53,6 +54,12 @@ export default function AuthenticatedChrome({ children }: { children: ReactNode 
       <DeploymentUpdateBanner />
       <div className="px-3 pt-2 sm:px-5"><SeasonalBanner /></div>
       <DailyRewardBanner />
+      {/* Drops are public hype *and* authenticated rewards. The public copy is
+          deferred in App.tsx; this is the signed-in one, mounted app-wide so an
+          admin-created drop is visible on every route rather than only on Focus
+          and Community. It sat at the app root before the chrome was split out
+          of App.tsx, and the merge is where it would have quietly vanished. */}
+      <div className="px-3 pt-2 sm:px-5"><DropBanner /></div>
       <FloatingTimer />
       <LiveAnnouncer />
       <InAppBrowserPill />

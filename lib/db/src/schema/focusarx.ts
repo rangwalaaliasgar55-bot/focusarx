@@ -858,20 +858,11 @@ export type UserProfileExtras = typeof userProfileExtrasTable.$inferSelect;
 
 // ─── ATOMIC REQUEST LEDGERS ─────────────────────────────────────────────────
 
-/** Idempotency ledger for confirmed voice-created tasks and goals. */
-export const voiceCaptureBatchesTable = pgTable("voice_capture_batches", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
-  idempotencyKey: text("idempotency_key").notNull(),
-  transcript: text("transcript").notNull(),
-  result: jsonb("result").$type<Record<string, unknown>>().notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (t) => [
-  unique("voice_capture_batches_user_key_uidx").on(t.userId, t.idempotencyKey),
-  index("voice_capture_batches_user_created_idx").on(t.userId, t.createdAt),
-]);
-
-export type VoiceCaptureBatch = typeof voiceCaptureBatchesTable.$inferSelect;
+/*
+ * The voice-capture ledger is defined once, below `paymentCheckoutIntentsTable`
+ * — the branch that added it here and the branch that added it there both
+ * merged, and a duplicated `pgTable` fails the whole workspace typecheck.
+ */
 
 /** Server-created hosted checkout intents; provider callbacks are bound to this user-owned row. */
 export const paymentCheckoutIntentsTable = pgTable("payment_checkout_intents", {
@@ -999,7 +990,7 @@ export const voiceCaptureBatchesTable = pgTable("voice_capture_batches", {
   result: jsonb("result").$type<{ taskIds: string[]; goalIds: string[]; createdCount: number }>().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
-  uniqueIndex("voice_capture_batches_user_key_idx").on(t.userId, t.idempotencyKey),
+  uniqueIndex("voice_capture_batches_user_key_uidx").on(t.userId, t.idempotencyKey),
   index("voice_capture_batches_user_created_idx").on(t.userId, t.createdAt),
 ]);
 

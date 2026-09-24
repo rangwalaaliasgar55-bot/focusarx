@@ -103,8 +103,14 @@ export function createTimerWorker(): TimerWorkerController {
     }
   }
 
-  /** Main-thread ticks. Used when there is no worker, and when one dies. */
-  function useInterval() {
+  /**
+   * Main-thread ticks. Used when there is no worker, and when one dies.
+   *
+   * Not a hook despite what the old name suggested — it is a plain function on
+   * the ticker, and naming it `useInterval` made the lint rules treat every call
+   * as a hook called outside a component.
+   */
+  function startIntervalTicks() {
     clearTimers();
     teardownWorker();
     if (!tickCallback || typeof window === "undefined") return;
@@ -135,7 +141,7 @@ export function createTimerWorker(): TimerWorkerController {
       };
       instance.onerror = () => {
         // Script failed to load, or threw on the worker thread.
-        if (source === "worker") useInterval();
+        if (source === "worker") startIntervalTicks();
         else teardownWorker();
       };
       return instance;
@@ -152,7 +158,7 @@ export function createTimerWorker(): TimerWorkerController {
       worker = createWorker();
 
       if (!worker) {
-        useInterval();
+        startIntervalTicks();
         return;
       }
 
@@ -160,7 +166,7 @@ export function createTimerWorker(): TimerWorkerController {
       try {
         worker.postMessage("START");
       } catch {
-        useInterval();
+        startIntervalTicks();
         return;
       }
 
@@ -169,7 +175,7 @@ export function createTimerWorker(): TimerWorkerController {
       // the interval rather than leaving a frozen clock on screen.
       startupId = window.setTimeout(() => {
         startupId = null;
-        if (source === "worker" && tickCallback) useInterval();
+        if (source === "worker" && tickCallback) startIntervalTicks();
       }, STARTUP_GRACE_MS);
     },
 

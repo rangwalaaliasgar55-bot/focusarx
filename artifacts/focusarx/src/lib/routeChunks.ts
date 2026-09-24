@@ -90,6 +90,7 @@ export const ROUTE_CHUNKS: Record<string, () => Promise<unknown>> = {
   "/notifications": () => import("@/pages/notifications"),
   "/onboarding": () => import("@/pages/onboarding"),
   "/pets": () => import("@/pages/pets"),
+  "/planner": () => import("@/pages/planner"),
   "/pomodoro-guide": () => import("@/pages/pomodoro-guide"),
   "/pomodoro-timer": () => import("@/pages/pomodoro-timer"),
   "/pomodoro-timer-for/:exam": () => import("@/pages/exam-funnel"),

@@ -37,7 +37,7 @@ function formatEndTime(timestamp: number): string {
   return new Date(timestamp).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
-function useFaceLabels(secondsLeft: number, isRunning: boolean) {
+function useFaceLabels(secondsLeft: number) {
   const minutes = Math.floor(Math.max(0, secondsLeft) / 60);
   const seconds = Math.max(0, secondsLeft) % 60;
   const spoken = [
@@ -79,7 +79,7 @@ function EditHint({ onClick, running, label }: { onClick?: () => void; running: 
 export function TimerFaceSegments({ secondsLeft, mode, isRunning, progress, onEditClick, sessionType, accent, accentSoft }: TimerFaceProps) {
   const reduced = !!useReducedMotion();
   const { minutes, seconds } = formatTime(secondsLeft);
-  const { spoken, endsAt } = useFaceLabels(secondsLeft, isRunning);
+  const { spoken, endsAt } = useFaceLabels(secondsLeft);
   const total = Math.max(1, Math.round(secondsLeft / Math.max(progress, 0.0001)));
   const totalMinutes = Math.max(1, Math.round(total / 60));
   const elapsed = Math.min(totalMinutes, Math.floor((total - secondsLeft) / 60));
@@ -154,7 +154,7 @@ export function TimerFaceSegments({ secondsLeft, mode, isRunning, progress, onEd
 export function TimerFaceBars({ secondsLeft, mode, isRunning, progress, onEditClick, sessionType, accent, accentSoft }: TimerFaceProps) {
   const reduced = !!useReducedMotion();
   const { minutes, seconds } = formatTime(secondsLeft);
-  const { spoken, endsAt } = useFaceLabels(secondsLeft, isRunning);
+  const { spoken, endsAt } = useFaceLabels(secondsLeft);
   const totalSeconds = Math.max(1, Math.round(secondsLeft / Math.max(progress, 0.0001)));
   const bars = Math.min(12, Math.max(4, Math.round(totalSeconds / 60)));
   const perBar = totalSeconds / bars;
@@ -225,7 +225,7 @@ export function TimerFaceBars({ secondsLeft, mode, isRunning, progress, onEditCl
 export function TimerFaceDots({ secondsLeft, mode, isRunning, progress, onEditClick, sessionType, accent, accentSoft }: TimerFaceProps) {
   const reduced = !!useReducedMotion();
   const { minutes, seconds } = formatTime(secondsLeft);
-  const { spoken, endsAt } = useFaceLabels(secondsLeft, isRunning);
+  const { spoken, endsAt } = useFaceLabels(secondsLeft);
   const totalSeconds = Math.max(1, Math.round(secondsLeft / Math.max(progress, 0.0001)));
   const BLOCK = 5 * 60;
   // Above 24 blocks (2 hours) each dot carries more than five minutes, so a
@@ -319,7 +319,7 @@ export function TimerFaceDots({ secondsLeft, mode, isRunning, progress, onEditCl
 export function TimerFaceRounds({ secondsLeft, mode, isRunning, progress, onEditClick, sessionType, accent, accentSoft }: TimerFaceProps) {
   const reduced = !!useReducedMotion();
   const { minutes, seconds } = formatTime(secondsLeft);
-  const { spoken, endsAt } = useFaceLabels(secondsLeft, isRunning);
+  const { spoken, endsAt } = useFaceLabels(secondsLeft);
   const totalSeconds = Math.max(1, Math.round(secondsLeft / Math.max(progress, 0.0001)));
   const ROUND = 25 * 60;
   const rounds = Math.min(8, Math.max(1, Math.ceil(totalSeconds / ROUND)));

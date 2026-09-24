@@ -16,7 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiJson, asArray, asNumber, asRecord, asString } from "@/lib/api";
 import { QueryError } from "@/components/ui/QueryError";
 import { TrendPill } from "@/components/ui/trend-pill";
-import { buildInsights, formatHours, type Insight } from "@/lib/analyticsInsights";
+import { buildInsights, type Insight } from "@/lib/analyticsInsights";
 import { Sun, Sunrise, CalendarCheck, Repeat } from "lucide-react";
 import type { Trend } from "@/types/trend";
 

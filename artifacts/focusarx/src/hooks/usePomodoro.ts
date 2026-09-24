@@ -17,7 +17,6 @@ import {
 } from "@/lib/crossTabSync";
 import { publishSceneSnapshot, publishSceneComplete } from "@/lib/sceneBus";
 import {
-  clockSkewMs,
   creditSeconds,
   elapsedMs,
   isClockJump,

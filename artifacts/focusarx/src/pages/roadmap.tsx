@@ -165,7 +165,7 @@ export default function RoadmapPage() {
     } finally {
       setCommitting(false);
     }
-  }, [roadmap, committing, goal, authHeaders, toast, queryClient]);
+  }, [roadmap, committing, goal, authHeaders, toast]);
 
   const saveRoadmap = useCallback(async () => {
     if (!roadmap || saving) return;

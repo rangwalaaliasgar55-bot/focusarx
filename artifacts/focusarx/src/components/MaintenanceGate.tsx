@@ -13,7 +13,7 @@ export function MaintenanceGate({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useAuth();
   const path = typeof window === "undefined" ? "/" : window.location.pathname;
 
-  let rememberedAdmin = false;
+  let rememberedAdmin: boolean;
   try {
     rememberedAdmin = window.localStorage.getItem("focusarx:admin-seen") === "1";
   } catch {

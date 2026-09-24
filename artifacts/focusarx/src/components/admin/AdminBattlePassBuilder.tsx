@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Crown, Eye, Rocket, Sparkles, Trash2 } from "lucide-react";
 import { adminFetch } from "./AdminHelpers";
 import { cn } from "@/lib/utils";
@@ -41,8 +42,6 @@ interface PreviewTier {
 }
 
 export function AdminBattlePassBuilder({ authHeaders }: { authHeaders: () => Record<string, string> }) {
-  const [seasons, setSeasons] = useState<SeasonRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -70,20 +69,22 @@ export function AdminBattlePassBuilder({ authHeaders }: { authHeaders: () => Rec
     [authHeaders],
   );
 
-  const load = useCallback(async () => {
-    try {
-      const body = await call("/api/admin/battle-pass");
-      setSeasons((body.seasons as SeasonRow[]) ?? []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load seasons");
-    } finally {
-      setLoading(false);
-    }
-  }, [call]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  /**
+   * Seasons come from the query cache rather than an effect that fetches and
+   * sets state: a `useEffect(load)` pair is exactly the pattern the
+   * `set-state-in-effect` rule rejects (it renders, fetches, sets state, and
+   * renders again for something nobody sees in between), and it also meant the
+   * list was re-fetched on every mount of the admin page. `refetch` after a
+   * write keeps the same behaviour where it matters.
+   */
+  const seasonsQuery = useQuery({
+    queryKey: ["admin-battle-pass-seasons"],
+    queryFn: async () => ((await call("/api/admin/battle-pass")).seasons as SeasonRow[]) ?? [],
+    staleTime: 30_000,
+  });
+  const seasons = seasonsQuery.data ?? [];
+  const loading = seasonsQuery.isLoading;
+  const load = seasonsQuery.refetch;
 
   const runPreview = async () => {
     setBusy("preview");
@@ -248,13 +249,13 @@ export function AdminBattlePassBuilder({ authHeaders }: { authHeaders: () => Rec
         <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--foreground-subtle)]">Seasons</p>
         {loading ? (
           <p className="mt-2 text-xs text-[var(--foreground-subtle)]">Loading seasons…</p>
-        ) : seasons.length === 0 ? (
+        ) : (seasons?.length ?? 0) === 0 ? (
           <p className="mt-2 text-xs text-[var(--foreground-muted)]">
             No season has been published yet — students are seeing the built-in default pass. Introducing one replaces it.
           </p>
         ) : (
           <ul className="mt-2 space-y-2">
-            {seasons.map((row) => (
+            {(seasons ?? []).map((row) => (
               <li key={row.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2 text-xs">
                 <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", row.isActive ? "bg-[var(--success-soft)] text-[var(--success)]" : "bg-[var(--surface-hover)] text-[var(--foreground-subtle)]")}>
                   {row.isActive ? "live" : "draft"}

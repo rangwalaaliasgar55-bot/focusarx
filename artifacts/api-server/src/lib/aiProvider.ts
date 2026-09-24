@@ -131,14 +131,12 @@ async function callGemini(req: AiRequest, purpose: string, userId?: string | nul
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
 
-  const t0 = Date.now();
   let retired: string | null = null;
-  let authRejected = false;
 
   for (const model of geminiModelCandidates()) {
     const attempt = await tryGeminiModel(model, req, purpose, userId);
     if (attempt === "retired") { retired = model; continue; }
-    if (attempt === "auth") { authRejected = true; return null; }
+    if (attempt === "auth") return null;
     if (attempt) return attempt;
     return null;
   }

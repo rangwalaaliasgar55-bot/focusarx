@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { OPEN_VOICE_CAPTURE_EVENT } from "@/lib/voiceCapture";
 
@@ -29,25 +29,29 @@ const VoiceCaptureManager = lazyWithRetry(() => import("@/components/VoiceCaptur
 
 export function VoiceCaptureMount() {
   const [armed, setArmed] = useState(false);
-  const [pending, setPending] = useState<CustomEvent<{ transcript?: string }> | null>(null);
+  const pendingRef = useRef<CustomEvent<{ transcript?: string }> | null>(null);
+  const replayed = useRef(false);
 
   useEffect(() => {
     const onOpen = (event: Event) => {
+      // First press: remember it and arm the manager. Every press after that is
+      // heard by the manager's own listener, so this only has to happen once.
+      if (!replayed.current) pendingRef.current = event as CustomEvent<{ transcript?: string }>;
       setArmed(true);
-      setPending(event as CustomEvent<{ transcript?: string }>);
     };
     window.addEventListener(OPEN_VOICE_CAPTURE_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_VOICE_CAPTURE_EVENT, onOpen);
   }, []);
 
   // Runs after the lazy manager's own effect, so the manager is subscribed by
-  // the time this fires. `armed` only ever goes true, so this happens once.
+  // the time this fires — that effect ordering is the whole trick. Written with
+  // refs rather than state because a synchronous `setState` in an effect body
+  // cascades a render for something the user cannot see.
   useEffect(() => {
-    if (!armed || !pending) return;
-    const replay = pending;
-    setPending(null);
-    window.dispatchEvent(replay);
-  }, [armed, pending]);
+    if (!armed || replayed.current || !pendingRef.current) return;
+    replayed.current = true;
+    window.dispatchEvent(pendingRef.current);
+  }, [armed]);
 
   if (!armed) return null;
   return <VoiceCaptureManager />;

@@ -67,7 +67,7 @@ type Route = { status?: number; body: unknown };
 
 function mockFetch(routes: Record<string, Route>) {
   const calls: string[] = [];
-  vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+  vi.stubGlobal("fetch", vi.fn(async (url: string, _init?: RequestInit) => {
     const path = String(url);
     calls.push(path);
     const match = Object.entries(routes).find(([key]) => path.startsWith(key));
