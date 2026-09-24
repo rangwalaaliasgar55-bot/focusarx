@@ -5,7 +5,7 @@ import { db } from "@workspace/db";
 import {
   usersTable, userWalletsTable, studyStreaksTable,
   userBadgesTable, focusSessionsTable, tasksTable,
-  friendshipsTable,
+  friendshipsTable, userProfileExtrasTable,
 } from "@workspace/db";
 import { isUserPremium } from "../lib/premiumCheck";
 import { eq, and, or, sql } from "drizzle-orm";
@@ -30,6 +30,8 @@ publicProfilesRouter.get("/u/:username", async (req: AuthRequest, res: Response)
 
   const [wallet] = await db.select().from(userWalletsTable).where(eq(userWalletsTable.userId, user.id)).limit(1);
   const [streak] = await db.select().from(studyStreaksTable).where(eq(studyStreaksTable.userId, user.id)).limit(1);
+  const [profileExtra] = await db.select({ profileIcon: userProfileExtrasTable.profileIcon })
+    .from(userProfileExtrasTable).where(eq(userProfileExtrasTable.userId, user.id)).limit(1);
   const badges = await db.select().from(userBadgesTable).where(eq(userBadgesTable.userId, user.id)).limit(20);
 
   const [sessionStats] = await db.select({
@@ -64,6 +66,7 @@ publicProfilesRouter.get("/u/:username", async (req: AuthRequest, res: Response)
     badgeCount: badges.length,
     recentBadges: badges.slice(0, 6).map(b => b.badgeId),
     friendCount: Number(friendCount?.count ?? 0),
+    profileIcon: profileExtra?.profileIcon ?? null,
   });
 });
 

@@ -560,6 +560,12 @@ p, li { text-wrap: pretty; }
 }
 .skip-to-content:focus-visible { transform: translateY(0); }
 
+/* Toast progress is a compositor-only CSS animation. Keeping this micro-motion
+   out of the JS animation runtime prevents it from becoming critical-path work. */
+.toast-progress { animation: toast-progress linear both; }
+@keyframes toast-progress { to { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) { .toast-progress { animation: none; } }
+
 /* Buttons inherit the type system instead of the browser's; each component
    decides its own size. */
 button, a, [role="button"] { touch-action: manipulation; }

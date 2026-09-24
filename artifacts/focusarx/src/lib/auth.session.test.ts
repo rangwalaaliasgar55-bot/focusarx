@@ -64,6 +64,17 @@ describe("resolveSession", () => {
     vi.unstubAllGlobals();
   });
 
+  it("does not probe or refresh on a known-anonymous first visit", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { resolveSession } = await import("@/lib/auth");
+    const result = await resolveSession();
+
+    expect(result).toEqual({ session: null, signedOut: true });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("keeps the token and retries when the API is unavailable", async () => {
     localStorage.setItem(TOKEN_KEY, "jwt-value");
     const calls = mockFetch({

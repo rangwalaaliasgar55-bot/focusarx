@@ -287,14 +287,13 @@ function howToSchema(entry) {
 
 // ── prerendered body ───────────────────────────────────────────────
 const SHELL_CSS = `
-/* ── Static SEO shell (seen ONLY by crawlers without JavaScript) ──
-   Every rule is scoped: nothing here can affect the React app's styles.
-   The inline <head> script adds .fa-js before first paint, which hides
-   this whole shell from every real browser and from Googlebot (which
-   renders JS) — they get the real app instead. */
-html.fa-js .fa-seo,html.fa-js .fa-noscript{display:none}
-html:not(.fa-js){color-scheme:dark}
-html:not(.fa-js) body{background:#0b0d13}
+/* ── Static public-route shell ───────────────────────────────────────
+   This is real first-paint content, not a crawler-only cloaking layer. React
+   replaces #root on interactive boot, so the shell is never displayed beside
+   the hydrated route; until then it gives every visitor a readable title,
+   content landmark, and stable LCP candidate. */
+html{color-scheme:dark}
+body{background:#0b0d13}
 .fa-editions{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:0 0 22px;padding:10px 12px;border:1px solid rgba(167,139,250,.28);border-radius:10px;background:rgba(167,139,250,.06)}
 .fa-editions-label{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#9aa2b4}
 .fa-editions ul{display:flex;flex-wrap:wrap;gap:6px 8px;margin:0;padding:0;list-style:none}
@@ -388,10 +387,9 @@ html:not(.fa-js) body{background:#0b0d13}
  *   - ships real, useful navigation: a search box that works without
  *     JavaScript (`GET /search?q=`) plus links to the highest-value pages.
  *
- * React still mounts on top of it (same bundle, same `#root`), so a human
- * lands on the interactive `pages/not-found.tsx` — the static body is only
- * what a no-JS crawler sees, and it is hidden by `.fa-js` the moment any
- * browser starts executing scripts.
+ * React replaces it in the same `#root` when the app becomes interactive.
+ * Until then it is an intentionally visible, useful first paint for both
+ * visitors and crawlers rather than an element hidden from JavaScript users.
  */
 const NOT_FOUND_TITLE = "Page not found";
 const NOT_FOUND_DESCRIPTION =
@@ -463,10 +461,6 @@ function buildNotFoundPage(template) {
       `<div id="root">${staticLandmark(renderNotFoundBody())}</div>`,
     );
   html = html.replace("</head>", `  <style>${SHELL_CSS}${NOT_FOUND_CSS}</style>\n</head>`);
-  html = html.replace(
-    "<head>",
-    `<head>\n    <script>document.documentElement.classList.add("fa-js")</script>`,
-  );
   return html;
 }
 
@@ -911,15 +905,6 @@ function main() {
     // Minimal critical CSS so the prerendered shell looks intentional
     // before the app bundle loads.
     html = html.replace("</head>", `  <style>${SHELL_CSS}</style>\n</head>`);
-
-    // Inline head script — runs synchronously BEFORE the body paints, so
-    // any browser executing JavaScript never sees the static SEO shell
-    // (CSS above hides .fa-seo when this class is present). No-JS
-    // crawlers never run this, so they still see the full content.
-    html = html.replace(
-      "<head>",
-      `<head>\n    <script>document.documentElement.classList.add("fa-js")</script>`,
-    );
 
     // noscript notice (content above is already visible without JS)
     html = html.replace(

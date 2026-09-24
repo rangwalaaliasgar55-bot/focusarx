@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { useSiteSettings } from "@/lib/site-settings";
 import { X } from "lucide-react";
 
@@ -17,12 +16,8 @@ export function AnnouncementBanner() {
   const text = settings.announcementText;
 
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ height: 0, opacity: 0 }}
-        animate={{ height: "auto", opacity: 1 }}
-        exit={{ height: 0, opacity: 0 }}
-        className="relative z-[var(--z-modal)] overflow-hidden border-b border-[var(--brand-600)]/30 bg-[var(--brand-soft)]"
+      <div
+        className="relative z-[var(--z-modal)] overflow-hidden border-b border-[var(--brand-600)]/30 bg-[var(--brand-soft)] motion-safe:animate-fade-in"
       >
         <div className="mx-auto flex max-w-7xl items-start gap-2.5 px-3 py-2.5 sm:items-center sm:gap-3 sm:px-4">
           {settings.announcementEmoji && <span className="mt-0.5 text-base leading-none sm:mt-0 sm:text-lg">{settings.announcementEmoji}</span>}
@@ -39,7 +34,6 @@ export function AnnouncementBanner() {
             <X size={14} />
           </button>
         </div>
-      </motion.div>
-    </AnimatePresence>
+      </div>
   );
 }

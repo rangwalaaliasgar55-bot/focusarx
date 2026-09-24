@@ -35,6 +35,10 @@ export interface Task {
   completedPomodoros: number;
   done: boolean;
   createdAt: string;
-  priority?: "low" | "medium" | "high";
+  priority?: "low" | "medium" | "high" | "urgent";
   category?: string;
+  /** Server-backed planning metadata, optional for offline/legacy task drafts. */
+  estimatedMinutes?: number | null;
+  dueDate?: string | null;
+  tags?: string[];
 }

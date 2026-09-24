@@ -450,6 +450,20 @@ describe("15. mobile layout and build hygiene", () => {
     expect(vp, "user-scalable=no breaks pinch-zoom and fails WCAG 1.4.4").not.toMatch(/user-scalable\s*=\s*no/);
   });
 
+  it("Vercel serves an enforcing CSP and modern browser isolation headers", () => {
+    const config = JSON.parse(read(path.join(REPO_ROOT, "vercel.json"))) as {
+      headers: Array<{ source: string; headers: Array<{ key: string; value: string }> }>;
+    };
+    const global = config.headers.find((entry) => entry.source === "/(.*)");
+    const headers = Object.fromEntries(global?.headers.map(({ key, value }) => [key, value]) ?? []);
+
+    expect(headers["Content-Security-Policy"]).toContain("default-src 'self'");
+    expect(headers["Content-Security-Policy"]).toContain("frame-ancestors 'none'");
+    expect(headers["X-Frame-Options"]).toBe("DENY");
+    expect(headers["Cross-Origin-Opener-Policy"]).toBe("same-origin");
+    expect(headers["Strict-Transport-Security"]).toContain("includeSubDomains; preload");
+  });
+
   it("build chunking uses the function form so vendor-react is not empty", () => {
     const s = read(path.join(FRONTEND, "vite.config.ts"));
     // The object form produced "Generated an empty chunk: vendor-react", which
@@ -461,13 +475,16 @@ describe("15. mobile layout and build hygiene", () => {
     expect(s, "recharts/d3 must not sit in the entry chunk").toMatch(/return "vendor-charts"/);
   });
 
-  it("the AdSense loader is identified so it is never injected twice", () => {
+  it("loads AdSense exactly once, only after advertising consent", () => {
     const html = read(path.join(FRONTEND, "index.html"));
     const component = read(path.join(FRONTEND, "src/components/AdSense.tsx"));
-    expect(html).toContain('id="adsbygoogle-js"');
-    expect(component, "AdSense.tsx must check for the existing loader").toContain("adsbygoogle-js");
-    // The loader must stay async — a sync third-party script blocks first paint.
-    expect(html.slice(html.indexOf("adsbygoogle-js"), html.indexOf("adsbygoogle-js") + 400)).toMatch(/async/);
+    // An eager publisher request competes with LCP and is not a consent gate.
+    expect(html).not.toContain('id="adsbygoogle-js"');
+    expect(html).not.toContain("pagead2.googlesyndication.com/pagead/js/adsbygoogle.js");
+    expect(component, "AdSense.tsx must keep the loader singleton").toContain("adsbygoogle-js");
+    expect(component, "AdSense must require explicit advertising consent").toContain("hasAdvertisingConsent");
+    // The dynamic loader stays async — a sync third-party script blocks first paint.
+    expect(component).toMatch(/el\.async\s*=\s*true/);
   });
 
   it("ads reserve layout height so filling them causes no CLS", () => {

@@ -115,6 +115,22 @@ Disallow: /admin
 Disallow: /api/
 Allow: /api/sitemap.xml
 
+# ── Secondary discovery and archive crawlers ───────────────────
+# These explicit sections are redundant with User-agent: * but document that
+# both agents are deliberately welcome; the API security middleware mirrors
+# this allowlist so neither receives a bot-filter 403.
+User-agent: DuckDuckBot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Allow: /api/sitemap.xml
+
+User-agent: archive.org_bot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Allow: /api/sitemap.xml
+
 # ── AI assistants / answer engines ────────────────────────────
 # Deliberate ALLOW. A growing share of "how to focus" queries is answered
 # inside an AI Overview or a chat assistant rather than on a results page, so

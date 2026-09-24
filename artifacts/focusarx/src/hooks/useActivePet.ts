@@ -18,11 +18,13 @@ export interface ActivePet {
   level: number;
   /** Catalog category — used for the species-glyph fallback. */
   category?: string;
+  /** Animated catalog artwork (a GIF for staged releases), if available. */
+  thumbnailUrl?: string | null;
 }
 
 interface InventoryRow {
   inventory: { isActive: boolean; level: number; nickname: string | null };
-  catalog: { slug: string; name: string; category: string } | null;
+  catalog: { slug: string; name: string; category: string; thumbnailUrl?: string | null; fallbackImageUrl?: string | null } | null;
 }
 
 /** Fired by the pets page after adopting/activating, so mounted listeners re-read. */
@@ -44,6 +46,7 @@ export async function fetchActivePet(): Promise<ActivePet | null> {
           name: active.inventory.nickname ?? active.catalog?.name ?? "Companion",
           level: active.inventory.level ?? 1,
           category: active.catalog?.category,
+          thumbnailUrl: active.catalog?.thumbnailUrl ?? active.catalog?.fallbackImageUrl ?? null,
         };
       }
       if (data.inventory && data.inventory.length > 0) {
@@ -53,6 +56,7 @@ export async function fetchActivePet(): Promise<ActivePet | null> {
           name: first.inventory.nickname ?? first.catalog?.name ?? "Companion",
           level: first.inventory.level ?? 1,
           category: first.catalog?.category,
+          thumbnailUrl: first.catalog?.thumbnailUrl ?? first.catalog?.fallbackImageUrl ?? null,
         };
       }
     }

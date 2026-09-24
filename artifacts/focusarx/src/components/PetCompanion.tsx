@@ -201,6 +201,9 @@ export default function PetCompanion({
   const [showXp, setShowXp] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [blinkKey, setBlinkKey] = useState(0);
+  // Record the URL that failed rather than a global boolean. A new staged
+  // companion URL then retries naturally without an effect-triggered render.
+  const [failedSpriteUrl, setFailedSpriteUrl] = useState<string | null>(null);
 
   const msgIndexRef = useRef(0);
   const msgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -288,6 +291,10 @@ export default function PetCompanion({
 
   if (!pet) return null;
 
+  // A broken remote staged sprite falls back to the species glyph. Comparing
+  // the failed URL means a different companion or corrected catalog URL gets a
+  // fresh chance without synchronously resetting state in an effect.
+  const spriteFailed = failedSpriteUrl === pet.thumbnailUrl;
   const { emoji: petEmoji, color: petColor } = petSpeciesVisual(pet.slug, pet.category);
   const accs      = resolveAccessories(inventory);
   const anim      = PHASE_ANIM[phase];
@@ -411,6 +418,19 @@ export default function PetCompanion({
               >
                 {isBulbasaurSpecies(pet.slug) ? (
                   <BulbasaurArtwork size={130} className="max-h-[clamp(80px,18vw,130px)] max-w-[clamp(80px,18vw,130px)]" />
+                ) : pet.thumbnailUrl && !spriteFailed ? (
+                  <img
+                    src={pet.thumbnailUrl}
+                    alt=""
+                    aria-hidden="true"
+                    width={130}
+                    height={130}
+                    decoding="async"
+                    referrerPolicy="no-referrer"
+                    draggable={false}
+                    onError={() => setFailedSpriteUrl(pet.thumbnailUrl ?? null)}
+                    className="h-[clamp(80px,18vw,130px)] w-[clamp(80px,18vw,130px)] object-contain [image-rendering:pixelated]"
+                  />
                 ) : petEmoji}
               </motion.div>
             </motion.div>

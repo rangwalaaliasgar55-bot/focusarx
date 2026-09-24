@@ -1,19 +1,16 @@
 /**
  * Google Analytics 4 (GA4) event helpers.
  *
- * The GA4 loader and configuration are installed exactly once in the global
- * Vite HTML entry point (`artifacts/focusarx/index.html`). Every prerendered
- * route inherits that document head, and the inline bootstrap creates
- * `window.gtag` synchronously so events can safely queue while gtag.js loads.
+ * The GA4 loader is installed only after analytics consent by
+ * `analyticsLoader.ts`; it creates `window.gtag` synchronously so events can
+ * queue while gtag.js loads. This module deliberately never injects a script
+ * tag. It only forwards SPA page views and product events to the global Google
+ * tag, preventing duplicate loaders while preserving route tracking.
  *
- * This module deliberately never injects a script tag. It only forwards SPA
- * page views and product events to the global Google tag, preventing duplicate
- * GA4 loaders while preserving client-side route tracking.
- *
- * Page-view accounting (verified against the entry document):
- *   • `index.html` configures the tag with `send_page_view: false`, so gtag.js
- *     does not emit its own view on load;
- *   • `SiteAnalyticsTracker` is mounted once inside the router and emits exactly
+ * Page-view accounting:
+ *   • `analyticsLoader.ts` configures the tag with `send_page_view: false`, so
+ *     gtag.js does not emit its own view on load;
+ *   • `SiteAnalyticsTracker` starts only with analytics consent and emits exactly
  *     one `page_view` per route, including the first one;
  *   ⇒ one view per route, never two.
  *

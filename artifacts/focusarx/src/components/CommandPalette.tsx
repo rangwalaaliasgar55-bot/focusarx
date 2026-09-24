@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import {
   BarChart3,
   Brain,
+  CalendarDays,
   CheckSquare2,
   Compass,
   Flame,
@@ -51,6 +52,7 @@ const DESTINATIONS: Destination[] = [
   { label: "Focus City (3D)", href: "/city", icon: Sparkles, keywords: "civilization 3d buildings world" },
   { label: "Companion Pets (3D)", href: "/pets", icon: Sparkles, keywords: "pet avatar creature evolve" },
   { label: "Tasks", href: "/tasks", icon: CheckSquare2, keywords: "todo work" },
+  { label: "Week runway", href: "/planner", icon: CalendarDays, keywords: "calendar schedule time blocks plan week" },
   { label: "Goals", href: "/goals", icon: Goal, keywords: "targets planning" },
   { label: "Flashcards", href: "/flashcards", icon: Library, keywords: "decks study leitner memory" },
   { label: "Feynman Technique", href: "/feynman-technique", icon: Library, keywords: "learn teach simplify" },

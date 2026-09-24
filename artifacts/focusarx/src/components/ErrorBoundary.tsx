@@ -1,7 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { ArrowUpRight, RefreshCw, WifiOff } from "lucide-react";
 import { BrandMark } from "@/components/ui/brand";
-import { Button } from "@/components/ui/button";
 import { isChunkLoadError, recoverFromChunkError } from "@/lib/chunkRecovery";
 
 interface Props {
@@ -95,7 +93,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 onClick={this.handleRetry}
                 className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-white/12 px-4 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] hover:bg-white/16"
               >
-                <RefreshCw size={14} aria-hidden /> Reload section
+                ↻ Reload section
               </button>
             </div>
           </div>
@@ -122,19 +120,24 @@ export class ErrorBoundary extends Component<Props, State> {
           )}
 
           <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
-            <Button onClick={this.handleRetry}>
-              <RefreshCw /> {offline ? "Try again" : "Reload view"}
-            </Button>
-            <Button asChild variant="ghost">
-              <a href="/support">
-                Get help <ArrowUpRight aria-hidden />
-              </a>
-            </Button>
+            <button
+              type="button"
+              onClick={this.handleRetry}
+              className="inline-flex min-h-11 items-center rounded-[var(--radius-md)] bg-[var(--brand-600)] px-4 text-sm font-semibold text-[var(--neutral-0)] transition-colors hover:bg-[var(--brand-700)]"
+            >
+              ↻ {offline ? "Try again" : "Reload view"}
+            </button>
+            <a
+              href="/support"
+              className="inline-flex min-h-11 items-center rounded-[var(--radius-md)] px-4 text-sm font-semibold text-[var(--foreground-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
+            >
+              Get help ↗
+            </a>
           </div>
 
           {offline && (
             <p className="mt-4 inline-flex items-center gap-1.5 text-xs text-[var(--foreground-subtle)]">
-              <WifiOff size={13} aria-hidden /> Changes made while offline are queued and synced on reconnection.
+              ◌ Changes made while offline are queued and synced on reconnection.
             </p>
           )}
         </div>

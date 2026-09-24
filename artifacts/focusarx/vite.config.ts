@@ -110,6 +110,11 @@ export default defineConfig({
           if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return "vendor-react";
 
           if (has("framer-motion", "motion-dom", "motion-utils")) return "vendor-motion";
+          // Realtime is authenticated-product enhancement code. Keep the
+          // Socket.IO transport/parser closure away from vendor-shared, which
+          // is also used by the guest entry for small HTTP utilities; otherwise
+          // the entire realtime stack becomes a public modulepreload.
+          if (has("socket.io-client", "engine.io-client", "engine.io-parser", "socket.io-parser", "@socket.io")) return "vendor-socket";
           if (has("@tanstack/react-query", "@tanstack/query-core")) return "vendor-query";
           if (has("wouter")) return "vendor-router";
 

@@ -40,7 +40,7 @@ const verifyPath = (token: string) =>
 const hasDb = Boolean(process.env.DATABASE_URL);
 
 /** Only the auth cookies we care about, so the jar stays trivially debuggable. */
-const AUTH_COOKIES = ["access_token", "refresh_token", "focusarx_token"];
+const AUTH_COOKIES = ["access_token", "refresh_token", "focusarx_token", "focusarx_session_hint"];
 
 type Jar = Record<string, string>;
 
@@ -189,6 +189,9 @@ describe.runIf(hasDb)("auth sign-in (live app + real database)", () => {
     // because the response body lacked a token: both cookies have to be set.
     expect(register.jar.access_token).toBeTruthy();
     expect(register.jar.refresh_token).toBeTruthy();
+    // Presence-only marker lets the client avoid expected anonymous 401 probes;
+    // it is never used as an API credential.
+    expect(register.jar.focusarx_session_hint).toBe("1");
 
     const refreshed = await call("/api/auth/refresh", { method: "POST", body: {}, jar: register.jar });
     expect(refreshed.status).toBe(200);
@@ -198,6 +201,7 @@ describe.runIf(hasDb)("auth sign-in (live app + real database)", () => {
     expect(logout.status).toBe(200);
     expect(logout.jar.access_token).toBeUndefined();
     expect(logout.jar.refresh_token).toBeUndefined();
+    expect(logout.jar.focusarx_session_hint).toBeUndefined();
 
     const afterLogout = await call("/api/auth/session", { jar: logout.jar });
     expect(afterLogout.status).toBe(401);

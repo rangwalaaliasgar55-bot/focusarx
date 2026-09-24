@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import { AdSense, AdSenseAnchor } from "./AdSense";
+import { CONSENT_STORAGE_KEY } from "@/lib/consent";
 
 /**
  * Console hygiene for the AdSense components.
@@ -37,6 +38,7 @@ describe("AdSense console hygiene", () => {
     delete (window as { adsbygoogle?: unknown[] }).adsbygoogle;
     delete (window as { __adsbygoogleLoaded?: boolean }).__adsbygoogleLoaded;
     document.head.innerHTML = "";
+    localStorage.clear();
   });
 
   afterEach(() => {
@@ -61,7 +63,20 @@ describe("AdSense console hygiene", () => {
     expect(cap.entries, `push() failure leaked to console: ${JSON.stringify(cap.entries)}`).toEqual([]);
   });
 
-  it("injects the loader script exactly once across many units", () => {
+  it("does not request the publisher until advertising consent is explicit", () => {
+    render(
+      <>
+        <AdSense slot="1111111111" format="auto" />
+        <AdSense slot="2222222222" format="fluid" />
+        <AdSenseAnchor slot="3333333333" />
+      </>,
+    );
+    expect(document.querySelectorAll("script#adsbygoogle-js")).toHaveLength(0);
+    expect(cap.entries, `unexpected console output: ${JSON.stringify(cap.entries)}`).toEqual([]);
+  });
+
+  it("injects the loader only once after an advertising opt-in", () => {
+    localStorage.setItem(CONSENT_STORAGE_KEY, "true");
     render(
       <>
         <AdSense slot="1111111111" format="auto" />
@@ -70,7 +85,7 @@ describe("AdSense console hygiene", () => {
       </>,
     );
     const scripts = [...document.querySelectorAll("script#adsbygoogle-js")];
-    expect(scripts.length, "loader injected more than once").toBeLessThanOrEqual(1);
+    expect(scripts).toHaveLength(1);
     expect(cap.entries, `unexpected console output: ${JSON.stringify(cap.entries)}`).toEqual([]);
   });
 

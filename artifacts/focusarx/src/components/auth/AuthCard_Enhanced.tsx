@@ -50,7 +50,7 @@ export function AuthCard({
         </div>
 
         {/* Card */}
-        <div className={cn("glass rounded-[var(--radius-2xl)] p-8 shadow-[var(--shadow-[var(--shadow-lg)])]", className)}>
+        <div className={cn("glass rounded-[var(--radius-2xl)] p-8 shadow-[var(--shadow-lg)]", className)}>
           {/* Back button */}
           {onBack && (
             <button

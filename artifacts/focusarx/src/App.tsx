@@ -1,24 +1,20 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
-import { AnimatePresence, MotionConfig, motion } from "framer-motion";
-import PageBackground from "@/components/PageBackground";
 import "@/components/page-background.css";
 const LandingPage = lazyWithRetry(() => import("@/pages/landing"));
 const FocusHomePage = lazyWithRetry(() => import("@/pages/focus"));
-import { connectSocket, disconnectSocket } from "@/lib/socket";
 import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 
-import { AuthProvider, useAuth, getToken } from "@/lib/auth";
+import { AuthProvider, useAuth } from "@/lib/auth";
 import { ToastProvider } from "@/components/Toast";
-import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
-import { PromptProvider } from "@/components/ui/PromptDialog";
-import { SiteAnalyticsTracker } from "@/components/SiteAnalyticsTracker";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import AppShell from "@/components/AppShell";
 import { ViewSkeleton } from "@/components/ui/skeleton";
 const CommandPalette = lazyWithRetry(() => import("@/components/CommandPalette"));
+const SiteAnalyticsTracker = lazyWithRetry(() => import("@/components/SiteAnalyticsTracker").then((m) => ({ default: m.SiteAnalyticsTracker })));
+const AuthenticatedChrome = lazyWithRetry(() => import("@/components/AuthenticatedChrome"));
+const AppDialogs = lazyWithRetry(() => import("@/components/AppDialogs"));
 const NotFound = lazyWithRetry(() => import("@/pages/not-found"));
 const LoginPage = lazyWithRetry(() => import("@/pages/login"));
 const SignupPage = lazyWithRetry(() => import("@/pages/signup"));
@@ -27,19 +23,9 @@ const ForgotPasswordPage = lazyWithRetry(() => import("@/pages/forgot-password")
 const ResetPasswordPage = lazyWithRetry(() => import("@/pages/reset-password"));
 const AuthCallbackPage = lazyWithRetry(() => import("@/pages/auth-callback"));
 const AdminPage = lazyWithRetry(() => import("@/pages/admin"));
-import DailyRewardBanner from "@/components/DailyRewardBanner";
-import { RewardToastProvider } from "@/components/ui/RewardToast";
-import FloatingTimer from "@/components/FloatingTimer";
-import LiveAnnouncer from "@/components/LiveAnnouncer";
-import { InAppBrowserPill } from "@/components/InAppBrowserPill";
-import { FloatingParticles } from "@/components/FloatingParticles";
 import { CookieConsent } from "@/components/CookieConsent";
-import { MaintenanceGate } from "@/components/MaintenanceGate";
-import { AnnouncementBanner } from "@/components/AnnouncementBanner";
-import SeasonalBanner from "@/components/SeasonalBanner";
-import { DeploymentUpdateBanner } from "@/components/DeploymentUpdateBanner";
-import { DropBanner } from "@/components/DropBanner";
-import { useDeploymentSkewDetector } from "@/lib/deploymentSkew";
+const AnnouncementBanner = lazyWithRetry(() => import("@/components/AnnouncementBanner").then((m) => ({ default: m.AnnouncementBanner })));
+const PublicDropBanner = lazyWithRetry(() => import("@/components/DropBanner").then((m) => ({ default: m.DropBanner })));
 
 /**
  * Instagram funnel entry: /go/ig → /focus armed with a 25-min slice and
@@ -61,6 +47,7 @@ const ExamFunnelPage = lazyWithRetry(() => import("@/pages/exam-funnel"));
 
 const OnboardingPage = lazyWithRetry(() => import("@/pages/onboarding"));
 const DashboardPage = lazyWithRetry(() => import("@/pages/dashboard"));
+const PlannerPage = lazyWithRetry(() => import("@/pages/planner"));
 const RoadmapPage = lazyWithRetry(() => import("@/pages/roadmap"));
 const LeaderboardPage = lazyWithRetry(() => import("@/pages/leaderboard"));
 const AchievementsPage = lazyWithRetry(() => import("@/pages/achievements"));
@@ -162,7 +149,7 @@ function hasDoneMobileWelcome() {
   return localStorage.getItem("focusarx-mobile-welcome-done") === "1";
 }
 
-function MobileWelcomeGate({ children }: { children: React.ReactNode }) {
+function MobileWelcomeGate({ children }: { children: ReactNode }) {
   const { status } = useAuth();
   const [, setLocation] = useLocation();
   useEffect(() => {
@@ -243,41 +230,19 @@ function RootPage() {
   );
 }
 
-function GlobalBackground({ isFocusing }: { isFocusing: boolean }) {
-  const { status } = useAuth();
-  const [location] = useLocation();
-  // The landing page renders its own full-bleed 3D hero (Hero3D); skip the
-  // global WebGL backdrop there so we never run two GPU contexts at once.
-  const skip = location === "/" && status === "unauthenticated";
-  if (skip) return null;
-  return <PageBackground isFocusing={isFocusing} />;
-}
-
-function SocketInitializer() {
-  const { data: session, status } = useAuth();
+function RouteReady({ children }: { children: ReactNode }) {
   useEffect(() => {
-    if (status !== "authenticated") return;
-    // Cookie-first: connectSocket exchanges the session cookie for a 60s
-    // socket ticket; the localStorage bearer (legacy) is only a fallback.
-    void connectSocket(getToken() ?? undefined);
-    return () => { disconnectSocket(); };
-  }, [status, session?.user?.id]);
-  return null;
+    window.dispatchEvent(new Event("focusarx:route-ready"));
+  }, []);
+  return <>{children}</>;
 }
 
 function RoutedContent() {
   const [location] = useLocation();
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.div
-        key={location}
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
-        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-        style={{ height: "100%" }}
-      >
+      <div key={location} style={{ height: "100%" }}>
         <Suspense fallback={<PageLoader />}>
+          <RouteReady>
           <Switch>
               <Route path="/welcome" component={MobileWelcomePage} />
               <Route path="/login" component={LoginPage} />
@@ -301,6 +266,7 @@ function RoutedContent() {
               <Route path="/blog/:slug"><ErrorBoundary><Suspense fallback={<PageLoader />}><BlogPostPage /></Suspense></ErrorBoundary></Route>
               <Route path="/pomodoro-timer-for/:exam"><ErrorBoundary><Suspense fallback={<PageLoader />}><ExamFunnelPage /></Suspense></ErrorBoundary></Route>
               <Route path="/dashboard"><ErrorBoundary><ProtectedRoute component={DashboardPage} /></ErrorBoundary></Route>
+              <Route path="/planner"><ErrorBoundary><ProtectedRoute component={PlannerPage} /></ErrorBoundary></Route>
               <Route path="/analytics"><ErrorBoundary><ProtectedRoute component={AnalyticsPage} /></ErrorBoundary></Route>
 
               <Route path="/leaderboard"><ErrorBoundary><Suspense fallback={<PageLoader />}><LeaderboardPage /></Suspense></ErrorBoundary></Route>
@@ -430,10 +396,76 @@ function RoutedContent() {
 
               <Route component={NotFound} />
             </Switch>
+          </RouteReady>
           </Suspense>
-      </motion.div>
-    </AnimatePresence>
+      </div>
   );
+}
+
+/**
+ * Measurement code is useful only after the page is usable (and only after a
+ * consented tracker decides it may send). Keeping even its local bookkeeping
+ * out of the entry graph removes a critical-chain competitor for the LCP.
+ */
+function DeferredAnalytics() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const wake = () => setReady(true);
+    const idleWindow = window as unknown as {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (idleWindow.requestIdleCallback) {
+      const id = idleWindow.requestIdleCallback(wake, { timeout: 2_500 });
+      return () => idleWindow.cancelIdleCallback?.(id);
+    }
+    const id = window.setTimeout(wake, 1_500);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  return ready ? <Suspense fallback={null}><SiteAnalyticsTracker /></Suspense> : null;
+}
+
+/**
+ * Non-essential networked chrome waits until the page has settled. This keeps
+ * a public first paint focused on the route content while retaining banners
+ * (including the guest-visible live-drop announcement) shortly afterwards.
+ */
+function DeferredPublicEnhancements() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const reveal = () => setReady(true);
+    const idleWindow = window as unknown as {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (idleWindow.requestIdleCallback) {
+      const id = idleWindow.requestIdleCallback(reveal, { timeout: 3_000 });
+      return () => idleWindow.cancelIdleCallback?.(id);
+    }
+    const id = window.setTimeout(reveal, 2_000);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  if (!ready) return null;
+  return (
+    <Suspense fallback={null}>
+      <AnnouncementBanner />
+      <div className="px-3 pt-2 sm:px-5"><PublicDropBanner /></div>
+    </Suspense>
+  );
+}
+
+function PublicDialogBoundary({ children }: { children: ReactNode }) {
+  const [location] = useLocation();
+  // These remain genuinely usable for guests, including their accessible
+  // custom-duration/confirmation controls. Read-only SEO pages avoid the
+  // Radix dialog runtime entirely.
+  const needsDialogs = location === "/focus" || location === "/study-rooms";
+  if (!needsDialogs) return <>{children}</>;
+  return <Suspense fallback={<PageLoader />}><AppDialogs>{children}</AppDialogs></Suspense>;
 }
 
 function AppWithPalette() {
@@ -442,7 +474,7 @@ function AppWithPalette() {
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   // Quick page switching (audit L2): 1-Home, 2-Tasks, 3-Analytics,
-  // 4-Leaderboard, 5-Achievements. Ignored while typing or with modifiers.
+  // 4-Leaderboard, 5-Achievements, 6-Week Runway. Ignored while typing or with modifiers.
   useEffect(() => {
     if (status !== "authenticated") return;
     const pageKeys: Record<string, string> = {
@@ -451,6 +483,7 @@ function AppWithPalette() {
       "3": "/analytics",
       "4": "/leaderboard",
       "5": "/achievements",
+      "6": "/planner",
     };
     const handler = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -489,69 +522,33 @@ function AppWithPalette() {
           <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
         </Suspense>
       )}
-      <AnnouncementBanner />
-      <DeploymentUpdateBanner />
-      {status === "authenticated" && <div className="px-3 pt-2 sm:px-5"><SeasonalBanner /></div>}
-      {/* Drops are public hype and authenticated rewards. Mount once at the app
-          root so an admin-created drop is visible on every route, not only on
-          Focus and Community. */}
-      <div className="px-3 pt-2 sm:px-5"><DropBanner /></div>
-      <DailyRewardBanner />
-      <FloatingTimer />
-      <LiveAnnouncer />
-      <InAppBrowserPill />
+      <DeferredPublicEnhancements />
       <CookieConsent />
-      <MaintenanceGate>
-        <MobileWelcomeGate>
-          <AppShell>
-            <RoutedContent />
-          </AppShell>
-        </MobileWelcomeGate>
-      </MaintenanceGate>
+      <MobileWelcomeGate>
+        {status === "authenticated" ? (
+          <Suspense fallback={<PageLoader />}>
+            <AuthenticatedChrome><RoutedContent /></AuthenticatedChrome>
+          </Suspense>
+        ) : (
+          <PublicDialogBoundary><RoutedContent /></PublicDialogBoundary>
+        )}
+      </MobileWelcomeGate>
     </>
   );
 }
 
 function App() {
-  const [isFocusing, setIsFocusing] = useState(false);
-
-  // Deployment skew detection — polls for new deployments and checks
-  // response headers to detect version mismatches.
-  useDeploymentSkewDetector();
-
-  useEffect(() => {
-    const start = () => setIsFocusing(true);
-    const stop = () => setIsFocusing(false);
-    window.addEventListener("fx:focus-start", start);
-    window.addEventListener("fx:focus-stop", stop);
-    return () => {
-      window.removeEventListener("fx:focus-start", start);
-      window.removeEventListener("fx:focus-stop", stop);
-    };
-  }, []);
-
   return (
-    <MotionConfig reducedMotion="user">
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-        <RewardToastProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
         <ToastProvider>
-        <ConfirmProvider>
-        <PromptProvider>
-          <FloatingParticles count={14} />
-          <SocketInitializer />
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <GlobalBackground isFocusing={isFocusing} />
-            <SiteAnalyticsTracker />
+            <DeferredAnalytics />
             <AppWithPalette />
           </WouterRouter>
-        </PromptProvider>
-        </ConfirmProvider>
         </ToastProvider>
-        </RewardToastProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </MotionConfig>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 

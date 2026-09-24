@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 
 /**
  * GA4 contract tests.
@@ -41,42 +39,28 @@ beforeEach(() => {
 
 afterEach(() => {
   uninstallGtag();
+  document.getElementById("focusarx-ga4")?.remove();
   vi.restoreAllMocks();
 });
 
-// ─── Loader contract (index.html) ────────────────────────────────────────────
+// ─── Consent-gated loader contract ───────────────────────────────────────────
 
-describe("the GA4 loader in index.html", () => {
-  const html = readFileSync(resolve(import.meta.dirname, "../../index.html"), "utf8");
-
-  it("loads gtag.js directly with the right measurement id", () => {
-    expect(html).toContain("https://www.googletagmanager.com/gtag/js?id=G-PXMVX28PL5");
-    expect(html).toContain('gtag("config", "G-PXMVX28PL5"');
-  });
-
-  it("loads exactly one Google tag — no GTM container", () => {
-    const loaders = html.match(/googletagmanager\.com\/gtag\/js/g) ?? [];
-    expect(loaders).toHaveLength(1);
-
-    // GTM would be `gtm.js?id=GTM-…` plus a `dataLayer.push({…'GTM-…'})` snippet
-    // and an iframe fallback. None of them may appear.
+describe("the GA4 loader", () => {
+  it("does not exist in HTML and adds one direct, manual-pageview tag after consent", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const html = readFileSync(resolve(import.meta.dirname, "../../index.html"), "utf8");
+    expect(html).not.toContain("googletagmanager.com/gtag/js");
     expect(html).not.toMatch(/gtm\.js\?id=/);
-    expect(html).not.toMatch(/'GTM-[A-Z0-9]+'/);
-    expect(html).not.toMatch(/"GTM-[A-Z0-9]+"/);
-  });
 
-  it("disables the automatic page view so SPA views are not doubled", () => {
-    expect(html).toMatch(/send_page_view:\s*false/);
-  });
+    const { ensureAnalyticsLoaded, GA_MEASUREMENT_ID } = await import("./analyticsLoader");
+    ensureAnalyticsLoaded();
+    ensureAnalyticsLoaded();
 
-  it("declares Consent Mode v2 defaults before the config call", () => {
-    const consentAt = html.indexOf('gtag("consent", "default"');
-    const configAt = html.indexOf('gtag("config"');
-    expect(consentAt).toBeGreaterThan(-1);
-    expect(configAt).toBeGreaterThan(-1);
-    expect(consentAt).toBeLessThan(configAt);
-    expect(html).toMatch(/ad_storage:\s*"denied"/);
-    expect(html).toMatch(/analytics_storage:\s*"granted"/);
+    const scripts = document.querySelectorAll("script#focusarx-ga4");
+    expect(scripts).toHaveLength(1);
+    expect(scripts[0]?.getAttribute("src")).toContain(`gtag/js?id=${GA_MEASUREMENT_ID}`);
+    expect(calls).toContainEqual(["config", GA_MEASUREMENT_ID, expect.objectContaining({ send_page_view: false })]);
   });
 });
 
