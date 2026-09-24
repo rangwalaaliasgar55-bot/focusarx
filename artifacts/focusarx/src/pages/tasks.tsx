@@ -7,6 +7,7 @@ import {
   CheckSquare2,
   ListTodo,
   Plus,
+  Pencil,
   RotateCcw,
   Search,
   Trash2,
@@ -20,6 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import type { Task } from "@/types/timer";
@@ -44,12 +46,14 @@ function TaskRow({
   selected,
   onSelect,
   onToggle,
+  onEdit,
   onDelete,
 }: {
   task: Task;
   selected: boolean;
   onSelect: () => void;
   onToggle: () => void;
+  onEdit: () => void;
   onDelete: () => void;
 }) {
   const pending = task.id.startsWith("pending-");
@@ -137,12 +141,18 @@ function TaskRow({
       <div className="min-w-0 flex-1 py-3">
         <p className={cn("truncate text-sm font-medium text-[var(--foreground)]", task.done && "text-[var(--foreground-subtle)] line-through")}>{task.title}</p>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[var(--foreground-subtle)]">
-          <Badge variant={task.priority === "high" ? "error" : task.priority === "low" ? "secondary" : "outline"} className="min-h-5 px-2 py-0 capitalize">{task.priority ?? "medium"}</Badge>
+          <Badge variant={task.priority === "urgent" || task.priority === "high" ? "error" : task.priority === "low" ? "secondary" : "outline"} className="min-h-5 px-2 py-0 capitalize">{task.priority ?? "medium"}</Badge>
           <span>{task.category || "Uncategorized"}</span>
+          {task.estimatedMinutes ? <span>{task.estimatedMinutes} min</span> : null}
+          {task.dueDate ? <span className={task.dueDate < new Date().toISOString().slice(0, 10) && !task.done ? "text-[var(--danger)]" : ""}>Due {new Date(`${task.dueDate}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span> : null}
+          {task.tags?.slice(0, 2).map((tag) => <span key={tag}>#{tag}</span>)}
           <span className="hidden sm:inline">{isToday(task.createdAt) ? "Added today" : new Date(task.createdAt).toLocaleDateString()}</span>
           {pending && <span className="text-[var(--brand-strong)]">Syncing…</span>}
         </div>
       </div>
+      <Button variant="ghost" size="icon" className="shrink-0 text-[var(--foreground-subtle)] opacity-100 hover:text-[var(--brand-strong)] sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100" onClick={onEdit} aria-label={`Edit plan for ${task.title}`}>
+        <Pencil />
+      </Button>
       <Button variant="ghost" size="icon" className="shrink-0 text-[var(--foreground-subtle)] opacity-100 hover:text-[var(--danger)] sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100" onClick={onDelete} aria-label={`Delete ${task.title}`}>
         <Trash2 />
       </Button>
@@ -150,12 +160,75 @@ function TaskRow({
   );
 }
 
+function TaskPlanningDialog({ task, onClose, onSave }: { task: Task | null; onClose: () => void; onSave: (id: string, updates: Partial<Task>) => Promise<unknown> }) {
+  const [estimateMinutes, setEstimateMinutes] = useState("");
+  const [priority, setPriority] = useState<NonNullable<Task["priority"]>>("medium");
+  const [dueDate, setDueDate] = useState("");
+  const [tags, setTags] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // The component remains mounted for dialog focus management, so synchronize
+  // its draft whenever a different task is selected.
+  useEffect(() => {
+    if (!task) return;
+    setEstimateMinutes(task.estimatedMinutes ? String(task.estimatedMinutes) : "");
+    setPriority(task.priority ?? "medium");
+    setDueDate(task.dueDate ?? "");
+    setTags((task.tags ?? []).join(", "));
+  }, [task]);
+
+  const save = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!task || saving) return;
+    const parsedEstimate = Number(estimateMinutes);
+    setSaving(true);
+    try {
+      await onSave(task.id, {
+        estimatedMinutes: Number.isFinite(parsedEstimate) && parsedEstimate > 0 ? Math.min(1440, Math.round(parsedEstimate)) : null,
+        priority,
+        dueDate: dueDate || null,
+        tags: tags.split(",").map((tag) => tag.trim().replace(/^#/, "")).filter(Boolean).slice(0, 10),
+      });
+      onClose();
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <Dialog open={Boolean(task)} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <form onSubmit={save}>
+          <DialogHeader>
+            <DialogTitle>Plan this task</DialogTitle>
+            <DialogDescription>{task?.title ?? ""}</DialogDescription>
+          </DialogHeader>
+          <DialogBody className="grid gap-4 sm:grid-cols-2">
+            <label className="text-sm font-medium">Estimate (minutes)<Input className="mt-1.5" type="number" min="1" max="1440" inputMode="numeric" value={estimateMinutes} onChange={(event) => setEstimateMinutes(event.target.value)} placeholder="25" /></label>
+            <label className="text-sm font-medium">Priority<select value={priority} onChange={(event) => setPriority(event.target.value as NonNullable<Task["priority"]>)} className="mt-1.5 flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></label>
+            <label className="text-sm font-medium">Due date<Input className="mt-1.5" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} /></label>
+            <label className="text-sm font-medium">Tags<Input className="mt-1.5" value={tags} onChange={(event) => setTags(event.target.value)} placeholder="study, writing" /></label>
+          </DialogBody>
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button type="submit" loading={saving}>Save plan</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function TasksPage() {
-  const { tasks, addTask, toggleDone, removeTask, isLoading, isError, refreshTasks } = useTasks();
+  const { tasks, addTask, updateTask, toggleDone, removeTask, isLoading, isError, refreshTasks } = useTasks();
   const { toast } = useToast();
   const [filter, setFilter] = useState<Filter>("today");
   const [query, setQuery] = useState("");
   const [newTask, setNewTask] = useState("");
+  const [estimateMinutes, setEstimateMinutes] = useState("25");
+  const [priority, setPriority] = useState<NonNullable<Task["priority"]>>("medium");
+  const [dueDate, setDueDate] = useState("");
+  const [tags, setTags] = useState("");
+  const [showPlanningFields, setShowPlanningFields] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [adding, setAdding] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -179,8 +252,14 @@ export default function TasksPage() {
     setAdding(true);
     setNewTask("");
     try {
-      await addTask(title);
-      toast("Task added", "success");
+      const parsedEstimate = Number(estimateMinutes);
+      await addTask(title, {
+        estimatedMinutes: Number.isFinite(parsedEstimate) && parsedEstimate > 0 ? Math.min(1440, Math.round(parsedEstimate)) : null,
+        priority,
+        dueDate: dueDate || null,
+        tags: tags.split(",").map((tag) => tag.trim().replace(/^#/, "")).filter(Boolean).slice(0, 10),
+      });
+      toast("Task added to your plan", "success");
     } catch {
       setNewTask(title);
       toast("Task could not be added", "danger");
@@ -230,9 +309,23 @@ export default function TasksPage() {
         actions={<Button onClick={() => inputRef.current?.focus()}><Plus /> Add task</Button>}
       />
 
-      <form onSubmit={submit} className="ui-panel mb-5 flex flex-col gap-2 p-2 sm:flex-row" aria-label="Quick add task">
-        <Input ref={inputRef} value={newTask} onChange={(event) => setNewTask(event.target.value)} placeholder="What needs your attention?" className="border-transparent bg-transparent focus-within:border-transparent" aria-label="Task title" />
-        <Button type="submit" loading={adding} disabled={!newTask.trim()} className="sm:w-auto"><Plus /> Add</Button>
+      <form onSubmit={submit} className="ui-panel mb-5 p-2" aria-label="Add task with planning details">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input ref={inputRef} value={newTask} onChange={(event) => setNewTask(event.target.value)} placeholder="What needs your attention?" className="border-transparent bg-transparent focus-within:border-transparent" aria-label="Task title" />
+          <Button type="submit" loading={adding} disabled={!newTask.trim()} className="sm:w-auto"><Plus /> Add</Button>
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-2 px-1">
+          <button type="button" onClick={() => setShowPlanningFields((value) => !value)} aria-expanded={showPlanningFields} className="min-h-9 rounded-md px-2 text-xs font-semibold text-[var(--brand-strong)] hover:bg-[var(--brand-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)]">{showPlanningFields ? "Hide planning details" : "Add time, priority, or due date"}</button>
+          {!showPlanningFields ? <span className="text-xs text-[var(--foreground-subtle)]">A realistic estimate makes Focus Runway useful.</span> : null}
+        </div>
+        {showPlanningFields ? (
+          <div className="grid gap-2 border-t border-[var(--border-subtle)] px-1 pt-3 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="text-xs font-medium text-[var(--foreground-muted)]">Estimate (minutes)<Input type="number" min="1" max="1440" inputMode="numeric" value={estimateMinutes} onChange={(event) => setEstimateMinutes(event.target.value)} className="mt-1" /></label>
+            <label className="text-xs font-medium text-[var(--foreground-muted)]">Priority<select value={priority} onChange={(event) => setPriority(event.target.value as NonNullable<Task["priority"]>)} className="mt-1 flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></label>
+            <label className="text-xs font-medium text-[var(--foreground-muted)]">Due date<Input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className="mt-1" /></label>
+            <label className="text-xs font-medium text-[var(--foreground-muted)]">Tags<Input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="study, writing" className="mt-1" /></label>
+          </div>
+        ) : null}
       </form>
 
       <section className="ui-panel overflow-hidden" aria-labelledby="task-list-title">
@@ -294,6 +387,7 @@ export default function TasksPage() {
                     return next;
                   })}
                   onToggle={() => toggle(task)}
+                  onEdit={() => setEditingTask(task)}
                   onDelete={() => deleteTask(task)}
                 />
               ))}
@@ -301,6 +395,20 @@ export default function TasksPage() {
           </ul>
         )}
       </section>
+
+      <TaskPlanningDialog
+        task={editingTask}
+        onClose={() => setEditingTask(null)}
+        onSave={async (id, updates) => {
+          try {
+            await updateTask(id, updates);
+            toast("Task plan updated", "success");
+          } catch {
+            toast("Task plan could not be updated", "danger");
+            throw new Error("Task plan update failed");
+          }
+        }}
+      />
     </div>
   );
 }

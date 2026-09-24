@@ -47,6 +47,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import type { Trend } from "@/types/trend";
 import type { Wallet } from "@/types/gamification";
 import { MobileDashboard } from "@/components/mobile/MobileDashboard";
+import { FocusRunway } from "@/components/dashboard/FocusRunway";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
 const FocusChart = lazy(() => import("@/components/dashboard/FocusChart"));
@@ -292,9 +293,9 @@ function QuickTasks() {
     <Card className="flex flex-col">
       <CardHeader className="flex-row items-start justify-between gap-4">
         <div>
-          <CardTitle>Today&apos;s plan</CardTitle>
+          <CardTitle>Task inbox</CardTitle>
           <CardDescription>
-            {activeTasks.length ? `${activeTasks.length} open ${activeTasks.length === 1 ? "task" : "tasks"}` : "Nothing queued"}
+            {activeTasks.length ? `${activeTasks.length} open ${activeTasks.length === 1 ? "task" : "tasks"} ready to plan` : "Nothing queued"}
           </CardDescription>
         </div>
         <Button asChild variant="ghost" size="sm"><Link href="/tasks">All tasks <ArrowRight /></Link></Button>
@@ -438,7 +439,7 @@ function SecondarySection({ children }: { children: React.ReactNode }) {
 export default function DashboardPage() {
   const { status, data: session } = useAuth();
   const [, navigate] = useLocation();
-  const { activeTasks } = useTasks();
+  const { activeTasks, toggleDone } = useTasks();
   const isMobile = useIsMobile();
   const now = useMemo(() => new Date(), []);
   const greeting = now.getHours() < 12 ? "Good morning" : now.getHours() < 17 ? "Good afternoon" : "Good evening";
@@ -463,6 +464,11 @@ export default function DashboardPage() {
     window.setTimeout(() => window.dispatchEvent(new CustomEvent("focusarx:start-focus")), 120);
   };
 
+  /** A runway block opens the existing focus chamber pre-armed with its real duration and intention. */
+  const startPlannedFocus = ({ title, minutes }: { title: string; minutes: number }) => {
+    navigate(`/?duration=${Math.max(1, Math.min(240, Math.round(minutes)))}&task=${encodeURIComponent(title)}`);
+  };
+
   const stats = statsQuery.data;
   const trends = stats?.trends;
   const totalXp = walletQuery.data?.totalXp ?? 0;
@@ -480,6 +486,7 @@ export default function DashboardPage() {
         <PageSEO {...PAGE_SEO.dashboard} />
         <MobileDashboard
           onStartFocus={startFocus}
+          onStartPlannedFocus={startPlannedFocus}
           stats={{
             totalStudyMinutesToday: stats.totalStudyMinutesToday,
             sessionsToday: stats.sessionsToday,
@@ -529,6 +536,8 @@ export default function DashboardPage() {
             metrics in a grid.
           */}
           <FocusHero onStart={startFocus} minutes={stats.totalStudyMinutesToday} sessions={stats.sessionsToday} streak={stats.currentStreak} tasks={activeTasks} />
+
+          <FocusRunway tasks={activeTasks} onStart={startPlannedFocus} onToggleTask={toggleDone} />
 
           <section aria-labelledby="pulse-title">
             <div className="mb-3 flex items-center justify-between gap-3">
