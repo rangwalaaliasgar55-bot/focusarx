@@ -44,14 +44,19 @@ export function FocusRunway({
   tasks,
   onStart,
   onToggleTask,
+  date,
 }: {
   tasks: RunwayTask[];
   onStart: (block: Pick<RunwayBlock, "title" | "minutes">) => void;
   onToggleTask: (taskId: string) => void;
+  /** Omitting this keeps the compact dashboard experience on today. */
+  date?: Date;
 }) {
   const [now, setNow] = useState(() => new Date());
-  const day = localDayKey(now);
-  const [plan, setPlan] = useState<FocusRunwayPlan | null>(() => readFocusRunway());
+  const day = localDayKey(date ?? now);
+  const [plan, setPlan] = useState<FocusRunwayPlan | null>(() => readFocusRunway(localDayKey(date ?? new Date())));
+  // Date changes should never flash the previously selected day's commitments.
+  const currentPlan = plan?.day === day ? plan : null;
 
   // Keep the live "now / passed" labels useful without a second-by-second
   // render. The timer itself owns precise countdown rendering.
@@ -73,23 +78,32 @@ export function FocusRunway({
   // whose task has disappeared is therefore complete, while resets remain live.
   const completedIds = useMemo(() => {
     const result = new Set(completedTaskIds);
-    for (const block of plan?.blocks ?? []) {
+    for (const block of currentPlan?.blocks ?? []) {
       if (block.kind === "focus" && block.taskId && !activeTaskIds.has(block.taskId)) result.add(block.taskId);
     }
     return result;
-  }, [activeTaskIds, completedTaskIds, plan?.blocks]);
-  const nowMinute = minuteOfDay(now);
+  }, [activeTaskIds, completedTaskIds, currentPlan?.blocks]);
+  const realNowMinute = minuteOfDay(now);
+  const today = localDayKey(now);
+  // A future day starts at the beginning of its runway; a past day is rendered
+  // honestly as passed. Only today's plan should be driven by the live clock.
+  const nowMinute = day === today ? realNowMinute : day > today ? -1 : 24 * 60;
+
+  // A task with a future due date is not silently pulled into today's calendar.
+  // Undated work remains available, while planners can explicitly select a due
+  // date from the Week Runway page.
+  const eligibleTasks = tasks.filter((task) => !task.dueDate || task.dueDate <= day);
 
   const generate = () => {
-    const next = buildFocusRunway(tasks, { day, startAtMinute: nowMinute });
+    const next = buildFocusRunway(eligibleTasks, { day, startAtMinute: day === today ? realNowMinute : 9 * 60 });
     setPlan(next);
     saveFocusRunway(next);
   };
 
-  const next = plan ? nextRunwayBlock(plan.blocks, nowMinute, completedIds) : null;
-  const hasPlan = Boolean(plan?.blocks.length);
-  const plannedTaskIds = new Set(plan?.blocks.filter((block) => block.taskId).map((block) => block.taskId));
-  const unplannedCount = tasks.filter((task) => !plannedTaskIds.has(task.id)).length;
+  const next = currentPlan ? nextRunwayBlock(currentPlan.blocks, nowMinute, completedIds) : null;
+  const hasPlan = Boolean(currentPlan?.blocks.length);
+  const plannedTaskIds = new Set(currentPlan?.blocks.filter((block) => block.taskId).map((block) => block.taskId));
+  const unplannedCount = eligibleTasks.filter((task) => !plannedTaskIds.has(task.id)).length;
 
   return (
     <Card className="overflow-hidden">
@@ -102,22 +116,22 @@ export function FocusRunway({
           <CardTitle>Focus runway</CardTitle>
           <CardDescription className="mt-1 max-w-2xl">A calm, time-aware path from your task list to the next protected block. Plans stay in this browser until you choose to start or complete work.</CardDescription>
         </div>
-        <Button variant="secondary" size="sm" onClick={generate} disabled={!tasks.length}>
+        <Button variant="secondary" size="sm" onClick={generate} disabled={!eligibleTasks.length}>
           <RefreshCw aria-hidden="true" /> {hasPlan ? "Re-plan from now" : "Make today’s plan"}
         </Button>
       </CardHeader>
 
       <CardContent className="p-0">
-        {!tasks.length ? (
+        {!eligibleTasks.length ? (
           <div className="px-6 py-10 text-center">
             <Check className="mx-auto size-5 text-[var(--success)]" aria-hidden="true" />
             <p className="mt-3 text-sm font-semibold">The runway is clear.</p>
-            <p className="mt-1 text-sm text-[var(--foreground-muted)]">Add a task when there is something worth protecting time for.</p>
+            <p className="mt-1 text-sm text-[var(--foreground-muted)]">Add an undated task or give one a due date for this day when there is something worth protecting time for.</p>
           </div>
         ) : !hasPlan ? (
           <div className="px-6 py-10 text-center">
             <Clock3 className="mx-auto size-5 text-[var(--brand-strong)]" aria-hidden="true" />
-            <p className="mt-3 text-sm font-semibold">Turn {tasks.length} open {tasks.length === 1 ? "task" : "tasks"} into a realistic day.</p>
+            <p className="mt-3 text-sm font-semibold">Turn {eligibleTasks.length} open {eligibleTasks.length === 1 ? "task" : "tasks"} into a realistic day.</p>
             <p className="mx-auto mt-1 max-w-md text-sm text-[var(--foreground-muted)]">High-priority and due-today work comes first, with room to reset between deeper blocks.</p>
           </div>
         ) : (
@@ -134,7 +148,7 @@ export function FocusRunway({
             ) : null}
 
             <ol className="divide-y divide-[var(--border-subtle)]" aria-label="Today’s timed plan">
-              {plan!.blocks.map((block) => {
+              {currentPlan!.blocks.map((block) => {
                 const status = runwayStatus(block, nowMinute, completedIds);
                 return (
                   <li key={block.id} className="flex min-h-16 items-center gap-3 px-5 py-3">

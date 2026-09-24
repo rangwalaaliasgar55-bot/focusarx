@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 
 type Variant = "focus" | "dashboard" | "forge" | "flashcards" | "goals" | "coach" | "analytics" | "achievements" | "community" | "default";
 const variants: Record<string, Variant> = {
-  "/": "focus", "/dashboard": "dashboard", "/forge": "forge", "/forge-room": "forge",
+  "/": "focus", "/dashboard": "dashboard", "/planner": "dashboard", "/forge": "forge", "/forge-room": "forge",
   "/flashcards": "flashcards", "/goals": "goals", "/ai-insights": "coach", "/analytics": "analytics",
   "/achievements": "achievements", "/social": "community", "/groups": "community",
 };

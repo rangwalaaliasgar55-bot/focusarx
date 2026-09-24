@@ -3,8 +3,10 @@ import {
   buildFocusRunway,
   formatRunwayTime,
   nextRunwayBlock,
+  readFocusRunway,
   roundUpToFive,
   runwayStatus,
+  saveFocusRunway,
   sortRunwayTasks,
 } from "./focusRunway";
 
@@ -43,6 +45,16 @@ describe("Focus Runway planner", () => {
     expect(runwayStatus(block, 630, new Set())).toBe("missed");
     expect(runwayStatus(block, 610, new Set(["one"]))).toBe("done");
     expect(nextRunwayBlock(plan.blocks, 590, new Set())?.id).toBe(block.id);
+  });
+
+  it("keeps multiple dated plans in browser storage", () => {
+    localStorage.clear();
+    const today = buildFocusRunway([{ id: "today", title: "Today" }], { day: "2026-09-24" });
+    const tomorrow = buildFocusRunway([{ id: "tomorrow", title: "Tomorrow" }], { day: "2026-09-25" });
+    saveFocusRunway(today);
+    saveFocusRunway(tomorrow);
+    expect(readFocusRunway("2026-09-24")?.blocks[0]?.taskId).toBe("today");
+    expect(readFocusRunway("2026-09-25")?.blocks[0]?.taskId).toBe("tomorrow");
   });
 
   it("formats time and uses five-minute starts", () => {

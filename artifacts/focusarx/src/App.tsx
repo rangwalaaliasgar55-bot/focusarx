@@ -47,6 +47,7 @@ const ExamFunnelPage = lazyWithRetry(() => import("@/pages/exam-funnel"));
 
 const OnboardingPage = lazyWithRetry(() => import("@/pages/onboarding"));
 const DashboardPage = lazyWithRetry(() => import("@/pages/dashboard"));
+const PlannerPage = lazyWithRetry(() => import("@/pages/planner"));
 const RoadmapPage = lazyWithRetry(() => import("@/pages/roadmap"));
 const LeaderboardPage = lazyWithRetry(() => import("@/pages/leaderboard"));
 const AchievementsPage = lazyWithRetry(() => import("@/pages/achievements"));
@@ -265,6 +266,7 @@ function RoutedContent() {
               <Route path="/blog/:slug"><ErrorBoundary><Suspense fallback={<PageLoader />}><BlogPostPage /></Suspense></ErrorBoundary></Route>
               <Route path="/pomodoro-timer-for/:exam"><ErrorBoundary><Suspense fallback={<PageLoader />}><ExamFunnelPage /></Suspense></ErrorBoundary></Route>
               <Route path="/dashboard"><ErrorBoundary><ProtectedRoute component={DashboardPage} /></ErrorBoundary></Route>
+              <Route path="/planner"><ErrorBoundary><ProtectedRoute component={PlannerPage} /></ErrorBoundary></Route>
               <Route path="/analytics"><ErrorBoundary><ProtectedRoute component={AnalyticsPage} /></ErrorBoundary></Route>
 
               <Route path="/leaderboard"><ErrorBoundary><Suspense fallback={<PageLoader />}><LeaderboardPage /></Suspense></ErrorBoundary></Route>
@@ -472,7 +474,7 @@ function AppWithPalette() {
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   // Quick page switching (audit L2): 1-Home, 2-Tasks, 3-Analytics,
-  // 4-Leaderboard, 5-Achievements. Ignored while typing or with modifiers.
+  // 4-Leaderboard, 5-Achievements, 6-Week Runway. Ignored while typing or with modifiers.
   useEffect(() => {
     if (status !== "authenticated") return;
     const pageKeys: Record<string, string> = {
@@ -481,6 +483,7 @@ function AppWithPalette() {
       "3": "/analytics",
       "4": "/leaderboard",
       "5": "/achievements",
+      "6": "/planner",
     };
     const handler = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;

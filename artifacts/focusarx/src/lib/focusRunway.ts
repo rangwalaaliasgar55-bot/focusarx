@@ -146,16 +146,40 @@ export function nextRunwayBlock(blocks: RunwayBlock[], nowMinute: number, comple
   }) ?? null;
 }
 
-export function readFocusRunway(day = localDayKey()): FocusRunwayPlan | null {
-  if (typeof window === "undefined") return null;
+type StoredRunways = { version: 2; plans: Record<string, FocusRunwayPlan> };
+
+function validPlan(value: unknown, day?: string): value is FocusRunwayPlan {
+  const plan = value as Partial<FocusRunwayPlan> | null;
+  return Boolean(plan && plan.version === 1 && (!day || plan.day === day) && Array.isArray(plan.blocks) && Array.isArray(plan.unscheduledTaskIds));
+}
+
+function readStoredRunways(): StoredRunways {
+  if (typeof window === "undefined") return { version: 2, plans: {} };
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(FOCUS_RUNWAY_STORAGE_KEY) ?? "null") as Partial<FocusRunwayPlan> | null;
-    if (!parsed || parsed.version !== 1 || parsed.day !== day || !Array.isArray(parsed.blocks) || !Array.isArray(parsed.unscheduledTaskIds)) return null;
-    return parsed as FocusRunwayPlan;
-  } catch { return null; }
+    const parsed = JSON.parse(window.localStorage.getItem(FOCUS_RUNWAY_STORAGE_KEY) ?? "null") as StoredRunways | FocusRunwayPlan | null;
+    if (parsed && "plans" in parsed && parsed.version === 2 && parsed.plans && typeof parsed.plans === "object") return parsed;
+    // One-day plans were the first Focus Runway release. Keep a user's first
+    // plan when moving to the week-aware format instead of throwing it away.
+    if (validPlan(parsed)) return { version: 2, plans: { [parsed.day]: parsed } };
+  } catch { /* storage is optional */ }
+  return { version: 2, plans: {} };
+}
+
+export function readFocusRunway(day = localDayKey()): FocusRunwayPlan | null {
+  const plan = readStoredRunways().plans[day];
+  return validPlan(plan, day) ? plan : null;
+}
+
+/** Read only valid days so a stale/local-storage edit can never break the calendar. */
+export function readFocusRunways(days: string[]): Record<string, FocusRunwayPlan> {
+  const plans = readStoredRunways().plans;
+  return Object.fromEntries(days.flatMap((day) => validPlan(plans[day], day) ? [[day, plans[day]]] : []));
 }
 
 export function saveFocusRunway(plan: FocusRunwayPlan): void {
   if (typeof window === "undefined") return;
-  try { window.localStorage.setItem(FOCUS_RUNWAY_STORAGE_KEY, JSON.stringify(plan)); } catch { /* storage is optional */ }
+  try {
+    const stored = readStoredRunways();
+    window.localStorage.setItem(FOCUS_RUNWAY_STORAGE_KEY, JSON.stringify({ version: 2, plans: { ...stored.plans, [plan.day]: plan } satisfies Record<string, FocusRunwayPlan> }));
+  } catch { /* storage is optional */ }
 }
