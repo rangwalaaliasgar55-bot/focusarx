@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Check, Circle, Clock3, Play, RefreshCw, Sparkles, Wind } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -56,7 +56,9 @@ export function FocusRunway({
   const day = localDayKey(date ?? now);
   const [plan, setPlan] = useState<FocusRunwayPlan | null>(() => readFocusRunway(localDayKey(date ?? new Date())));
   // Date changes should never flash the previously selected day's commitments.
-  const currentPlan = plan?.day === day ? plan : null;
+  // A plan generated in this component wins; otherwise read that day's durable
+  // browser plan directly, without synchronously resetting state in an effect.
+  const currentPlan = plan?.day === day ? plan : readFocusRunway(day);
 
   // Keep the live "now / passed" labels useful without a second-by-second
   // render. The timer itself owns precise countdown rendering.
@@ -66,23 +68,13 @@ export function FocusRunway({
     return () => window.clearInterval(timer);
   }, []);
 
-  // A plan belongs to a calendar day. Never surface yesterday's schedule as if
-  // it were actionable when a tab stays open past midnight.
-  useEffect(() => {
-    setPlan((current) => current?.day === day ? current : readFocusRunway(day));
-  }, [day]);
-
-  const completedTaskIds = useMemo(() => new Set<string>(), []);
-  const activeTaskIds = useMemo(() => new Set(tasks.map((task) => task.id)), [tasks]);
+  const activeTaskIds = new Set(tasks.map((task) => task.id));
   // `tasks` only includes open work on the dashboard. A planned focus block
   // whose task has disappeared is therefore complete, while resets remain live.
-  const completedIds = useMemo(() => {
-    const result = new Set(completedTaskIds);
-    for (const block of currentPlan?.blocks ?? []) {
-      if (block.kind === "focus" && block.taskId && !activeTaskIds.has(block.taskId)) result.add(block.taskId);
-    }
-    return result;
-  }, [activeTaskIds, completedTaskIds, currentPlan?.blocks]);
+  const completedIds = new Set<string>();
+  for (const block of currentPlan?.blocks ?? []) {
+    if (block.kind === "focus" && block.taskId && !activeTaskIds.has(block.taskId)) completedIds.add(block.taskId);
+  }
   const realNowMinute = minuteOfDay(now);
   const today = localDayKey(now);
   // A future day starts at the beginning of its runway; a past day is rendered

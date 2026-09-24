@@ -201,7 +201,9 @@ export default function PetCompanion({
   const [showXp, setShowXp] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [blinkKey, setBlinkKey] = useState(0);
-  const [spriteFailed, setSpriteFailed] = useState(false);
+  // Record the URL that failed rather than a global boolean. A new staged
+  // companion URL then retries naturally without an effect-triggered render.
+  const [failedSpriteUrl, setFailedSpriteUrl] = useState<string | null>(null);
 
   const msgIndexRef = useRef(0);
   const msgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -287,14 +289,12 @@ export default function PetCompanion({
     if (isRunning && progress < 0.05) confettiShownRef.current = false;
   }, [isRunning, progress]);
 
-  // A broken remote staged sprite must fall back to the species glyph, but a
-  // new companion (or corrected catalog URL) gets a fresh chance to load.
-  useEffect(() => {
-    setSpriteFailed(false);
-  }, [pet?.thumbnailUrl]);
-
   if (!pet) return null;
 
+  // A broken remote staged sprite falls back to the species glyph. Comparing
+  // the failed URL means a different companion or corrected catalog URL gets a
+  // fresh chance without synchronously resetting state in an effect.
+  const spriteFailed = failedSpriteUrl === pet.thumbnailUrl;
   const { emoji: petEmoji, color: petColor } = petSpeciesVisual(pet.slug, pet.category);
   const accs      = resolveAccessories(inventory);
   const anim      = PHASE_ANIM[phase];
@@ -428,7 +428,7 @@ export default function PetCompanion({
                     decoding="async"
                     referrerPolicy="no-referrer"
                     draggable={false}
-                    onError={() => setSpriteFailed(true)}
+                    onError={() => setFailedSpriteUrl(pet.thumbnailUrl ?? null)}
                     className="h-[clamp(80px,18vw,130px)] w-[clamp(80px,18vw,130px)] object-contain [image-rendering:pixelated]"
                   />
                 ) : petEmoji}

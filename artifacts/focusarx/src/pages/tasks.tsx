@@ -161,25 +161,22 @@ function TaskRow({
 }
 
 function TaskPlanningDialog({ task, onClose, onSave }: { task: Task | null; onClose: () => void; onSave: (id: string, updates: Partial<Task>) => Promise<unknown> }) {
-  const [estimateMinutes, setEstimateMinutes] = useState("");
-  const [priority, setPriority] = useState<NonNullable<Task["priority"]>>("medium");
-  const [dueDate, setDueDate] = useState("");
-  const [tags, setTags] = useState("");
-  const [saving, setSaving] = useState(false);
+  // Remounting by task id gives each edit session a clean draft. This avoids
+  // synchronizing form state from an effect, which can overwrite user input.
+  if (!task) return null;
+  return <TaskPlanningDialogForm key={task.id} task={task} onClose={onClose} onSave={onSave} />;
+}
 
-  // The component remains mounted for dialog focus management, so synchronize
-  // its draft whenever a different task is selected.
-  useEffect(() => {
-    if (!task) return;
-    setEstimateMinutes(task.estimatedMinutes ? String(task.estimatedMinutes) : "");
-    setPriority(task.priority ?? "medium");
-    setDueDate(task.dueDate ?? "");
-    setTags((task.tags ?? []).join(", "));
-  }, [task]);
+function TaskPlanningDialogForm({ task, onClose, onSave }: { task: Task; onClose: () => void; onSave: (id: string, updates: Partial<Task>) => Promise<unknown> }) {
+  const [estimateMinutes, setEstimateMinutes] = useState(task.estimatedMinutes ? String(task.estimatedMinutes) : "");
+  const [priority, setPriority] = useState<NonNullable<Task["priority"]>>(task.priority ?? "medium");
+  const [dueDate, setDueDate] = useState(task.dueDate ?? "");
+  const [tags, setTags] = useState((task.tags ?? []).join(", "));
+  const [saving, setSaving] = useState(false);
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!task || saving) return;
+    if (saving) return;
     const parsedEstimate = Number(estimateMinutes);
     setSaving(true);
     try {
@@ -194,18 +191,18 @@ function TaskPlanningDialog({ task, onClose, onSave }: { task: Task | null; onCl
   };
 
   return (
-    <Dialog open={Boolean(task)} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <form onSubmit={save}>
           <DialogHeader>
             <DialogTitle>Plan this task</DialogTitle>
-            <DialogDescription>{task?.title ?? ""}</DialogDescription>
+            <DialogDescription>{task.title}</DialogDescription>
           </DialogHeader>
           <DialogBody className="grid gap-4 sm:grid-cols-2">
-            <label className="text-sm font-medium">Estimate (minutes)<Input className="mt-1.5" type="number" min="1" max="1440" inputMode="numeric" value={estimateMinutes} onChange={(event) => setEstimateMinutes(event.target.value)} placeholder="25" /></label>
-            <label className="text-sm font-medium">Priority<select value={priority} onChange={(event) => setPriority(event.target.value as NonNullable<Task["priority"]>)} className="mt-1.5 flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></label>
-            <label className="text-sm font-medium">Due date<Input className="mt-1.5" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} /></label>
-            <label className="text-sm font-medium">Tags<Input className="mt-1.5" value={tags} onChange={(event) => setTags(event.target.value)} placeholder="study, writing" /></label>
+            <label htmlFor="task-plan-estimate" className="text-sm font-medium">Estimate (minutes)<Input id="task-plan-estimate" className="mt-1.5" type="number" min="1" max="1440" inputMode="numeric" value={estimateMinutes} onChange={(event) => setEstimateMinutes(event.target.value)} placeholder="25" /></label>
+            <label htmlFor="task-plan-priority" className="text-sm font-medium">Priority<select id="task-plan-priority" value={priority} onChange={(event) => setPriority(event.target.value as NonNullable<Task["priority"]>)} className="mt-1.5 flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></label>
+            <label htmlFor="task-plan-due-date" className="text-sm font-medium">Due date<Input id="task-plan-due-date" className="mt-1.5" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} /></label>
+            <label htmlFor="task-plan-tags" className="text-sm font-medium">Tags<Input id="task-plan-tags" className="mt-1.5" value={tags} onChange={(event) => setTags(event.target.value)} placeholder="study, writing" /></label>
           </DialogBody>
           <DialogFooter>
             <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
@@ -320,10 +317,10 @@ export default function TasksPage() {
         </div>
         {showPlanningFields ? (
           <div className="grid gap-2 border-t border-[var(--border-subtle)] px-1 pt-3 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="text-xs font-medium text-[var(--foreground-muted)]">Estimate (minutes)<Input type="number" min="1" max="1440" inputMode="numeric" value={estimateMinutes} onChange={(event) => setEstimateMinutes(event.target.value)} className="mt-1" /></label>
-            <label className="text-xs font-medium text-[var(--foreground-muted)]">Priority<select value={priority} onChange={(event) => setPriority(event.target.value as NonNullable<Task["priority"]>)} className="mt-1 flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></label>
-            <label className="text-xs font-medium text-[var(--foreground-muted)]">Due date<Input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className="mt-1" /></label>
-            <label className="text-xs font-medium text-[var(--foreground-muted)]">Tags<Input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="study, writing" className="mt-1" /></label>
+            <label htmlFor="new-task-estimate" className="text-xs font-medium text-[var(--foreground-muted)]">Estimate (minutes)<Input id="new-task-estimate" type="number" min="1" max="1440" inputMode="numeric" value={estimateMinutes} onChange={(event) => setEstimateMinutes(event.target.value)} className="mt-1" /></label>
+            <label htmlFor="new-task-priority" className="text-xs font-medium text-[var(--foreground-muted)]">Priority<select id="new-task-priority" value={priority} onChange={(event) => setPriority(event.target.value as NonNullable<Task["priority"]>)} className="mt-1 flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></label>
+            <label htmlFor="new-task-due-date" className="text-xs font-medium text-[var(--foreground-muted)]">Due date<Input id="new-task-due-date" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className="mt-1" /></label>
+            <label htmlFor="new-task-tags" className="text-xs font-medium text-[var(--foreground-muted)]">Tags<Input id="new-task-tags" value={tags} onChange={(event) => setTags(event.target.value)} placeholder="study, writing" className="mt-1" /></label>
           </div>
         ) : null}
       </form>

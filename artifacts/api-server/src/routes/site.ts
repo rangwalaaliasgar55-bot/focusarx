@@ -105,9 +105,7 @@ router.patch("/admin/site/settings", adminLimiter, async (req, res) => {
 // are rejected instead of embedding a video or attempting to extract a stream.
 
 const YOUTUBE_HOST_RE = /(^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com)$/i;
-const AUDIO_STATUSES = ["draft", "published", "archived"] as const;
-
-type AmbientTrackStatus = typeof AUDIO_STATUSES[number];
+type AmbientTrackStatus = "draft" | "published" | "archived";
 
 function isDirectAudioUrl(value: string): boolean {
   const raw = value.trim();
