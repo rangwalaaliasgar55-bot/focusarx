@@ -60,6 +60,35 @@ typecheck stays green and the full suite (107 files / **893 tests**) stays green
   callers with required props (props are contravariant); annotated with a
   single justified, scoped disable.
 
+## [2026-09-29d] — Make the pre-existing Accessibility CI failure diagnosable
+
+`Accessibility (Playwright + axe)` has been red since PR #95 (the base of this
+branch). It needs a real Chromium — which cannot be installed in the agent
+sandbox (the download host is network-blocked) — and the raw job log EOFs when
+fetched from here, so the failing rule was invisible. Ruled out statically what
+could be ruled out: rendered all 5 tested pages in jsdom + axe-core → **zero
+serious/critical structural violations** (button/link names, alt text, labels,
+ARIA), and computed WCAG contrast for every design-token text/surface pair in
+both themes → all pass except `brand-500` as *normal-size* text on `surface-0`
+(4.40:1 vs 4.5 — passes the 3:1 large-text bar). That leaves a layout-dependent
+rule (color-contrast on a one-off element, or horizontal overflow) that only a
+browser can pinpoint.
+
+So this change instruments the check to surface the culprit on the next run:
+
+- `tests/e2e/accessibility.spec.ts` now emits a readable assertion message
+  naming each violated rule, its impact, help URL and first offending selector,
+  attaches the full axe payload as `axe-violations.json`, and — for the overflow
+  assert — reports the actual overflowing elements (tag + classes + geometry)
+  instead of a bare boolean.
+- `playwright.config.ts` adds the `html` reporter under CI.
+- CI uploads the `playwright-a11y-report` artifact (report + traces) even on
+  failure, and builds the a11y frontend with `VITE_APP_URL` for Vercel parity.
+
+Artifacts download via the API path that works from here (unlike raw logs), so
+the exact rule/page/viewport becomes retrievable and fixable next run. Flagged
+INCOMPLETE — needs the next CI run's report to land the actual fix.
+
 ## [2026-09-29c] — Remove dead code to fix the pre-existing Knip CI failure
 
 `Knip (unused files + dependencies)` has failed on `main` since before this

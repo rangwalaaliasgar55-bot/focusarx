@@ -20,6 +20,12 @@ export default defineConfig({
   // Timing-sensitive specs (reload resume, offline start) flake on loaded
   // runners; one retry distinguishes product bugs from infrastructure noise.
   retries: process.env.CI ? 2 : 0,
+  // `list` keeps the console readable; the HTML report (uploaded as a CI
+  // artifact) is the only way to see which axe rule / which element failed on a
+  // headless runner, because GitHub's raw job logs are not always retrievable.
+  reporter: process.env.CI
+    ? [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]]
+    : [["list"]],
   use: { baseURL: "http://127.0.0.1:4173", trace: "retain-on-failure" },
   webServer: {
     command: "corepack pnpm --filter @workspace/focusarx run serve -- --port 4173",

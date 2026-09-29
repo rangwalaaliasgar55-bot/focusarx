@@ -223,7 +223,19 @@ job it is responsible for (Validate/typecheck+test+build ✅, Lint ✅, Lighthou
    `typecheck` + full `build` stay green (nothing imported them). CI will confirm
    whether Knip is now green (I can see pass/fail even though the detailed log
    EOFs from here).
-2. **Accessibility (Playwright + axe)** — fails on both `main` and this PR. The
+2. **INSTRUMENTED — needs next CI run's report. Accessibility (Playwright + axe)**
+   Red since PR #95; needs Chromium (uninstallable here) and the raw log EOFs.
+   Statically ruled out all structural axe violations (jsdom + axe-core on the 5
+   tested pages = 0 serious/critical) and verified the color-token contrast
+   system is WCAG-compliant (only `brand-500` as small text on `surface-0` is
+   borderline at 4.40:1). Remaining cause is layout-dependent (contrast on a
+   one-off element or horizontal overflow). Instrumented the check to expose it:
+   the spec now prints the rule + offending selector and attaches the axe JSON,
+   and CI uploads a `playwright-a11y-report` artifact (retrievable via the API
+   even though logs are not). Land the fix once that report is in hand.
+
+   _Original note:_
+   Accessibility (Playwright + axe) — fails on both `main` and this PR. The
    spec (`tests/e2e/accessibility.spec.ts`) asserts zero serious/critical axe
    violations *and* no horizontal overflow across `/`, `/pricing`, two
    `/comparison/*` pages and `/focus-guide`, at 8 viewport projects incl. 320px.
