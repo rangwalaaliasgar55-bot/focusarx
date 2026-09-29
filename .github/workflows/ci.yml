@@ -253,6 +253,13 @@ jobs:
             --config=./lighthouserc.json \
             --upload.target=temporary-public-storage
 
+      # Publish the measured scores where they're retrievable: `::notice::`
+      # annotations (via the check-runs API) + the job summary. The raw LHCI log
+      # and the temporary-public-storage report are not reachable everywhere.
+      - name: Publish Lighthouse scores
+        if: always()
+        run: node scripts/lh-annotate.mjs
+
   security:
     name: Security (secrets + dependency sweep)
     runs-on: ubuntu-latest
