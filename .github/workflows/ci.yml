@@ -206,6 +206,51 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
+  e2e:
+    name: E2E (behavioural happy paths)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        run: pnpm --filter @workspace/focusarx run build
+        env:
+          VITE_APP_URL: https://www.focusarx.site
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      # cross-tab leader election, guest timer persistence (reload/offline),
+      # mobile responsive contract, and premium-economy UI gating — all run
+      # against the static preview server, no live API required.
+      - name: Run behavioural E2E
+        run: pnpm test:e2e:app
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
   lighthouse:
     name: Lighthouse (perf + a11y + SEO on key pages)
     runs-on: ubuntu-latest
