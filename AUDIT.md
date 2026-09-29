@@ -212,27 +212,26 @@ pre-existing, not regressions from this branch, and this branch is green on ever
 job it is responsible for (Validate/typecheck+test+build ✅, Lint ✅, Lighthouse
 ✅, Budgets ✅, Security ✅, Migrations ✅):
 
-1. **Knip (unused files + dependencies)** — was failing in ~20s on both `main`
-   and this PR. Knip can't run in this sandbox (oxc-parser reserves a fixed
-   **6 GiB** buffer; box has 3.9 GB), so the offenders were found by
-   approximating Knip's reachability analysis over the whole-repo import graph
-   (from the real entry points incl. lazy `src/pages/**` imports) and each was
-   verified to have **zero** imports anywhere. **FIX PUSHED:** deleted 5
+1. **RESOLVED ✅ — Knip (unused files + dependencies)** now GREEN on CI
+   (run 36605774851). Was failing on both `main` and this PR. Knip can't run in
+   this sandbox (oxc-parser reserves a fixed **6 GiB** buffer; box has 3.9 GB),
+   so the offenders were found by approximating Knip's reachability over the
+   whole-repo import graph (from the real entry points incl. lazy `src/pages/**`
+   imports) and each was verified to have **zero** imports anywhere. Deleted 5
    genuinely-dead components (`FloatingParticles`, `RazorpayCheckoutCard`,
-   `city/CityBoard`, `city/CityWorld3D`, `ui/RewardToast`). Verified locally that
-   `typecheck` + full `build` stay green (nothing imported them). CI will confirm
-   whether Knip is now green (I can see pass/fail even though the detailed log
-   EOFs from here).
-2. **INSTRUMENTED — needs next CI run's report. Accessibility (Playwright + axe)**
-   Red since PR #95; needs Chromium (uninstallable here) and the raw log EOFs.
-   Statically ruled out all structural axe violations (jsdom + axe-core on the 5
-   tested pages = 0 serious/critical) and verified the color-token contrast
-   system is WCAG-compliant (only `brand-500` as small text on `surface-0` is
-   borderline at 4.40:1). Remaining cause is layout-dependent (contrast on a
-   one-off element or horizontal overflow). Instrumented the check to expose it:
-   the spec now prints the rule + offending selector and attaches the axe JSON,
-   and CI uploads a `playwright-a11y-report` artifact (retrievable via the API
-   even though logs are not). Land the fix once that report is in hand.
+   `city/CityBoard`, `city/CityWorld3D`, `ui/RewardToast`); verified locally that
+   `typecheck` + full `build` stay green. See CHANGELOG [2026-09-29c].
+2. **RESOLVED ✅ — Accessibility (Playwright + axe)** now GREEN on CI
+   (run 36605774851, all 8 jobs pass). Was red since PR #95. Because Chromium is
+   uninstallable here and both the raw log and the report artifact are served
+   from blob storage that EOFs from the sandbox, the failing rule was surfaced by
+   adding the Playwright `github` reporter (its `::error::` output lands in
+   check-run annotations, which ARE retrievable via the API). That revealed
+   `link-in-text-block` (serious) on `/focus-guide`: in-prose links used
+   `hover:underline`, so at rest they relied on colour alone to differ from body
+   text — and the two colours contrast at only 1.43:1 (< 3:1). Fixed by
+   underlining in-prose brand links at rest across the content pages. See
+   CHANGELOG [2026-09-29e].
 
    _Original note:_
    Accessibility (Playwright + axe) — fails on both `main` and this PR. The
