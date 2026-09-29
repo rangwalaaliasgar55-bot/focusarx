@@ -53,7 +53,6 @@ describe("focus page probe", () => {
       await new Promise((r) => setTimeout(r, 300));
     });
     const real = entries.filter((e) => !e.includes("was not wrapped in act(") && !e.includes("overlapping act() calls"));
-    // eslint-disable-next-line no-console
     originals.error(`FOCUS PAGE CONSOLE (${real.length}):\n` + real.join("\n").slice(0, 3000));
     expect(true).toBe(true);
   });

@@ -183,7 +183,7 @@ export default function CoachPanel() {
     } catch {
       setMessages([{ role: "assistant", content: "Hey! I'm your FocusArx Coach. Ask me anything about focus, productivity, or your current session 🎯" }]);
     }
-  }, [isLocked]);
+  }, [isLocked, isGuest]);
 
   useEffect(() => {
     // Deferred a tick: fetchTip sets state, and a synchronous call here would

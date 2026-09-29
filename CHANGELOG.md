@@ -29,9 +29,36 @@ came back clean.
   `✖ 12 problems (0 errors, 12 warnings)`, exit 0.
 
 This restores the `REMAINING.md` #23 invariant ("`pnpm lint` = 0 errors"), which
-had drifted. The 12 remaining items are warnings (exhaustive-deps, a few unused
-`eslint-disable` directives in tests, one `no-explicit-any`) queued for a
-follow-up sweep; none fail CI.
+had drifted.
+
+### Then swept the 12 remaining lint warnings — `eslint .` is now fully clean
+
+`pnpm lint` went from `12 problems (0 errors, 12 warnings)` to **0 problems**.
+typecheck stays green and the full suite (107 files / **893 tests**) stays green.
+
+- **7 dead `// eslint-disable-next-line no-console` directives removed** from
+  `Timer.integration.test.tsx`, `timer-probe.test.tsx`, `focus-probe.test.tsx`
+  (test files are exempt from `no-console`, so the directives suppressed nothing).
+- **`react-hooks/exhaustive-deps` — 4 real stale-closure risks fixed by adding
+  the missing dependency**, not by muting the rule:
+  - `study-rooms.tsx` `visibleRooms` filtered on `envFilter` but omitted it from
+    deps — changing the environment filter would not have refiltered the list.
+    (`[rooms, filter, search]` → `[rooms, filter, search, envFilter]`.)
+  - `CoachPanel.tsx` `fetchTip` read `isGuest` but omitted it (`[isLocked]` →
+    `[isLocked, isGuest]`).
+  - `useSessionPersistence.ts` autosave-interval effect read `options.enabled`
+    but omitted it (`[runSync]` → `[runSync, options.enabled]`).
+  - `Timer.tsx` `handleSessionRecorded` (the shared completion pipeline) was a
+    plain function recreated every render, which recreated the early-exit
+    `useCallback` every render. It is now `useCallback`-wrapped with the exact
+    dependency list the rule enumerated (`addSession`, `completedTasks.length`,
+    `enqueueOffline`, `isPremium`, `onSessionCompleteProp`, `refreshWallet`,
+    `toast`). Safe because `usePomodoro` already consumes `onSessionComplete`
+    through a ref, so its identity churn never mattered there.
+- **`lazyWithRetry.ts` `no-explicit-any`**: the `ComponentType<any>` constraint
+  mirrors React's own `lazy` signature and cannot be narrowed without rejecting
+  callers with required props (props are contravariant); annotated with a
+  single justified, scoped disable.
 
 ## [2026-09-24] — The AI answers, the pages arrive early, six more timer faces
 

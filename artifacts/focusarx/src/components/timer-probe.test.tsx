@@ -43,9 +43,7 @@ describe("timer probe", () => {
     // Wait for recovery gate
     await act(async () => { await Promise.resolve(); });
     const buttons = Array.from(document.querySelectorAll("button")).map((b) => b.textContent?.trim());
-    // eslint-disable-next-line no-console
     console.log("BUTTONS:", JSON.stringify(buttons));
-    // eslint-disable-next-line no-console
     console.log("HTML LEN:", document.body.innerHTML.length);
     expect(true).toBe(true);
   });

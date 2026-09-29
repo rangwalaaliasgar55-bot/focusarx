@@ -243,7 +243,7 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
       void runSync();
     }, AUTOSAVE_MS);
     return () => clearInterval(id);
-  }, [runSync]);
+  }, [runSync, options.enabled]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {

@@ -159,7 +159,10 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
 
   // Shared completion pipeline: countdown sessions AND Flowtime runs land
   // here (record → sounds → cloud sync → summary → reflection → notify).
-  const handleSessionRecorded = async (session: Session, flowServerSessionId?: string | null) => {
+  // Memoised so it doesn't recreate the early-exit useCallback on every render.
+  // usePomodoro reads onSessionComplete through a ref, so identity churn there is
+  // harmless; the dependency list below is enforced by react-hooks/exhaustive-deps.
+  const handleSessionRecorded = useCallback(async (session: Session, flowServerSessionId?: string | null) => {
       addSession(session);
       playSessionNotification(session.mode);
       if (session.mode === "focus") {
@@ -287,7 +290,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
         }
       }
       return canLeaveFlow;
-  };
+  }, [addSession, completedTasks.length, enqueueOffline, isPremium, onSessionCompleteProp, refreshWallet, toast]);
 
   const {
     mode, status, secondsLeft, totalSeconds, progress, completedFocusSessions,
