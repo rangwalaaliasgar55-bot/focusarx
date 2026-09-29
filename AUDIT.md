@@ -134,6 +134,23 @@ Radix-style patterns with `class-variance-authority`).
 residuals are cosmetic and localized (a per-page gradient/glow sweep, a few
 emoji in bot copy), not systemic vibe-coding. These are logged as Medium/Low.
 
+**Static design-tell sweep (2026-09-29):** ran objective checks for the two most
+machine-detectable tells and both come back clean:
+- **Emoji as the sole label of an interactive control** (a design *and* a11y
+  defect): **zero** found across `src/**/*.tsx`.
+- **One-off hex colours instead of tokens:** 299 hex literals exist, but they
+  are concentrated in rendering contexts that *cannot* use CSS variables —
+  `Pet3D.tsx` (107, three.js materials), `PetArtwork.tsx` (28, SVG),
+  `ShareCardModal.tsx` (26, `<canvas>` export), and the 3D scenes
+  (`MonsterBattleArena`, `StudyRoomScene`, `DeepSeaScene`, `CityWorld3D`).
+  three.js and the Canvas 2D API take numeric/hex colours, not `var(--…)`, so
+  these are correct, not vibe-code. DOM styling uses the token system.
+
+Therefore the residual #4 work is **subjective visual polish** (gradient/glow
+intent per page), which needs review against the running preview — not a blind
+mass CSS edit. Not done this session by choice: making unverifiable visual
+changes would violate the "prove every design change works" rule.
+
 ---
 
 ## 5. Phase-by-phase status against the brief (honest)
