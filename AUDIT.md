@@ -171,8 +171,8 @@ emoji in bot copy), not systemic vibe-coding. These are logged as Medium/Low.
 
 | # | Sev | Item | Phase | Status this session |
 |---|---|---|---|---|
-| 1 | High | `react-hooks/purity` lint **error** in `FlowTimer.tsx:128` breaks `pnpm lint` | 1 | **FIXING NOW** (§3) |
-| 2 | Med | 13 lint **warnings** (exhaustive-deps, unused disables, one `any`) | 1/4 | queued, follow-up PR |
+| 1 | High | `react-hooks/purity` lint **error** in `FlowTimer.tsx:128` (+ a hidden `prefer-const` in `petCatalog.ts:82`) broke `pnpm lint` | 1 | ✅ **DONE** — commit `9b009d5`, `pnpm lint` 0 errors |
+| 2 | Med | 12 lint **warnings** (4 exhaustive-deps, 7 unused disables, one `any`) | 1/4 | ✅ **DONE** — commit `8921aae`, `eslint .` fully clean; incl. 4 real stale-closure fixes |
 | 3 | Med | Publish measured Lighthouse perf/a11y numbers per affected page | 3 | queued |
 | 4 | Med | Per-page gradient/glow/emoji cosmetic sweep | 2 | queued |
 | 5 | Med | Timezone day-boundary verification test (confirm IST→user-zone migration) | 1 | queued |
