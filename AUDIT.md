@@ -190,7 +190,7 @@ changes would violate the "prove every design change works" rule.
 |---|---|---|---|---|
 | 1 | High | `react-hooks/purity` lint **error** in `FlowTimer.tsx:128` (+ a hidden `prefer-const` in `petCatalog.ts:82`) broke `pnpm lint` | 1 | ✅ **DONE** — commit `9b009d5`, `pnpm lint` 0 errors |
 | 2 | Med | 12 lint **warnings** (4 exhaustive-deps, 7 unused disables, one `any`) | 1/4 | ✅ **DONE** — commit `8921aae`, `eslint .` fully clean; incl. 4 real stale-closure fixes |
-| 3 | Med | Measured Lighthouse perf/a11y/SEO numbers | 3 | ⚠️ **PARTIAL** — prod build + **bundle-budget PASS** (entry 25.6 kB gzip, initial JS 155.2 kB gzip/5 chunks, no-three-preload) + **seo-validate PASS** (132 pages); runtime LH scores now **wired into CI** (`ci.yml` `lighthouse` job, non-blocking pending green baseline). Runtime LH can't execute in this sandbox — **no browser installable** (download blocked, no system Chromium). |
+| 3 | Med | Measured Lighthouse perf/a11y/SEO numbers | 3 | ✅ **DONE (measured on CI)** — the wired `lighthouse` job **PASSED on CI** (run `36600196101`, 3m2s) against perf ≥ .90 / a11y ≥ .95 / SEO ≥ .95 / LCP ≤ 2.5s / CLS ≤ .05 on `/`, `/focus`, `/pomodoro-timer`, `/dashboard`. Now a **gating** job. Plus build-time gates green: bundle-budget (entry 25.6 kB gz, initial 155.2 kB gz/5 chunks, no-three-preload) + seo-validate (132 pages). Runtime LH still can't run in this sandbox (no browser); it is proven on CI hardware. |
 | 4 | Med | Per-page gradient/glow/emoji cosmetic sweep | 2 | ⏳ queued — deliberately **not** doing blind mass CSS edits without visual verification (no screenshot capability in sandbox); needs live-preview review |
 | 5 | Med | Timezone day-boundary verification | 1 | ✅ **CONFIRMED DONE** — `lib/timezone.ts` (DST-safe day keys, zone-switch grace, legacy IST fallback) is wired into `sessions.ts` + `sessionCompletionCore.ts` + 24 routes; **16 test cases** in `timezone.test.ts` (incl. traveller/DST/shield) pass in the suite |
 | 6 | Low | Full Playwright happy-path E2E + visual regression | 4 | ⚠️ **BLOCKED (sandbox)** — 5 E2E specs exist (`accessibility`, `responsive`, `cross-tab-leader`, `timer-persistence`, `token-premium`); they run in the CI `a11y` job (GitHub runners have Chrome). No browser installable here — same limit REMAINING.md §8 records. |
@@ -199,8 +199,34 @@ changes would violate the "prove every design change works" rule.
 **Sandbox constraints (honest):** Lighthouse runtime scoring (#3) and Playwright
 E2E (#6) require a Chromium binary that cannot be installed here (the download is
 network-blocked and no system Chrome exists) — the exact limitation the repo's
-own `REMAINING.md §8` already documents. Both run on GitHub CI. Everything not
-gated on a browser was executed and verified this session.
+own `REMAINING.md §8` already documents. Both run on GitHub CI; the Lighthouse
+gate is now **proven green on CI**. Everything not gated on a browser was executed
+and verified this session.
+
+### Pre-existing CI failures on `main` (NOT introduced by this work)
+
+CI run `36600196101` (PR #98) reproduced two failures that **already fail on
+`main`** — see run `36008177838` on the base commit `e3b8b2d`, where both are
+also red (the last green `main` CI was ~9 days ago). They are therefore
+pre-existing, not regressions from this branch, and this branch is green on every
+job it is responsible for (Validate/typecheck+test+build ✅, Lint ✅, Lighthouse
+✅, Budgets ✅, Security ✅, Migrations ✅):
+
+1. **Knip (unused files + dependencies)** — fails in ~20s on both `main` and this
+   PR. **Cannot be reproduced or diagnosed in this sandbox:** knip 6.34 uses
+   `oxc-parser`, which reserves a fixed **6 GiB** ArrayBuffer per parse; this
+   box has 3.9 GB RAM with heuristic overcommit, so even a bare
+   `new ArrayBuffer(6 GiB)` throws `Array buffer allocation failed`. The CI log
+   that would name the offending file/dependency is served from Azure blob
+   storage that returns EOF from this sandbox. **INCOMPLETE — needs** the CI
+   Knip log text (or a ≥8 GB runner) to fix without guessing; deleting a
+   "possibly unused" file blind would risk removing a dynamically-referenced one.
+2. **Accessibility (Playwright + axe)** — fails on both `main` and this PR. The
+   spec (`tests/e2e/accessibility.spec.ts`) asserts zero serious/critical axe
+   violations *and* no horizontal overflow across `/`, `/pricing`, two
+   `/comparison/*` pages and `/focus-guide`, at 8 viewport projects incl. 320px.
+   **Cannot run here** (no browser). **INCOMPLETE — needs** the axe failure
+   details from CI (which rule, which page, which viewport) to fix precisely.
 
 ---
 ---

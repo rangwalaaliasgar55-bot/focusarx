@@ -96,12 +96,27 @@ audit items with the real toolchain; wired the one genuinely-orphaned config
   into the central error handler and env-gated (no-op without `SENTRY_DSN`).
   Double-claim is independently prevented by idempotent CAS.
 
-### Honest limits
+### Lighthouse verified green on CI → gate turned on
+
+- The new `lighthouse` job **passed on CI hardware** (run `36600196101`, 3m2s)
+  against perf ≥ .90 / a11y ≥ .95 / SEO ≥ .95 / LCP ≤ 2.5s / CLS ≤ .05 on `/`,
+  `/focus`, `/pomodoro-timer`, `/dashboard`. `continue-on-error` was removed so
+  it is now a real merge gate.
+
+### Honest limits + pre-existing CI reds
 
 - Lighthouse **runtime** scores and **Playwright E2E** cannot execute in this
   sandbox — no Chromium binary is installable (download network-blocked, no
-  system Chrome), the same constraint `REMAINING.md §8` already records. Both
-  run on GitHub CI. Everything not gated on a browser was executed and verified.
+  system Chrome), the same constraint `REMAINING.md §8` already records. Lighthouse
+  is proven on CI; E2E runs there too.
+- **Two CI jobs fail on `main` already** (run `36008177838` on base `e3b8b2d`)
+  and are therefore **not regressions** from this branch: **Knip** and
+  **Accessibility (axe)**. Knip cannot be reproduced here (oxc-parser reserves a
+  6 GiB buffer; sandbox has 3.9 GB) and axe needs a browser; the CI logs that
+  would pinpoint each are served from blob storage that EOFs from this sandbox.
+  Both are flagged **INCOMPLETE — needs CI log detail** in `AUDIT.md`. This
+  branch is green on every job it owns (Validate, Lint, Lighthouse, Budgets,
+  Security, Migrations).
 
 ## [2026-09-24] — The AI answers, the pages arrive early, six more timer faces
 

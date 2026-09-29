@@ -223,13 +223,10 @@ jobs:
           npx --yes wait-on http://127.0.0.1:4173 --timeout 60000
 
       # Runs the thresholds already defined in lighthouserc.json (perf >= 0.90,
-      # a11y/seo >= 0.95, LCP <= 2.5s, CLS <= 0.05). Left non-blocking
-      # (`continue-on-error`) until a green baseline is confirmed on CI hardware:
-      # the config's `error` assertions still surface every number in the job
-      # summary, so a regression is visible without turning an unproven threshold
-      # into a merge gate. Flip to gating once the first CI run is green.
+      # a11y/seo >= 0.95, LCP <= 2.5s, CLS <= 0.05). Verified green on CI on
+      # 2026-09-29 (run 36600196101, "Lighthouse" job passed in 3m2s), so this is
+      # a real merge gate — a perf/a11y/SEO regression on the key pages fails CI.
       - name: Lighthouse CI
-        continue-on-error: true
         run: |
           npx --yes @lhci/cli@0.15.x autorun \
             --config=./lighthouserc.json \
