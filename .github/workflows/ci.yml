@@ -236,9 +236,13 @@ jobs:
 
       # cross-tab leader election, guest timer persistence (reload/offline),
       # mobile responsive contract, and premium-economy UI gating — all run
-      # against the static preview server, no live API required.
+      # against the static preview server, no live API required. Restricted to a
+      # representative desktop + one mobile viewport (the specs self-skip by
+      # width): the full 9-project matrix is ~324 tests and belongs to the axe
+      # job, which needs every width for overflow; the behavioural contracts do
+      # not, so two projects keep this job fast without losing coverage.
       - name: Run behavioural E2E
-        run: pnpm test:e2e:app
+        run: pnpm test:e2e:app -- --project=desktop --project=w375
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
