@@ -96,12 +96,17 @@ audit items with the real toolchain; wired the one genuinely-orphaned config
   into the central error handler and env-gated (no-op without `SENTRY_DSN`).
   Double-claim is independently prevented by idempotent CAS.
 
-### Lighthouse verified green on CI → gate turned on
+### Lighthouse measured on CI — flaky at the boundary, kept non-blocking
 
-- The new `lighthouse` job **passed on CI hardware** (run `36600196101`, 3m2s)
-  against perf ≥ .90 / a11y ≥ .95 / SEO ≥ .95 / LCP ≤ 2.5s / CLS ≤ .05 on `/`,
-  `/focus`, `/pomodoro-timer`, `/dashboard`. `continue-on-error` was removed so
-  it is now a real merge gate.
+- The new `lighthouse` job runs against perf ≥ .90 / a11y ≥ .95 / SEO ≥ .95 /
+  LCP ≤ 2.5s / CLS ≤ .05 on `/`, `/focus`, `/pomodoro-timer`, `/dashboard`. It
+  **passed** run `36600196101` (3m2s) then **failed** run `36601542687` (3m5s)
+  with no code change between them — the performance score fluctuates right at
+  0.90 under simulated throttling. So it is left **`continue-on-error`** (measures
+  and surfaces the numbers without a flaky gate blocking every merge); gating it
+  needs a p50 baseline and a threshold tuned to the observed floor first. (An
+  earlier commit briefly flipped it to gating after the single green run; this
+  reverts that once the second run proved it flaky.)
 
 ### Honest limits + pre-existing CI reds
 
