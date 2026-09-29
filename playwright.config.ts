@@ -23,8 +23,13 @@ export default defineConfig({
   // `list` keeps the console readable; the HTML report (uploaded as a CI
   // artifact) is the only way to see which axe rule / which element failed on a
   // headless runner, because GitHub's raw job logs are not always retrievable.
+  // `github` emits `::error::` workflow commands that surface as check-run
+  // annotations — the one failure channel retrievable via the API when both the
+  // raw job log and the HTML-report artifact are served from blob storage that
+  // is not always reachable. It carries the spec's verbose per-violation message
+  // (rule + offending selector). `html` is still uploaded for humans.
   reporter: process.env.CI
-    ? [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]]
+    ? [["list"], ["github"], ["html", { open: "never", outputFolder: "playwright-report" }]]
     : [["list"]],
   use: { baseURL: "http://127.0.0.1:4173", trace: "retain-on-failure" },
   webServer: {
