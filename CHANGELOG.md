@@ -60,7 +60,34 @@ typecheck stays green and the full suite (107 files / **893 tests**) stays green
   callers with required props (props are contravariant); annotated with a
   single justified, scoped disable.
 
-## [2026-09-29b] — Lighthouse wired into CI; audit items verified end-to-end
+## [2026-09-29c] — Remove dead code to fix the pre-existing Knip CI failure
+
+`Knip (unused files + dependencies)` has failed on `main` since before this
+branch (run `36008177838` @ base `e3b8b2d`). It cannot run in the agent sandbox
+(oxc-parser reserves a 6 GiB buffer; the box has 3.9 GB) and the CI log that
+names the offenders is served from blob storage that EOFs here, so the offenders
+were found by approximating Knip's reachability analysis (build the whole-repo
+import graph from the real entry points, incl. lazy route imports from
+`src/pages/**`) and each candidate was verified to have **zero** import
+references anywhere.
+
+Deleted 5 genuinely-unreachable components (dead since a prior refactor —
+Razorpay's card was superseded by the Stripe card, the old city renderer by the
+current one):
+
+- `components/FloatingParticles.tsx`
+- `components/RazorpayCheckoutCard.tsx`
+- `components/city/CityBoard.tsx`
+- `components/city/CityWorld3D.tsx`
+- `components/ui/RewardToast.tsx`
+
+**Verified locally:** `pnpm typecheck` and the full `pnpm --filter
+@workspace/focusarx build` (Vite + 132-page prerender + seo-validate +
+bundle-budget) both stay **green** — proof nothing imported them. The remaining
+`Accessibility (axe)` CI failure is also pre-existing and needs a browser (can't
+run here); it is flagged INCOMPLETE in `AUDIT.md`. Possibly-unused deps were
+checked too and are all legitimate (fonts imported via CSS `@import`,
+`@opentelemetry/api` is an intentional single-snapshot resolution pin).
 
 Continued the Phase-0 pass. Verified the production build and the remaining
 audit items with the real toolchain; wired the one genuinely-orphaned config

@@ -212,15 +212,17 @@ pre-existing, not regressions from this branch, and this branch is green on ever
 job it is responsible for (Validate/typecheck+test+build ✅, Lint ✅, Lighthouse
 ✅, Budgets ✅, Security ✅, Migrations ✅):
 
-1. **Knip (unused files + dependencies)** — fails in ~20s on both `main` and this
-   PR. **Cannot be reproduced or diagnosed in this sandbox:** knip 6.34 uses
-   `oxc-parser`, which reserves a fixed **6 GiB** ArrayBuffer per parse; this
-   box has 3.9 GB RAM with heuristic overcommit, so even a bare
-   `new ArrayBuffer(6 GiB)` throws `Array buffer allocation failed`. The CI log
-   that would name the offending file/dependency is served from Azure blob
-   storage that returns EOF from this sandbox. **INCOMPLETE — needs** the CI
-   Knip log text (or a ≥8 GB runner) to fix without guessing; deleting a
-   "possibly unused" file blind would risk removing a dynamically-referenced one.
+1. **Knip (unused files + dependencies)** — was failing in ~20s on both `main`
+   and this PR. Knip can't run in this sandbox (oxc-parser reserves a fixed
+   **6 GiB** buffer; box has 3.9 GB), so the offenders were found by
+   approximating Knip's reachability analysis over the whole-repo import graph
+   (from the real entry points incl. lazy `src/pages/**` imports) and each was
+   verified to have **zero** imports anywhere. **FIX PUSHED:** deleted 5
+   genuinely-dead components (`FloatingParticles`, `RazorpayCheckoutCard`,
+   `city/CityBoard`, `city/CityWorld3D`, `ui/RewardToast`). Verified locally that
+   `typecheck` + full `build` stay green (nothing imported them). CI will confirm
+   whether Knip is now green (I can see pass/fail even though the detailed log
+   EOFs from here).
 2. **Accessibility (Playwright + axe)** — fails on both `main` and this PR. The
    spec (`tests/e2e/accessibility.spec.ts`) asserts zero serious/critical axe
    violations *and* no horizontal overflow across `/`, `/pricing`, two
