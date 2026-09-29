@@ -48,8 +48,8 @@ export default function AiPolicyPage() {
 
             <Section title="AI Providers & Their Policies">
               <ul>
-                <li><strong className="text-[var(--foreground)]">Groq (Coach)</strong> — Requests are processed via Groq Cloud. See <a href="https://groq.com/privacy-policy/" target="_blank" rel="noopener noreferrer" className="text-[var(--brand-400)] hover:underline">Groq's Privacy Policy</a>.</li>
-                <li><strong className="text-[var(--foreground)]">Google Gemini (Roadmap)</strong> — Requests use the Gemini API. See <a href="https://ai.google.dev/terms" target="_blank" rel="noopener noreferrer" className="text-[var(--brand-400)] hover:underline">Google AI Terms</a>.</li>
+                <li><strong className="text-[var(--foreground)]">Groq (Coach)</strong> — Requests are processed via Groq Cloud. See <a href="https://groq.com/privacy-policy/" target="_blank" rel="noopener noreferrer" className="text-[var(--brand-400)] underline underline-offset-2">Groq's Privacy Policy</a>.</li>
+                <li><strong className="text-[var(--foreground)]">Google Gemini (Roadmap)</strong> — Requests use the Gemini API. See <a href="https://ai.google.dev/terms" target="_blank" rel="noopener noreferrer" className="text-[var(--brand-400)] underline underline-offset-2">Google AI Terms</a>.</li>
               </ul>
             </Section>
 

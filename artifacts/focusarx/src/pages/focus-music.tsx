@@ -111,7 +111,7 @@ export default function FocusMusicPage() {
           The research, summarized in one paragraph: <strong className="text-[var(--foreground)]">for hard cognitive work, silence usually wins; for everything else, the right background sound beats a noisy environment — and sometimes beats silence.</strong> Music's biggest proven effect isn't on attention directly — it's on <em>mood and arousal</em>. A track that makes a boring task slightly more pleasant keeps you at the desk longer, and time-at-desk is the raw material of everything else.
         </P>
         <P>
-          The biggest cost is <strong className="text-[var(--foreground)]">lyrics</strong>. Language centers in your brain process speech and reading with the same hardware, so songs with words measurably interfere with reading comprehension, writing, and memorization. Instrumental music shows much smaller — sometimes negligible — costs, and steady noise (lo-fi, brown noise) is gentler still. This mirrors the broader <Link href="/focus-guide" className="text-[var(--brand-400)] hover:underline">science of attention</Link>: every sound that changes unexpectedly steals focus; every sound that stays predictable fades into the background.
+          The biggest cost is <strong className="text-[var(--foreground)]">lyrics</strong>. Language centers in your brain process speech and reading with the same hardware, so songs with words measurably interfere with reading comprehension, writing, and memorization. Instrumental music shows much smaller — sometimes negligible — costs, and steady noise (lo-fi, brown noise) is gentler still. This mirrors the broader <Link href="/focus-guide" className="text-[var(--brand-400)] underline underline-offset-2">science of attention</Link>: every sound that changes unexpectedly steals focus; every sound that stays predictable fades into the background.
         </P>
         <P>
           One more effect worth knowing: <strong className="text-[var(--foreground)]">the same music, used consistently, becomes a focus trigger.</strong> Pair one playlist exclusively with work sessions and your brain learns the association — the opening bars start shutting out the world. Athletes call it a pre-performance routine; you can build one out of sound.
@@ -140,7 +140,7 @@ export default function FocusMusicPage() {
           ))}
         </div>
         <P>
-          People with ADHD often sit at a different starting line: for some, moderate background sound (noise, familiar instrumental loops) genuinely improves regulation — see our <Link href="/adhd-focus-tips" className="text-[var(--brand-400)] hover:underline">ADHD focus guide</Link>. Experiment; your data beats the averages.
+          People with ADHD often sit at a different starting line: for some, moderate background sound (noise, familiar instrumental loops) genuinely improves regulation — see our <Link href="/adhd-focus-tips" className="text-[var(--brand-400)] underline underline-offset-2">ADHD focus guide</Link>. Experiment; your data beats the averages.
         </P>
       </Section>
 
@@ -165,7 +165,7 @@ export default function FocusMusicPage() {
       <Section id="protocol">
         <H2>A sound protocol for deep-work sessions</H2>
         <P>
-          Put it all together with a <Link href="/pomodoro-guide" className="text-[var(--brand-400)] hover:underline">Pomodoro-style session</Link>: press play on your focus playlist <em>before</em> the timer starts (the sound cues "work mode"), keep it running through the work interval, and kill it during breaks — silence or a <Link href="/breathe" className="text-[var(--brand-400)] hover:underline">two-minute breathing reset</Link> — so the contrast between work and rest stays sharp. Over a couple of weeks, the playlist does half the focusing for you: it's the cue that tells your nervous system it's time to go deep. For structuring the sessions themselves, see the <Link href="/two-hour-study-method" className="text-[var(--brand-400)] hover:underline">2-hour study method</Link>.
+          Put it all together with a <Link href="/pomodoro-guide" className="text-[var(--brand-400)] underline underline-offset-2">Pomodoro-style session</Link>: press play on your focus playlist <em>before</em> the timer starts (the sound cues "work mode"), keep it running through the work interval, and kill it during breaks — silence or a <Link href="/breathe" className="text-[var(--brand-400)] underline underline-offset-2">two-minute breathing reset</Link> — so the contrast between work and rest stays sharp. Over a couple of weeks, the playlist does half the focusing for you: it's the cue that tells your nervous system it's time to go deep. For structuring the sessions themselves, see the <Link href="/two-hour-study-method" className="text-[var(--brand-400)] underline underline-offset-2">2-hour study method</Link>.
         </P>
         <div className="mt-8 rounded-2xl border border-[var(--brand-600)]/30 bg-[var(--brand-soft)] to-transparent p-8 text-center">
           <h3 className="mb-2 text-xl font-semibold text-[var(--foreground)]">Press play, start the timer</h3>
@@ -182,7 +182,7 @@ export default function FocusMusicPage() {
           {FAQS.map((f) => <FAQ key={f.q} {...f} />)}
         </div>
         <p className="mt-10 flex items-center gap-2 text-sm text-[var(--foreground-muted)]">
-          <Wind size={14} /> More free guides in the <Link href="/guides" className="text-[var(--brand-400)] hover:underline">FocusArx library</Link>.
+          <Wind size={14} /> More free guides in the <Link href="/guides" className="text-[var(--brand-400)] underline underline-offset-2">FocusArx library</Link>.
         </p>
       </Section>
     </div>

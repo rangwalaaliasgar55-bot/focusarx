@@ -271,7 +271,7 @@ export default function GroupsPage() {
 
       {tab === "mine" && (
         <div className="space-y-3">
-          {myGroups.length === 0 && <div className="text-center py-12 text-[var(--foreground-subtle)]"><Users size={40} className="mx-auto mb-3 opacity-30" /><p>You haven't joined any groups yet</p><button onClick={() => setTab("discover")} className="mt-3 text-xs text-[var(--brand-600)] hover:underline">Discover groups →</button></div>}
+          {myGroups.length === 0 && <div className="text-center py-12 text-[var(--foreground-subtle)]"><Users size={40} className="mx-auto mb-3 opacity-30" /><p>You haven't joined any groups yet</p><button onClick={() => setTab("discover")} className="mt-3 text-xs text-[var(--brand-600)] underline underline-offset-2">Discover groups →</button></div>}
           {myGroups.map((g) => (
             <div key={g.id} className="rounded-2xl border border-[var(--brand-600)]/30 bg-[var(--surface-hover)] p-4">
               <div className="flex items-center gap-3 mb-3">

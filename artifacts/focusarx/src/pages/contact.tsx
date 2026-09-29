@@ -115,7 +115,7 @@ export default function ContactPage() {
                   </div>
                   <p className="font-semibold text-[var(--foreground)]">Message sent!</p>
                   <p className="text-sm text-[var(--foreground-muted)]">We'll get back to you soon.</p>
-                  <button onClick={() => setStatus("idle")} className="text-xs text-[var(--brand-400)] hover:underline">Send another message</button>
+                  <button onClick={() => setStatus("idle")} className="text-xs text-[var(--brand-400)] underline underline-offset-2">Send another message</button>
                 </motion.div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">

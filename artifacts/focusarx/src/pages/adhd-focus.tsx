@@ -128,7 +128,7 @@ export default function AdhdFocusPage() {
           Second, the ADHD brain typically runs low on <strong className="text-[var(--foreground)]">dopamine signaling</strong>, which makes the "reward" for starting a tedious task feel distant and weak. This is why shame-based motivation backfires: the problem was never effort or character. The solution is engineering — building an environment and a system where starting is easy, stimulation is managed, and finishing is rewarded.
         </P>
         <P>
-          That's exactly what the strategies below do. For the general foundations (sleep, movement, single-tasking), read our <Link href="/focus-guide" className="text-[var(--brand-400)] hover:underline">complete focus guide</Link> first — then apply the ADHD-specific layers here.
+          That's exactly what the strategies below do. For the general foundations (sleep, movement, single-tasking), read our <Link href="/focus-guide" className="text-[var(--brand-400)] underline underline-offset-2">complete focus guide</Link> first — then apply the ADHD-specific layers here.
         </P>
       </Section>
 
@@ -138,7 +138,7 @@ export default function AdhdFocusPage() {
 
         <H3><span className="flex items-center gap-2"><Users size={18} className="text-[var(--brand-400)]" /> 1. Body doubling</span></H3>
         <P>
-          Working alongside another person — even a stranger on a video call or in a <Link href="/virtual-study-room" className="text-[var(--brand-400)] hover:underline">virtual study room</Link> — provides gentle external accountability that helps the ADHD brain initiate and sustain tasks. It's one of the most consistently reported-effective ADHD strategies. Read more in our <Link href="/study-with-me" className="text-[var(--brand-400)] hover:underline">study with me</Link> guide.
+          Working alongside another person — even a stranger on a video call or in a <Link href="/virtual-study-room" className="text-[var(--brand-400)] underline underline-offset-2">virtual study room</Link> — provides gentle external accountability that helps the ADHD brain initiate and sustain tasks. It's one of the most consistently reported-effective ADHD strategies. Read more in our <Link href="/study-with-me" className="text-[var(--brand-400)] underline underline-offset-2">study with me</Link> guide.
         </P>
 
         <H3><span className="flex items-center gap-2"><Timer size={18} className="text-[var(--brand-400)]" /> 2. The 10-minute rule</span></H3>
@@ -148,7 +148,7 @@ export default function AdhdFocusPage() {
 
         <H3><span className="flex items-center gap-2"><Bell size={18} className="text-[var(--brand-400)]" /> 3. Externalize time — timers everywhere</span></H3>
         <P>
-          Time blindness means your internal clock can't be trusted. A visible countdown timer moves time into your environment. Use the <Link href="/pomodoro-guide" className="text-[var(--brand-400)] hover:underline">Pomodoro technique</Link> with a shortened 10–15 minute interval, and keep the timer visible at all times.
+          Time blindness means your internal clock can't be trusted. A visible countdown timer moves time into your environment. Use the <Link href="/pomodoro-guide" className="text-[var(--brand-400)] underline underline-offset-2">Pomodoro technique</Link> with a shortened 10–15 minute interval, and keep the timer visible at all times.
         </P>
 
         <H3><span className="flex items-center gap-2"><Trophy size={18} className="text-[var(--brand-400)]" /> 4. Make rewards immediate</span></H3>
@@ -193,17 +193,17 @@ export default function AdhdFocusPage() {
 
         <H3><span className="flex items-center gap-2"><Timer size={18} className="text-[var(--brand-400)]" /> 12. Real breaks — not phone breaks</span></H3>
         <P>
-          Scrolling during a break doesn't rest the attention system; it stimulates it. Real breaks: stand up, stretch, water, look out a window, breathe. Try the <Link href="/breathe" className="text-[var(--brand-400)] hover:underline">2-minute breathing reset</Link> between sessions. Your next session starts with whatever state your break left you in.
+          Scrolling during a break doesn't rest the attention system; it stimulates it. Real breaks: stand up, stretch, water, look out a window, breathe. Try the <Link href="/breathe" className="text-[var(--brand-400)] underline underline-offset-2">2-minute breathing reset</Link> between sessions. Your next session starts with whatever state your break left you in.
         </P>
 
         <H3><span className="flex items-center gap-2"><Sparkles size={18} className="text-[var(--brand-400)]" /> 13. Match task difficulty to energy</span></H3>
         <P>
-          Track your energy for a week and schedule accordingly: hard, boring tasks at your peak hours; routine tasks at your troughs. Your <Link href="/focus-guide" className="text-[var(--brand-400)] hover:underline">focus system</Link> should bend around your biology, not the clock.
+          Track your energy for a week and schedule accordingly: hard, boring tasks at your peak hours; routine tasks at your troughs. Your <Link href="/focus-guide" className="text-[var(--brand-400)] underline underline-offset-2">focus system</Link> should bend around your biology, not the clock.
         </P>
 
         <H3><span className="flex items-center gap-2"><Users size={18} className="text-[var(--brand-400)]" /> 14. Accountability partners and study groups</span></H3>
         <P>
-          Social accountability is external motivation you don't have to generate. A weekly check-in with a friend, a <Link href="/study-rooms" className="text-[var(--brand-400)] hover:underline">study room</Link> streak, or a public goal dramatically increases follow-through.
+          Social accountability is external motivation you don't have to generate. A weekly check-in with a friend, a <Link href="/study-rooms" className="text-[var(--brand-400)] underline underline-offset-2">study room</Link> streak, or a public goal dramatically increases follow-through.
         </P>
 
         <H3><span className="flex items-center gap-2"><Brain size={18} className="text-[var(--brand-400)]" /> 15. Consider professional support</span></H3>
@@ -230,7 +230,7 @@ export default function AdhdFocusPage() {
           ))}
         </div>
         <P>
-          The exact lengths matter less than the loop. Start with one 10-minute session a day for a week, then grow. Our <Link href="/two-hour-study-method" className="text-[var(--brand-400)] hover:underline">2-hour study method</Link> shows how these blocks scale up.
+          The exact lengths matter less than the loop. Start with one 10-minute session a day for a week, then grow. Our <Link href="/two-hour-study-method" className="text-[var(--brand-400)] underline underline-offset-2">2-hour study method</Link> shows how these blocks scale up.
         </P>
       </Section>
 
@@ -264,7 +264,7 @@ export default function AdhdFocusPage() {
       <Section id="myths">
         <H2>Which ADHD focus myths should you drop?</H2>
         <P>
-          <strong className="text-[var(--foreground)]">"Try harder."</strong> Effort isn't the missing ingredient; structure and dopamine are. Systems beat willpower, every time. <strong className="text-[var(--foreground)]">"You just need discipline."</strong> Discipline is a finite resource in every brain, and ADHD taxes it doubly — the goal is to need less of it. <strong className="text-[var(--foreground)]">"Hyperfocus means you can focus when you want to."</strong> Hyperfocus is interest-driven and involuntary; it can't be aimed at boring tasks, and it burns you out when it swallows your evening. <strong className="text-[var(--foreground)]">"Music/videos always distract."</strong> For some ADHD brains, the right level of background stimulation (like <Link href="/focus-music" className="text-[var(--brand-400)] hover:underline">certain focus music</Link>) actually improves regulation — experiment and measure.
+          <strong className="text-[var(--foreground)]">"Try harder."</strong> Effort isn't the missing ingredient; structure and dopamine are. Systems beat willpower, every time. <strong className="text-[var(--foreground)]">"You just need discipline."</strong> Discipline is a finite resource in every brain, and ADHD taxes it doubly — the goal is to need less of it. <strong className="text-[var(--foreground)]">"Hyperfocus means you can focus when you want to."</strong> Hyperfocus is interest-driven and involuntary; it can't be aimed at boring tasks, and it burns you out when it swallows your evening. <strong className="text-[var(--foreground)]">"Music/videos always distract."</strong> For some ADHD brains, the right level of background stimulation (like <Link href="/focus-music" className="text-[var(--brand-400)] underline underline-offset-2">certain focus music</Link>) actually improves regulation — experiment and measure.
         </P>
       </Section>
 
@@ -286,7 +286,7 @@ export default function AdhdFocusPage() {
               href="https://chadd.org/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[var(--brand-400)] hover:underline"
+              className="text-[var(--brand-400)] underline underline-offset-2"
             >
               CHADD overview ↗
             </a>
@@ -300,7 +300,7 @@ export default function AdhdFocusPage() {
               href="https://pubmed.ncbi.nlm.nih.gov/?term=Volkow+dopamine+transporter+densities+ADHD"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[var(--brand-400)] hover:underline"
+              className="text-[var(--brand-400)] underline underline-offset-2"
             >
               PubMed ↗
             </a>
@@ -314,7 +314,7 @@ export default function AdhdFocusPage() {
               href="https://www.aap.org/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[var(--brand-400)] hover:underline"
+              className="text-[var(--brand-400)] underline underline-offset-2"
             >
               AAP ↗
             </a>
@@ -338,7 +338,7 @@ export default function AdhdFocusPage() {
           {FAQS.map((f) => <FAQ key={f.q} {...f} />)}
         </div>
         <p className="mt-10 text-sm text-[var(--foreground-muted)]">
-          Looking for more? Try <Link href="/adhd-focus-tools" className="text-[var(--brand-400)] hover:underline">ADHD-friendly focus tools</Link>, <Link href="/body-doubling" className="text-[var(--brand-400)] hover:underline">body doubling</Link> and the <Link href="/10-minute-timer" className="text-[var(--brand-400)] hover:underline">10-minute timer</Link> for starting. If you are studying for medicine or writing code all day, see the <Link href="/study-timer-for-medical-students" className="text-[var(--brand-400)] hover:underline">study timer for medical students</Link> and the <Link href="/focus-timer-for-programmers" className="text-[var(--brand-400)] hover:underline">focus timer for programmers</Link>. Every guide lives in the <Link href="/guides" className="text-[var(--brand-400)] hover:underline">FocusArx guide library</Link>.
+          Looking for more? Try <Link href="/adhd-focus-tools" className="text-[var(--brand-400)] underline underline-offset-2">ADHD-friendly focus tools</Link>, <Link href="/body-doubling" className="text-[var(--brand-400)] underline underline-offset-2">body doubling</Link> and the <Link href="/10-minute-timer" className="text-[var(--brand-400)] underline underline-offset-2">10-minute timer</Link> for starting. If you are studying for medicine or writing code all day, see the <Link href="/study-timer-for-medical-students" className="text-[var(--brand-400)] underline underline-offset-2">study timer for medical students</Link> and the <Link href="/focus-timer-for-programmers" className="text-[var(--brand-400)] underline underline-offset-2">focus timer for programmers</Link>. Every guide lives in the <Link href="/guides" className="text-[var(--brand-400)] underline underline-offset-2">FocusArx guide library</Link>.
         </p>
       </Section>
     </div>

@@ -60,6 +60,33 @@ typecheck stays green and the full suite (107 files / **893 tests**) stays green
   callers with required props (props are contravariant); annotated with a
   single justified, scoped disable.
 
+## [2026-09-29e] — Fix the Accessibility CI failure: in-prose links now underlined at rest
+
+**Problem.** `Accessibility (Playwright + axe)` was red on `/focus-guide` (all
+viewports) with `link-in-text-block` (serious) — retrieved from the CI check
+annotations added in the previous entry.
+
+**Root cause.** Inline links in prose used `text-[var(--brand-400)]
+hover:underline`: the underline only appeared on hover, so at rest the link was
+distinguished from surrounding `--foreground-muted` body text by **colour
+alone**, and the two colours contrast at just **1.43:1** (WCAG needs ≥3:1 to
+rely on colour). axe's `link-in-text-block` therefore failed.
+
+**Fix.** In-prose links are now underlined at rest: `hover:underline` →
+`underline underline-offset-2` for every `--brand-400`/`--brand-600` link across
+the content pages (`focus-guide`, `adhd-focus`, `stop-procrastinating`,
+`study-with-me`, `focus-music`, `ai-policy`, `contact`, `search`, `premium`,
+`groups`, `messages`, plus the citation link + missions link in components).
+Two `<button>` toggles in `AmbientSoundBar` that shared the class were left on
+`hover:underline` — axe only flags links, and a permanent underline on a button
+reads as a link.
+
+**Test / before-after.** Before: 10 `link-in-text-block` violations on
+`/focus-guide`. After: `pnpm typecheck` + full frontend build stay green; CI
+`Accessibility` job confirms the rule clears. No other rule or page was failing
+(verified from the annotations), and the tested pages `/`, `/pricing`,
+`/comparison/*` were already clean and are untouched.
+
 ## [2026-09-29d] — Make the pre-existing Accessibility CI failure diagnosable
 
 `Accessibility (Playwright + axe)` has been red since PR #95 (the base of this
