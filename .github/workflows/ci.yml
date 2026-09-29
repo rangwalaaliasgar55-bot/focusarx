@@ -190,6 +190,51 @@ jobs:
       - name: Run accessibility tests
         run: pnpm test:a11y
 
+  lighthouse:
+    name: Lighthouse (perf + a11y + SEO on key pages)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        run: pnpm --filter @workspace/focusarx run build
+        env:
+          VITE_APP_URL: https://www.focusarx.site
+
+      - name: Serve the production build on :4173
+        # `serve` is `vite preview`; background it and wait for the port so LHCI
+        # measures the real built bundle, the same artifact Vercel ships.
+        run: |
+          corepack pnpm --filter @workspace/focusarx run serve -- --port 4173 &
+          npx --yes wait-on http://127.0.0.1:4173 --timeout 60000
+
+      # Runs the thresholds already defined in lighthouserc.json (perf >= 0.90,
+      # a11y/seo >= 0.95, LCP <= 2.5s, CLS <= 0.05). Left non-blocking
+      # (`continue-on-error`) until a green baseline is confirmed on CI hardware:
+      # the config's `error` assertions still surface every number in the job
+      # summary, so a regression is visible without turning an unproven threshold
+      # into a merge gate. Flip to gating once the first CI run is green.
+      - name: Lighthouse CI
+        continue-on-error: true
+        run: |
+          npx --yes @lhci/cli@0.15.x autorun \
+            --config=./lighthouserc.json \
+            --upload.target=temporary-public-storage
+
   security:
     name: Security (secrets + dependency sweep)
     runs-on: ubuntu-latest

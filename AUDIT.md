@@ -173,15 +173,17 @@ emoji in bot copy), not systemic vibe-coding. These are logged as Medium/Low.
 |---|---|---|---|---|
 | 1 | High | `react-hooks/purity` lint **error** in `FlowTimer.tsx:128` (+ a hidden `prefer-const` in `petCatalog.ts:82`) broke `pnpm lint` | 1 | ✅ **DONE** — commit `9b009d5`, `pnpm lint` 0 errors |
 | 2 | Med | 12 lint **warnings** (4 exhaustive-deps, 7 unused disables, one `any`) | 1/4 | ✅ **DONE** — commit `8921aae`, `eslint .` fully clean; incl. 4 real stale-closure fixes |
-| 3 | Med | Publish measured Lighthouse perf/a11y numbers per affected page | 3 | queued |
-| 4 | Med | Per-page gradient/glow/emoji cosmetic sweep | 2 | queued |
-| 5 | Med | Timezone day-boundary verification test (confirm IST→user-zone migration) | 1 | queued |
-| 6 | Low | Full Playwright happy-path E2E + visual regression | 4 | queued |
-| 7 | Low | Confirm Sentry DSN + rate-limit coverage on every economy/auth route in prod | 5 | queued |
+| 3 | Med | Measured Lighthouse perf/a11y/SEO numbers | 3 | ⚠️ **PARTIAL** — prod build + **bundle-budget PASS** (entry 25.6 kB gzip, initial JS 155.2 kB gzip/5 chunks, no-three-preload) + **seo-validate PASS** (132 pages); runtime LH scores now **wired into CI** (`ci.yml` `lighthouse` job, non-blocking pending green baseline). Runtime LH can't execute in this sandbox — **no browser installable** (download blocked, no system Chromium). |
+| 4 | Med | Per-page gradient/glow/emoji cosmetic sweep | 2 | ⏳ queued — deliberately **not** doing blind mass CSS edits without visual verification (no screenshot capability in sandbox); needs live-preview review |
+| 5 | Med | Timezone day-boundary verification | 1 | ✅ **CONFIRMED DONE** — `lib/timezone.ts` (DST-safe day keys, zone-switch grace, legacy IST fallback) is wired into `sessions.ts` + `sessionCompletionCore.ts` + 24 routes; **16 test cases** in `timezone.test.ts` (incl. traveller/DST/shield) pass in the suite |
+| 6 | Low | Full Playwright happy-path E2E + visual regression | 4 | ⚠️ **BLOCKED (sandbox)** — 5 E2E specs exist (`accessibility`, `responsive`, `cross-tab-leader`, `timer-persistence`, `token-premium`); they run in the CI `a11y` job (GitHub runners have Chrome). No browser installable here — same limit REMAINING.md §8 records. |
+| 7 | Low | Sentry DSN + rate-limit coverage on economy/auth routes | 5 | ✅ **CONFIRMED ADEQUATE** — `generalLimiter` mounted globally on `/api` (`app.ts:168`); dedicated limiters on auth/guest/refresh/forgot-password/session-complete/AI/webhooks/admin; Sentry wired into the central error handler, env-gated; double-claim independently prevented by idempotent CAS |
 
-I am starting on **#1** (the only hard failure) with before/after proof, then
-reporting back before batching further changes — per the "small reviewable PRs,
-one logical change each" rule.
+**Sandbox constraints (honest):** Lighthouse runtime scoring (#3) and Playwright
+E2E (#6) require a Chromium binary that cannot be installed here (the download is
+network-blocked and no system Chrome exists) — the exact limitation the repo's
+own `REMAINING.md §8` already documents. Both run on GitHub CI. Everything not
+gated on a browser was executed and verified this session.
 
 ---
 ---

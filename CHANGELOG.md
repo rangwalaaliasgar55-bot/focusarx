@@ -60,6 +60,49 @@ typecheck stays green and the full suite (107 files / **893 tests**) stays green
   callers with required props (props are contravariant); annotated with a
   single justified, scoped disable.
 
+## [2026-09-29b] — Lighthouse wired into CI; audit items verified end-to-end
+
+Continued the Phase-0 pass. Verified the production build and the remaining
+audit items with the real toolchain; wired the one genuinely-orphaned config
+(Lighthouse) into CI.
+
+### Production build + budgets, verified
+
+- `pnpm --filter @workspace/focusarx build` is **green**: Vite build, **132
+  prerendered pages**, `seo-validate` PASS, and `check-bundle-budget` PASS —
+  entry `index` **25.6 kB gzip**, initial JS **155.2 kB gzip across 5 chunks**,
+  three.js confirmed **not** in the entry preload. These are the gating,
+  build-time proxies for Phase-3 performance.
+
+### Lighthouse was configured but never run — now it runs in CI
+
+- `lighthouserc.json` (perf ≥ 0.90, a11y/SEO ≥ 0.95, LCP ≤ 2.5 s, CLS ≤ 0.05)
+  existed but **no workflow executed it**. Added a `lighthouse` job to
+  `.github/workflows/ci.yml`: it builds, serves the real production bundle on
+  :4173, and runs `@lhci/cli autorun` against those thresholds. Kept
+  `continue-on-error` until the first CI run confirms a green baseline on CI
+  hardware (the numbers still surface in the job summary), then it should become
+  a merge gate.
+
+### Audit items confirmed already-done (verified, not assumed)
+
+- **Timezone day boundary (streaks):** `lib/timezone.ts` (DST-safe day keys,
+  zone-switch grace, legacy-IST fallback) is wired into `sessions.ts`,
+  `sessionCompletionCore.ts` and 24 other routes, with **16 passing test cases**
+  covering travellers, DST, zone adoption and streak shields.
+- **Rate limiting + Sentry:** `generalLimiter` is mounted globally on `/api`
+  (`app.ts`), with dedicated stricter limiters on auth, guest, refresh,
+  forgot-password, session-complete, AI, webhooks and admin. Sentry is wired
+  into the central error handler and env-gated (no-op without `SENTRY_DSN`).
+  Double-claim is independently prevented by idempotent CAS.
+
+### Honest limits
+
+- Lighthouse **runtime** scores and **Playwright E2E** cannot execute in this
+  sandbox — no Chromium binary is installable (download network-blocked, no
+  system Chrome), the same constraint `REMAINING.md §8` already records. Both
+  run on GitHub CI. Everything not gated on a browser was executed and verified.
+
 ## [2026-09-24] — The AI answers, the pages arrive early, six more timer faces
 
 Three complaints, three root causes. "Gemini doesn't do what I ask" was an

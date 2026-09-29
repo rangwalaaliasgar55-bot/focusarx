@@ -122,6 +122,14 @@ code.
 8. **§14 acceptance criteria not yet verified:** Lighthouse thresholds, cold
    start < 200ms, real-device a11y passes, Playwright E2E runs (no browser in
    this sandbox), pen-test of rate limiting (no DB here).
+   - **Update 2026-09-29:** `lighthouserc.json` was an orphaned config (nothing
+     ran it). A `lighthouse` job is now wired into `.github/workflows/ci.yml`
+     (build → serve the prod bundle on :4173 → `@lhci/cli autorun` against the
+     rc thresholds). It is intentionally `continue-on-error` until the first CI
+     run establishes a green baseline on CI hardware, then it should become a
+     gate. The build-time proxies for perf are already **green and gating**:
+     `check-bundle-budget.mjs` (entry 25.6 kB gz, initial JS 155.2 kB gz, no
+     three.js in the entry preload) and `seo-validate.mjs` (132 pages).
 
 ### SEO follow-ups surfaced by the new depth gate
 
