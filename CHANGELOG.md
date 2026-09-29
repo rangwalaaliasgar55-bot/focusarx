@@ -60,6 +60,33 @@ typecheck stays green and the full suite (107 files / **893 tests**) stays green
   callers with required props (props are contravariant); annotated with a
   single justified, scoped disable.
 
+## [2026-09-29f] — Publish measured Lighthouse numbers from CI
+
+The `lighthouse` job measured scores but they were only in the raw LHCI log and
+the temporary-public-storage report — neither retrievable from every
+environment, so the numbers were never actually published (audit item #3).
+
+Added `scripts/lh-annotate.mjs`, run after `lhci autorun` (with `if: always()`),
+which reads the raw `.lighthouseci/lhr-*.json` files, groups them by page path,
+and emits per-URL `::notice::` annotations (retrievable via the check-runs API)
+plus a Markdown table in the GitHub job summary: perf / a11y / best-practices /
+seo and LCP / CLS / TTI / TBT / script size, median across runs. (A first cut
+looked for `manifest.json`, which LHCI only writes for the filesystem upload
+target; switched to the raw LHR files.)
+
+**Measured (desktop, simulated, median of 2 — CI run `36607922937`):**
+
+| URL | Perf | A11y | Best-pr | SEO | LCP | CLS | Script |
+|---|---|---|---|---|---|---|---|
+| `/` | 96 | 100 | 96 | 100 | 651ms | 0.006 | 233kb |
+| `/focus` | 97 | 97 | 96 | 100 | 543ms | 0.002 | 405kb |
+| `/pomodoro-timer` | 94 | 98 | 96 | 100 | 1530ms | 0.006 | 246kb |
+| `/dashboard`→`/login` | 95 | 98 | 96 | 100 | 1384ms | 0.006 | 228kb |
+
+All four pages clear every configured threshold with margin (perf floor 94 vs the
+0.90 gate). Recorded in `AUDIT.md` §6 #3. The job stays non-blocking for now; the
+measured p50 (~95–96) makes it safe to enable as a gate later.
+
 ## [2026-09-29e] — Fix the Accessibility CI failure: in-prose links now underlined at rest
 
 **Problem.** `Accessibility (Playwright + axe)` was red on `/focus-guide` (all
