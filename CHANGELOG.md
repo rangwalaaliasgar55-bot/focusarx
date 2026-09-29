@@ -2,6 +2,37 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [2026-09-29] — Phase 0 re-audit + green `pnpm lint` again
+
+A fresh Phase-0 audit was run against the current HEAD (`e3b8b2d`) using the
+real toolchain, not the older docs. `pnpm run typecheck` and `pnpm run test`
+(focusarx: 107 files / 893 tests, plus script + api-server suites) were both
+verified green. `AUDIT.md` gained a dated, evidence-linked re-audit section at
+the top. The fake-logic sweep (TODO/mock/`Math.random` stats/`setTimeout` fake
+loaders/empty catches/native `alert`/client-side economy/unverified webhooks)
+came back clean.
+
+### `pnpm lint` was failing with two errors — now zero
+
+- **`FlowTimer.tsx:128` — `react-hooks/purity`.** `Date.now()` was being called
+  inside a `useRef` initialiser, which runs during render. **Before:** whole-repo
+  `pnpm lint` exited 1. **Fix:** the ref now initialises to `null`; the existing
+  tick effect already sets `startedAtRef.current = Date.now()` on mount whenever
+  the timer is running (including a restored running snapshot) before any
+  interval reads it, so the stopwatch behaviour is byte-for-byte identical.
+  **After:** rule passes; the 15 timer tests (`Timer.integration`, `timer-probe`,
+  `TimerDisplay`) stay green.
+- **`petCatalog.ts:82` — `prefer-const`.** `let inventory` is only ever mutated
+  in place with `.unshift()`, never reassigned, so it is now `const`. No
+  behavioural change. **Before/after:** `pnpm lint` went from
+  `✖ 14 problems (1 error, 13 warnings)` → surfaced a second hidden error →
+  `✖ 12 problems (0 errors, 12 warnings)`, exit 0.
+
+This restores the `REMAINING.md` #23 invariant ("`pnpm lint` = 0 errors"), which
+had drifted. The 12 remaining items are warnings (exhaustive-deps, a few unused
+`eslint-disable` directives in tests, one `no-explicit-any`) queued for a
+follow-up sweep; none fail CI.
+
 ## [2026-09-24] — The AI answers, the pages arrive early, six more timer faces
 
 Three complaints, three root causes. "Gemini doesn't do what I ask" was an

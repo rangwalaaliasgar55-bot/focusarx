@@ -1,3 +1,191 @@
+# FocusArx — Phase 0 Re-Audit (current commit, verified with the toolchain)
+
+Date: **2026-09-29** · Repo: `rangwalaaliasgar55-bot/focusarx` @ `e3b8b2d` (branch `arena/01a0edd0-focusarx`, off `main`) · Prior audit: `ea8b67f` (see historical section below).
+
+**Method.** This is a *re-audit*, not a first read. The repo already carries a
+detailed v1 audit (`AUDIT.md` historical section), a `REMAINING.md` truth
+tracker, and a 78 KB `CHANGELOG.md`. Rather than trust those docs, I re-ran the
+actual toolchain at the current HEAD and re-grepped for every fake-logic /
+vibe-code tell. Every claim below is backed by a command I ran or a `file:line`
+I read. Where the current state contradicts the older docs, I say so.
+
+> **Headline:** This is **not** a vibe-coded app. It is a mature monorepo
+> (99 pages, 184 components, 83 API routes, 16 DB schema files, 177 test files)
+> with a real design-token system, server-authoritative rewards, signature-
+> verified payment webhooks, and green typecheck + test suites. The classic
+> "vibe-code tells" (fake data, `Math.random()` stats, native `alert()`,
+> emoji-as-icons, empty catches hiding failures, TODO stubs) are **absent or
+> already remediated**. The one concrete, reproducible regression found at this
+> commit is a single CI-relevant **lint error** (details in §3). The remaining
+> work is genuine product/infra scope, not "kill the vibe-code," and most of it
+> is already tracked honestly in `REMAINING.md`.
+
+---
+
+## 1. Verified toolchain health (commands run this session)
+
+| Check | Command | Result | Evidence |
+|---|---|---|---|
+| Install | `corepack pnpm install` | ✅ ok, 819 pkgs, 18.1s | lockfile resolved clean |
+| Typecheck | `pnpm run typecheck` | ✅ **PASS** — api-server + focusarx, 0 errors | `tsc --build` + `tsc -p … --noEmit` both "Done" |
+| Unit/contract tests | `pnpm run test` | ✅ **PASS** — focusarx **893 tests / 107 files**, plus `test:scripts` + api-server suites | vitest tail: `107 passed / 893 passed`, exit 0 |
+| Lint (whole repo) | `pnpm run lint` | ⚠️ **1 error, 13 warnings** | `✖ 14 problems (1 error, 13 warnings)`, exit 1 |
+| Lint (CI mode) | `pnpm lint:changed --base origin/main` | ✅ not currently blocking main (lints *changed* files only) | `.github/workflows/ci.yml` `lint` job |
+
+**Interpretation.** typecheck and the full unit/contract suite are genuinely
+green — I ran them, they are not just claimed. The only red signal is `pnpm lint`
+(whole-repo) failing on **one** error. CI's `lint` job runs `lint:changed`
+against `origin/main`, so this latent error is not blocking `main` *today*, but
+it fails `pnpm lint` locally and will fail CI the moment any PR touches
+`FlowTimer.tsx`. That makes it a real, must-fix defect, not a style nit.
+
+---
+
+## 2. Fake-logic / correctness sweep (re-grepped at HEAD)
+
+The Phase-0 grep set from the prompt was re-run against `artifacts/focusarx/src`
+and `artifacts/api-server/src`. Findings:
+
+| Tell searched | Result | Evidence |
+|---|---|---|
+| `TODO` / `FIXME` / `HACK` / `XXX` in code | ✅ **none real** — all 7 hits are copy/keywords/regex (`searchIndex` keyword string, `moderation.ts` cheat-word regex, `botTemplates` sentence "consistency is the hack", `sitemap` slug `focusarx-vs-focus-todo`) | `grep -rniE '\b(TODO\|FIXME\|HACK)\b'` |
+| `mockData`/`dummyData`/`fakeData`/`sampleData`/`placeholderData` | ✅ **none** | grep returned empty |
+| `Math.random()` faking stats/weather | ✅ remediated — city weather is deterministic from behaviour (`REMAINING.md` #27); quest rotation is `Math.random`-free (`quests.ts pickRotation`) | cross-checked in code |
+| `setTimeout` faking loading | ✅ **none** — all matches are `setTimeout(fn, 0)` next-tick load defers (admin panels, roadmap) or debounced prefetch, never a fake spinner delay | grep + read |
+| Empty / log-only `catch {}` | ✅ **benign** — the empty catches are all wrapped around `AudioNode.stop()` / `getComputedStyle` teardown that legitimately throws when a node is already stopped (`ambientEngine.ts`, `accent.ts`); not swallowed API errors | grep + read |
+| Native `alert()` / `confirm()` / `prompt()` | ✅ **none native** — all call sites are the custom async dialog hooks (`await confirm({ … })`, `await prompt({ … })`) backed by `ConfirmDialog.tsx` / `PromptDialog.tsx` | `Timer.tsx:616`, `AdminBreakFreePanel.tsx:89` |
+| Reward/XP/coins computed client-side | ✅ server-authoritative — completion verifies duration server-side (`sessionCompletionCore.ts`), rewards only when an `active_sessions` row exists, idempotent via `onConflictDoNothing([userId, clientNonce])`, coin burns are CAS (`coinLedger.burnCoins gte(coins,amount)`) | `sessions.ts`, `coinLedger.ts` |
+| Payment webhooks unverified | ✅ **verified** — Stripe: raw-body + `verifyStripeSignature`, rejects `BAD_SIGNATURE` 400 (`stripe.ts:100-114`); Razorpay: `createHmac('sha256')` + `timingSafeEqual` (`razorpay.ts:18-22`) | read |
+
+**Conclusion for §2:** no fabricated data, no fake loaders, no swallowed API
+errors, no client-trusted economy, no unverified webhooks. The prompt's
+Phase-0 "prove the fakes" step comes back essentially clean at this commit.
+
+---
+
+## 3. The one concrete regression to fix now (CRITICAL for CI hygiene)
+
+**Bug:** `pnpm lint` fails with **1 error**:
+
+```
+/artifacts/focusarx/src/components/FlowTimer.tsx:128:33
+  react-hooks/purity — Cannot call impure function
+  127 |   const startedAtRef = useRef<number | null>(
+> 128 |     restoredSnapshot?.running ? Date.now() : null,
+      |                                 ^^^^^^^^^^
+```
+
+**Severity:** **High.** It fails whole-repo `pnpm lint` (exit 1) and will fail
+the CI `lint` job for any future PR that touches `FlowTimer.tsx`. It also
+contradicts `REMAINING.md` #23 ("`pnpm lint` = 0 errors"), which is now stale.
+
+**Root cause:** `Date.now()` (an impure call) is evaluated inside the `useRef`
+initializer argument. React's `react-hooks/purity` rule (new in the pinned
+`eslint-plugin-react-hooks` v7) forbids impure calls in the render body,
+including ref initializer expressions, because they run during render.
+
+**Fix (planned, Phase 1):** move the impure read out of render into a lazy
+`useState`/effect init or a `useRef(null)` + first-run assignment in an effect,
+preserving the exact restore-on-mount behaviour. Verified by re-running
+`pnpm lint` (expect 0 errors) and the FlowTimer/timer test suites (must stay
+green). Before/after captured in the CHANGELOG + PR.
+
+**Also present (non-blocking, tracked):** 13 lint *warnings* — mostly
+`react-hooks/exhaustive-deps` (`Timer.tsx:162`, `useSessionPersistence.ts:246`,
+`study-rooms.tsx:829`), a few "unused eslint-disable" directives in test files,
+and one `no-explicit-any` in `lazyWithRetry.ts:13`. These do not fail CI (warnings)
+but should be swept in a follow-up.
+
+---
+
+## 4. Vibe-Code Tells checklist — re-audit verdict
+
+Assessed against the prompt's full checklist. The app has an established design
+system (`index.css` defines **~900 CSS custom properties**: color scales,
+type scale, spacing, radius, elevation, motion tokens; `lib/color-tokens.ts`,
+`lib/accent.ts`, `lib/theme.ts`; UI primitives under `components/ui/` built on
+Radix-style patterns with `class-variance-authority`).
+
+| Tell | Verdict | Note |
+|---|---|---|
+| Unstyled/default elements mixed in | ✅ clean | shared `ui/` primitives (`button`, `input`, `select`, `dialog`, `card`, `badge`, `switch`, `tabs`) |
+| Lazy purple→blue "premium" gradient | ⚠️ verify per-page | brand palette is intentional (violet/teal/gold); a full page-by-page gradient sweep is Phase-2 residual |
+| Rounded-full pills everywhere, no hierarchy | ✅ radius scale defined (sm/md/lg + full) | applied by component type |
+| Center-everything, no grid | ⚠️ spot-check remaining | most pages use real layout; not exhaustively re-verified this session |
+| Shadows/glass applied indiscriminately | ⚠️ residual | elevation scale exists; v5 removed most backdrop-blur; a few decorative glows remain (see historical §2.7) |
+| Emoji as icons | ⚠️ mostly Lucide | `lucide-react` is the icon set; a handful of emoji remain in copy/bot templates (`botTemplates.ts`), not as UI action icons |
+| Inconsistent corner radius | ✅ tokenized | radius tokens |
+| Too many font weights/sizes | ✅ type scale defined | 2 families (Geist + Manrope) |
+| One-off hex values | ✅ tokenized | palette in CSS vars |
+| Low-contrast important text | ✅ guarded | `legibility.test.ts` fails on any font-size < 11px; axe a11y CI job |
+| Generic stock illustration | ✅ n/a | custom brand + 3D core |
+| Inconsistent spacing | ✅ spacing scale | token-based |
+| No primary CTA weight | ✅ button variants | `button.tsx` variants |
+| No hover/focus/active/disabled | ✅ present | `:focus-visible` rings, variant states |
+| Modals with no transition / native dialogs | ✅ custom dialogs + Framer Motion | `dialog.tsx`, `ConfirmDialog`, `PromptDialog` |
+| No skeleton loaders | ✅ present | `skeleton.tsx`, `ViewSkeleton`, per-route Suspense fallbacks |
+| No empty states | ✅ present | `EmptyState.tsx`, `QueryError.tsx` wired across goals/groups/habits/notifications/shop |
+| Generic "Something went wrong" | ✅ mostly specific | `QueryError` with retry; copy pass ongoing |
+| Hardcoded fake stats ("1,234 users") | ✅ removed | fabricated live counter removed in `039262d` |
+| Nav active state | ✅ | `lib/navActive.ts` + tests |
+| Tap targets / responsive | ✅ CI-gated | `responsive.spec.ts`, mobile bottom nav w/ safe-area |
+
+**Net:** the checklist is largely **already satisfied**. The genuine Phase-2
+residuals are cosmetic and localized (a per-page gradient/glow sweep, a few
+emoji in bot copy), not systemic vibe-coding. These are logged as Medium/Low.
+
+---
+
+## 5. Phase-by-phase status against the brief (honest)
+
+- **Phase 1 — Core correctness:** Largely done and tested. Auth (JWT + rotating
+  refresh families), server-verified timer (deadline math + worker + idempotent
+  completion), server-authoritative rewards (CAS wallet, streak `FOR UPDATE`),
+  **signature-verified Stripe + Razorpay webhooks**, socket realtime. Green
+  test suites cover pomodoro accuracy/persist/resync, session rewards, streaks,
+  battle pass, drops, marketplace, onboarding. **Residual:** the historical
+  audit's IST-day-boundary concern appears addressed (`lib/userZone.ts` /
+  `lib/timezone.ts`, `REMAINING.md` #6) — worth a dedicated verification test.
+- **Phase 2 — Redesign:** Design system exists and is enforced (tokens, a11y
+  legibility gate, axe CI). Residual = localized cosmetic sweep (§4).
+- **Phase 3 — Performance:** Route-based lazy loading (`lazy()` + `lazyWithRetry`),
+  manualChunks (vendor-three split, no-three-preload budget gate), TanStack Query,
+  self-hosted fonts, SW shell cache, bundle-budget CI job. **Residual:** publish
+  measured Lighthouse numbers (CI has `lighthouserc.json` but numbers not pasted).
+- **Phase 4 — Testing/CI:** Strong. 177 test files; CI runs typecheck + full
+  test + prod builds + DB migration/integration + axe a11y + gitleaks/secrets +
+  bundle/SEO budgets + knip + `lint:changed`. **Residual:** Playwright full E2E
+  happy-path (signup→session→reward→payment) and visual-regression are partial.
+- **Phase 5 — Security/trust:** Sentry lib present, rate limiter present
+  (`rateLimiter.ts` + blast-radius test), account-deletion module + tests,
+  secrets AES-256-GCM (`lib/secrets.ts`), gitleaks CI. **Residual:** confirm
+  Sentry DSN wired in prod env; confirm rate limits attached to every auth/
+  payment/reward-claim route (spot-check).
+- **Phase 6 — Competitive polish:** Landing page, changelog page, AI coach
+  ("Arx") grounded in session data, sound design present. **Residual:** in-app
+  feedback/bug widget verification; AI-context depth verification.
+
+---
+
+## 6. Prioritized fix queue (this session → next)
+
+| # | Sev | Item | Phase | Status this session |
+|---|---|---|---|---|
+| 1 | High | `react-hooks/purity` lint **error** in `FlowTimer.tsx:128` breaks `pnpm lint` | 1 | **FIXING NOW** (§3) |
+| 2 | Med | 13 lint **warnings** (exhaustive-deps, unused disables, one `any`) | 1/4 | queued, follow-up PR |
+| 3 | Med | Publish measured Lighthouse perf/a11y numbers per affected page | 3 | queued |
+| 4 | Med | Per-page gradient/glow/emoji cosmetic sweep | 2 | queued |
+| 5 | Med | Timezone day-boundary verification test (confirm IST→user-zone migration) | 1 | queued |
+| 6 | Low | Full Playwright happy-path E2E + visual regression | 4 | queued |
+| 7 | Low | Confirm Sentry DSN + rate-limit coverage on every economy/auth route in prod | 5 | queued |
+
+I am starting on **#1** (the only hard failure) with before/after proof, then
+reporting back before batching further changes — per the "small reviewable PRs,
+one logical change each" rule.
+
+---
+---
+
 # FocusArx — Phase 0 Audit (v1 verification, no code changed)
 
 Date: 2026-09-04 · Repo: `rangwalaaliasgar55-bot/focusarx` @ `ea8b67f` · Live: `focusarx.site`

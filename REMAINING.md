@@ -33,7 +33,7 @@ authority.)
 | 20 | SEO prerendered tables missing rows | **fixed** | commit `3305b31` — 10 tables, 92 rows, parity-gated |
 | 21 | 54 URLs not indexed | **fixed** | `sitemap-profiles-1.xml` (11,978 URLs) retired; `/u/` noindexed |
 | 22 | Fabricated aggregateRating | **fixed** | deliberately excluded, with a comment in `index.html` + `seo-landing.tsx` |
-| 23 | 409 lint errors | **fixed** | `pnpm lint` = **0 errors** |
+| 23 | 409 lint errors | **fixed** | `pnpm lint` = **0 errors** (re-verified 2026-09-29 after fixing a `react-hooks/purity` regression in `FlowTimer.tsx:128` and a `prefer-const` in `petCatalog.ts:82` that had crept back in — see CHANGELOG 2026-09-29) |
 | 24 | Quest progress never written | **fixed** | `updateQuestProgress` called from `sessions.ts` |
 | 25 | Weekly quests never assigned | **fixed** | `quests.ts:27 pickRotation` — deterministic, `Math.random`-free |
 | 26 | isPremium hardcoded false on auto-complete | **fixed** | `sessions.ts:890 isUserPremium(userId)` with a comment about the old `false` |

@@ -124,9 +124,12 @@ export default function FlowTimer({ taskName, onFinish, onExitPreset }: FlowTime
   const [elapsed, setElapsed] = useState(() => Math.floor(initialSeconds));
   const [goalSeconds, setGoalSeconds] = useState<number | null>(() => restoredSnapshot?.goalSeconds ?? readStoredFlowGoal());
   const [pendingSync, setPendingSync] = useState(() => restoredSnapshot?.pendingCompletion === true);
-  const startedAtRef = useRef<number | null>(
-    restoredSnapshot?.running ? Date.now() : null,
-  );
+  // Initialised to null (never `Date.now()` here): calling an impure function
+  // in a ref initialiser runs during render, which react-hooks/purity forbids.
+  // It is harmless to defer — the tick effect below sets `startedAtRef.current`
+  // to `Date.now()` on mount whenever `running` is true (including a restored
+  // running snapshot), before any interval reads it, so behaviour is identical.
+  const startedAtRef = useRef<number | null>(null);
   const accRef = useRef(initialSeconds);
   const leavingRef = useRef(false);
   const finishingRef = useRef(false);
