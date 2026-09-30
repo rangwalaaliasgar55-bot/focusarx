@@ -147,47 +147,43 @@ test.describe("mobile layout", () => {
   });
 
   test("primary controls meet the 44px minimum", async ({ page }) => {
+    // Reduce motion before navigating: the login page's framer-motion mount
+    // animation otherwise keeps both the geometry and the set of `:visible`
+    // controls in flux, which made per-index locator reads (boundingBox and even
+    // evaluate on locator.nth()) wait on a moving DOM until the 30s timeout.
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await gotoRoute(page, "/login");
 
-    const controls = page.locator("button:visible, a[href]:visible");
-    const count = await controls.count();
-
-    const tooSmall: string[] = [];
-    for (let index = 0; index < count; index += 1) {
-      const element = controls.nth(index);
-      // Read geometry with getBoundingClientRect rather than Playwright's
-      // boundingBox(): boundingBox() waits for the element to stop moving, and
-      // the login page's framer-motion mount animation never fully settles on
-      // the mobile project, so the call hangs until the 30s test timeout. The
-      // same synchronous evaluate also decides the WCAG 2.5.8 exemption.
-      //
-      // WCAG 2.5.8 exempts plain text links (the target is the text itself, and
-      // forcing 44px would wreck the typography). We can't key that off
-      // `display: inline` — a text link that happens to sit in a flex row (e.g.
-      // "Forgot password?") is blockified to `display: block`, which the old
-      // check misread as a button. Instead: every <button> is a real control
-      // and must meet 44px; an <a> is exempt only when it is a bare text link,
-      // i.e. it has no button chrome (no background fill and no border).
-      const measure = await element.evaluate((node) => {
-        const r = node.getBoundingClientRect();
-        const style = window.getComputedStyle(node);
-        const bg = style.backgroundColor;
-        const hasFill = bg !== "transparent" && bg !== "rgba(0, 0, 0, 0)";
-        const hasBorder = style.borderStyle !== "none" && Number.parseFloat(style.borderTopWidth) > 0;
-        return {
-          width: r.width,
-          height: r.height,
-          isTextLink: node.tagName === "A" && !hasFill && !hasBorder,
-        };
-      });
-      if (measure.width === 0 || measure.height === 0) continue;
-      if (measure.isTextLink) continue;
-
-      if (measure.height < MIN_TOUCH_TARGET || measure.width < MIN_TOUCH_TARGET) {
-        const label = (await element.textContent())?.trim().slice(0, 40) ?? "";
-        tooSmall.push(`${label} (${Math.round(measure.width)}x${Math.round(measure.height)})`);
-      }
-    }
+    // Measure every control in a single browser-side pass rather than looping
+    // Playwright locators — one snapshot, no re-querying a live/animating tree.
+    //
+    // WCAG 2.5.8 exempts plain text links (the target is the text itself, and
+    // forcing 44px would wreck the typography). We can't key that off
+    // `display: inline`: a text link that sits in a flex row (e.g. "Forgot
+    // password?") is blockified to `display: block`. Instead every <button> is a
+    // real control that must meet 44px, and an <a> is exempt only when it is a
+    // bare text link — no button chrome (no background fill and no border).
+    const tooSmall = await page
+      .locator("button:visible, a[href]:visible")
+      .evaluateAll((nodes, min) =>
+        nodes.flatMap((node) => {
+          const r = node.getBoundingClientRect();
+          if (r.width === 0 || r.height === 0) return [];
+          const style = window.getComputedStyle(node);
+          const bg = style.backgroundColor;
+          const hasFill = bg !== "transparent" && bg !== "rgba(0, 0, 0, 0)";
+          const hasBorder =
+            style.borderStyle !== "none" && Number.parseFloat(style.borderTopWidth) > 0;
+          const isTextLink = node.tagName === "A" && !hasFill && !hasBorder;
+          if (isTextLink) return [];
+          if (r.height < min || r.width < min) {
+            const label = (node.textContent ?? "").trim().slice(0, 40);
+            return [`${label} (${Math.round(r.width)}x${Math.round(r.height)})`];
+          }
+          return [];
+        }),
+        MIN_TOUCH_TARGET,
+      );
 
     expect(tooSmall, `controls under ${MIN_TOUCH_TARGET}px:\n${tooSmall.join("\n")}`).toEqual([]);
   });
