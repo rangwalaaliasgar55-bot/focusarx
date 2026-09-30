@@ -245,8 +245,13 @@ jobs:
       # --project/--workers through to Playwright (they were silently dropped, so
       # all 9 projects ran and chrome-headless-shell SIGSEGV'd under the memory
       # pressure). `pnpm exec` passes every flag straight to the binary.
-      # --workers=2: the responsive spec opens a fresh context per route; the
-      # default one-worker-per-vCPU count is what triggered the crash.
+      # --workers=1: unlike the axe job (which only loads pages + runs axe and is
+      # stable at default parallelism), these behavioural specs drive timers,
+      # audio/web-workers and dual cross-tab contexts. Two concurrent browsers
+      # doing that exhausted chrome-headless-shell, which crashed ("Target has
+      # been closed") and took out whichever lightweight test ran next in that
+      # worker. Serialising to one browser removes that contention; the suite is
+      # only ~70 tests so the wall-clock cost is acceptable.
       - name: Run behavioural E2E
         run: >
           pnpm exec playwright test
@@ -254,7 +259,7 @@ jobs:
           tests/e2e/responsive.spec.ts
           tests/e2e/timer-persistence.spec.ts
           tests/e2e/token-premium.spec.ts
-          --project=desktop --project=w375 --workers=2
+          --project=desktop --project=w375 --workers=1
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
