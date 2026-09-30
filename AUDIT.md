@@ -1,3 +1,265 @@
+# FocusArx — Phase 0 Re-Audit (current commit, verified with the toolchain)
+
+Date: **2026-09-29** · Repo: `rangwalaaliasgar55-bot/focusarx` @ `e3b8b2d` (branch `arena/01a0edd0-focusarx`, off `main`) · Prior audit: `ea8b67f` (see historical section below).
+
+**Method.** This is a *re-audit*, not a first read. The repo already carries a
+detailed v1 audit (`AUDIT.md` historical section), a `REMAINING.md` truth
+tracker, and a 78 KB `CHANGELOG.md`. Rather than trust those docs, I re-ran the
+actual toolchain at the current HEAD and re-grepped for every fake-logic /
+vibe-code tell. Every claim below is backed by a command I ran or a `file:line`
+I read. Where the current state contradicts the older docs, I say so.
+
+> **Headline:** This is **not** a vibe-coded app. It is a mature monorepo
+> (99 pages, 184 components, 83 API routes, 16 DB schema files, 177 test files)
+> with a real design-token system, server-authoritative rewards, signature-
+> verified payment webhooks, and green typecheck + test suites. The classic
+> "vibe-code tells" (fake data, `Math.random()` stats, native `alert()`,
+> emoji-as-icons, empty catches hiding failures, TODO stubs) are **absent or
+> already remediated**. The one concrete, reproducible regression found at this
+> commit is a single CI-relevant **lint error** (details in §3). The remaining
+> work is genuine product/infra scope, not "kill the vibe-code," and most of it
+> is already tracked honestly in `REMAINING.md`.
+
+---
+
+## 1. Verified toolchain health (commands run this session)
+
+| Check | Command | Result | Evidence |
+|---|---|---|---|
+| Install | `corepack pnpm install` | ✅ ok, 819 pkgs, 18.1s | lockfile resolved clean |
+| Typecheck | `pnpm run typecheck` | ✅ **PASS** — api-server + focusarx, 0 errors | `tsc --build` + `tsc -p … --noEmit` both "Done" |
+| Unit/contract tests | `pnpm run test` | ✅ **PASS** — focusarx **893 tests / 107 files**, plus `test:scripts` + api-server suites | vitest tail: `107 passed / 893 passed`, exit 0 |
+| Lint (whole repo) | `pnpm run lint` | ⚠️ **1 error, 13 warnings** | `✖ 14 problems (1 error, 13 warnings)`, exit 1 |
+| Lint (CI mode) | `pnpm lint:changed --base origin/main` | ✅ not currently blocking main (lints *changed* files only) | `.github/workflows/ci.yml` `lint` job |
+
+**Interpretation.** typecheck and the full unit/contract suite are genuinely
+green — I ran them, they are not just claimed. The only red signal is `pnpm lint`
+(whole-repo) failing on **one** error. CI's `lint` job runs `lint:changed`
+against `origin/main`, so this latent error is not blocking `main` *today*, but
+it fails `pnpm lint` locally and will fail CI the moment any PR touches
+`FlowTimer.tsx`. That makes it a real, must-fix defect, not a style nit.
+
+---
+
+## 2. Fake-logic / correctness sweep (re-grepped at HEAD)
+
+The Phase-0 grep set from the prompt was re-run against `artifacts/focusarx/src`
+and `artifacts/api-server/src`. Findings:
+
+| Tell searched | Result | Evidence |
+|---|---|---|
+| `TODO` / `FIXME` / `HACK` / `XXX` in code | ✅ **none real** — all 7 hits are copy/keywords/regex (`searchIndex` keyword string, `moderation.ts` cheat-word regex, `botTemplates` sentence "consistency is the hack", `sitemap` slug `focusarx-vs-focus-todo`) | `grep -rniE '\b(TODO\|FIXME\|HACK)\b'` |
+| `mockData`/`dummyData`/`fakeData`/`sampleData`/`placeholderData` | ✅ **none** | grep returned empty |
+| `Math.random()` faking stats/weather | ✅ remediated — city weather is deterministic from behaviour (`REMAINING.md` #27); quest rotation is `Math.random`-free (`quests.ts pickRotation`) | cross-checked in code |
+| `setTimeout` faking loading | ✅ **none** — all matches are `setTimeout(fn, 0)` next-tick load defers (admin panels, roadmap) or debounced prefetch, never a fake spinner delay | grep + read |
+| Empty / log-only `catch {}` | ✅ **benign** — the empty catches are all wrapped around `AudioNode.stop()` / `getComputedStyle` teardown that legitimately throws when a node is already stopped (`ambientEngine.ts`, `accent.ts`); not swallowed API errors | grep + read |
+| Native `alert()` / `confirm()` / `prompt()` | ✅ **none native** — all call sites are the custom async dialog hooks (`await confirm({ … })`, `await prompt({ … })`) backed by `ConfirmDialog.tsx` / `PromptDialog.tsx` | `Timer.tsx:616`, `AdminBreakFreePanel.tsx:89` |
+| Reward/XP/coins computed client-side | ✅ server-authoritative — completion verifies duration server-side (`sessionCompletionCore.ts`), rewards only when an `active_sessions` row exists, idempotent via `onConflictDoNothing([userId, clientNonce])`, coin burns are CAS (`coinLedger.burnCoins gte(coins,amount)`) | `sessions.ts`, `coinLedger.ts` |
+| Payment webhooks unverified | ✅ **verified** — Stripe: raw-body + `verifyStripeSignature`, rejects `BAD_SIGNATURE` 400 (`stripe.ts:100-114`); Razorpay: `createHmac('sha256')` + `timingSafeEqual` (`razorpay.ts:18-22`) | read |
+
+**Conclusion for §2:** no fabricated data, no fake loaders, no swallowed API
+errors, no client-trusted economy, no unverified webhooks. The prompt's
+Phase-0 "prove the fakes" step comes back essentially clean at this commit.
+
+---
+
+## 3. The one concrete regression to fix now (CRITICAL for CI hygiene)
+
+**Bug:** `pnpm lint` fails with **1 error**:
+
+```
+/artifacts/focusarx/src/components/FlowTimer.tsx:128:33
+  react-hooks/purity — Cannot call impure function
+  127 |   const startedAtRef = useRef<number | null>(
+> 128 |     restoredSnapshot?.running ? Date.now() : null,
+      |                                 ^^^^^^^^^^
+```
+
+**Severity:** **High.** It fails whole-repo `pnpm lint` (exit 1) and will fail
+the CI `lint` job for any future PR that touches `FlowTimer.tsx`. It also
+contradicts `REMAINING.md` #23 ("`pnpm lint` = 0 errors"), which is now stale.
+
+**Root cause:** `Date.now()` (an impure call) is evaluated inside the `useRef`
+initializer argument. React's `react-hooks/purity` rule (new in the pinned
+`eslint-plugin-react-hooks` v7) forbids impure calls in the render body,
+including ref initializer expressions, because they run during render.
+
+**Fix (planned, Phase 1):** move the impure read out of render into a lazy
+`useState`/effect init or a `useRef(null)` + first-run assignment in an effect,
+preserving the exact restore-on-mount behaviour. Verified by re-running
+`pnpm lint` (expect 0 errors) and the FlowTimer/timer test suites (must stay
+green). Before/after captured in the CHANGELOG + PR.
+
+**Also present (non-blocking, tracked):** 13 lint *warnings* — mostly
+`react-hooks/exhaustive-deps` (`Timer.tsx:162`, `useSessionPersistence.ts:246`,
+`study-rooms.tsx:829`), a few "unused eslint-disable" directives in test files,
+and one `no-explicit-any` in `lazyWithRetry.ts:13`. These do not fail CI (warnings)
+but should be swept in a follow-up.
+
+---
+
+## 4. Vibe-Code Tells checklist — re-audit verdict
+
+Assessed against the prompt's full checklist. The app has an established design
+system (`index.css` defines **~900 CSS custom properties**: color scales,
+type scale, spacing, radius, elevation, motion tokens; `lib/color-tokens.ts`,
+`lib/accent.ts`, `lib/theme.ts`; UI primitives under `components/ui/` built on
+Radix-style patterns with `class-variance-authority`).
+
+| Tell | Verdict | Note |
+|---|---|---|
+| Unstyled/default elements mixed in | ✅ clean | shared `ui/` primitives (`button`, `input`, `select`, `dialog`, `card`, `badge`, `switch`, `tabs`) |
+| Lazy purple→blue "premium" gradient | ⚠️ verify per-page | brand palette is intentional (violet/teal/gold); a full page-by-page gradient sweep is Phase-2 residual |
+| Rounded-full pills everywhere, no hierarchy | ✅ radius scale defined (sm/md/lg + full) | applied by component type |
+| Center-everything, no grid | ⚠️ spot-check remaining | most pages use real layout; not exhaustively re-verified this session |
+| Shadows/glass applied indiscriminately | ⚠️ residual | elevation scale exists; v5 removed most backdrop-blur; a few decorative glows remain (see historical §2.7) |
+| Emoji as icons | ⚠️ mostly Lucide | `lucide-react` is the icon set; a handful of emoji remain in copy/bot templates (`botTemplates.ts`), not as UI action icons |
+| Inconsistent corner radius | ✅ tokenized | radius tokens |
+| Too many font weights/sizes | ✅ type scale defined | 2 families (Geist + Manrope) |
+| One-off hex values | ✅ tokenized | palette in CSS vars |
+| Low-contrast important text | ✅ guarded | `legibility.test.ts` fails on any font-size < 11px; axe a11y CI job |
+| Generic stock illustration | ✅ n/a | custom brand + 3D core |
+| Inconsistent spacing | ✅ spacing scale | token-based |
+| No primary CTA weight | ✅ button variants | `button.tsx` variants |
+| No hover/focus/active/disabled | ✅ present | `:focus-visible` rings, variant states |
+| Modals with no transition / native dialogs | ✅ custom dialogs + Framer Motion | `dialog.tsx`, `ConfirmDialog`, `PromptDialog` |
+| No skeleton loaders | ✅ present | `skeleton.tsx`, `ViewSkeleton`, per-route Suspense fallbacks |
+| No empty states | ✅ present | `EmptyState.tsx`, `QueryError.tsx` wired across goals/groups/habits/notifications/shop |
+| Generic "Something went wrong" | ✅ mostly specific | `QueryError` with retry; copy pass ongoing |
+| Hardcoded fake stats ("1,234 users") | ✅ removed | fabricated live counter removed in `039262d` |
+| Nav active state | ✅ | `lib/navActive.ts` + tests |
+| Tap targets / responsive | ✅ CI-gated | `responsive.spec.ts`, mobile bottom nav w/ safe-area |
+
+**Net:** the checklist is largely **already satisfied**. The genuine Phase-2
+residuals are cosmetic and localized (a per-page gradient/glow sweep, a few
+emoji in bot copy), not systemic vibe-coding. These are logged as Medium/Low.
+
+**Static design-tell sweep (2026-09-29):** ran objective checks for the two most
+machine-detectable tells and both come back clean:
+- **Emoji as the sole label of an interactive control** (a design *and* a11y
+  defect): **zero** found across `src/**/*.tsx`.
+- **One-off hex colours instead of tokens:** 299 hex literals exist, but they
+  are concentrated in rendering contexts that *cannot* use CSS variables —
+  `Pet3D.tsx` (107, three.js materials), `PetArtwork.tsx` (28, SVG),
+  `ShareCardModal.tsx` (26, `<canvas>` export), and the 3D scenes
+  (`MonsterBattleArena`, `StudyRoomScene`, `DeepSeaScene`, `CityWorld3D`).
+  three.js and the Canvas 2D API take numeric/hex colours, not `var(--…)`, so
+  these are correct, not vibe-code. DOM styling uses the token system.
+
+Therefore the residual #4 work is **subjective visual polish** (gradient/glow
+intent per page), which needs review against the running preview — not a blind
+mass CSS edit. Not done this session by choice: making unverifiable visual
+changes would violate the "prove every design change works" rule.
+
+---
+
+## 5. Phase-by-phase status against the brief (honest)
+
+- **Phase 1 — Core correctness:** Largely done and tested. Auth (JWT + rotating
+  refresh families), server-verified timer (deadline math + worker + idempotent
+  completion), server-authoritative rewards (CAS wallet, streak `FOR UPDATE`),
+  **signature-verified Stripe + Razorpay webhooks**, socket realtime. Green
+  test suites cover pomodoro accuracy/persist/resync, session rewards, streaks,
+  battle pass, drops, marketplace, onboarding. **Residual:** the historical
+  audit's IST-day-boundary concern appears addressed (`lib/userZone.ts` /
+  `lib/timezone.ts`, `REMAINING.md` #6) — worth a dedicated verification test.
+- **Phase 2 — Redesign:** Design system exists and is enforced (tokens, a11y
+  legibility gate, axe CI). Residual = localized cosmetic sweep (§4).
+- **Phase 3 — Performance:** Route-based lazy loading (`lazy()` + `lazyWithRetry`),
+  manualChunks (vendor-three split, no-three-preload budget gate), TanStack Query,
+  self-hosted fonts, SW shell cache, bundle-budget CI job. **Residual:** publish
+  measured Lighthouse numbers (CI has `lighthouserc.json` but numbers not pasted).
+- **Phase 4 — Testing/CI:** Strong. 177 test files; CI runs typecheck + full
+  test + prod builds + DB migration/integration + axe a11y + gitleaks/secrets +
+  bundle/SEO budgets + knip + `lint:changed`. **Residual:** Playwright full E2E
+  happy-path (signup→session→reward→payment) and visual-regression are partial.
+- **Phase 5 — Security/trust:** Sentry lib present, rate limiter present
+  (`rateLimiter.ts` + blast-radius test), account-deletion module + tests,
+  secrets AES-256-GCM (`lib/secrets.ts`), gitleaks CI. **Residual:** confirm
+  Sentry DSN wired in prod env; confirm rate limits attached to every auth/
+  payment/reward-claim route (spot-check).
+- **Phase 6 — Competitive polish:** Landing page, changelog page, AI coach
+  ("Arx") grounded in session data, sound design present. **Residual:** in-app
+  feedback/bug widget verification; AI-context depth verification.
+
+---
+
+## 6. Prioritized fix queue (this session → next)
+
+| # | Sev | Item | Phase | Status this session |
+|---|---|---|---|---|
+| 1 | High | `react-hooks/purity` lint **error** in `FlowTimer.tsx:128` (+ a hidden `prefer-const` in `petCatalog.ts:82`) broke `pnpm lint` | 1 | ✅ **DONE** — commit `9b009d5`, `pnpm lint` 0 errors |
+| 2 | Med | 12 lint **warnings** (4 exhaustive-deps, 7 unused disables, one `any`) | 1/4 | ✅ **DONE** — commit `8921aae`, `eslint .` fully clean; incl. 4 real stale-closure fixes |
+| 3 | Med | Measured Lighthouse perf/a11y/SEO numbers | 3 | ✅ **DONE — measured & published** (CI run `36607922937`). Numbers below, published every run as `::notice::` annotations + job-summary table via `scripts/lh-annotate.mjs` (retrievable via the check-runs API even though the raw LHCI log/report are not). Desktop preset, simulated throttling, median of 2 runs. |
+
+**Measured Lighthouse (desktop, simulated, median of 2 — CI run `36607922937`):**
+
+| URL | Perf | A11y | Best-pr | SEO | LCP | CLS | TTI | TBT | Script |
+|---|---|---|---|---|---|---|---|---|---|
+| `/` | 96 | 100 | 96 | 100 | 651ms | 0.006 | 795ms | 0ms | 233kb |
+| `/focus` | 97 | 97 | 96 | 100 | 543ms | 0.002 | 543ms | 0ms | 405kb |
+| `/pomodoro-timer` | 94 | 98 | 96 | 100 | 1530ms | 0.006 | 1530ms | 0ms | 246kb |
+| `/dashboard`→`/login` | 95 | 98 | 96 | 100 | 1384ms | 0.006 | 1384ms | 0ms | 228kb |
+
+(`/dashboard` is auth-gated so LH follows the redirect to `/login`.) All four pages clear every threshold (perf ≥ .90, a11y/seo ≥ .95, LCP ≤ 2.5s, CLS ≤ .05) with margin — the observed perf floor is **94**. The Lighthouse job is still `continue-on-error` because a single earlier run dipped to the 0.90 boundary; with a measured p50 baseline of ~95–96 the gate could now be safely enabled (raise `numberOfRuns`, keep the 0.90 floor). Build-time perf gates ARE green & gating: bundle-budget (entry 25.6 kB gz, initial 155.2 kB gz/5 chunks, no-three-preload) + seo-validate (132 pages).
+| 4 | Med | Per-page gradient/glow/emoji cosmetic sweep | 2 | ⏳ queued — deliberately **not** doing blind mass CSS edits without visual verification (no screenshot capability in sandbox); needs live-preview review |
+| 5 | Med | Timezone day-boundary verification | 1 | ✅ **CONFIRMED DONE** — `lib/timezone.ts` (DST-safe day keys, zone-switch grace, legacy IST fallback) is wired into `sessions.ts` + `sessionCompletionCore.ts` + 24 routes; **16 test cases** in `timezone.test.ts` (incl. traveller/DST/shield) pass in the suite |
+| 6 | Low | Full Playwright happy-path E2E + visual regression | 4 | 🟡 **CODE COMPLETE, CI-GREEN PENDING.** Previously only `accessibility.spec` ran; added a dedicated `e2e` job (`desktop` + `w375`) running the 4 behavioural specs (`cross-tab-leader`, `responsive`, `timer-persistence`, `token-premium`). Wiring them in surfaced that the specs had rotted and that the runner had a browser-stability bug — fixed across 8 root-caused issues (see list below). **Every fix is committed locally through `7fe8d7a`; all 72 tests transpile with the exact CI command.** NOT yet marked ✅ because the `e2e` job has not gone green: the last CI run (`1b27a02`) was red on 4 `w375` failures, and the final fixes (`7fe8d7a`: `--disable-gpu` + auth the nav tests) are committed but **not pushed** (GitHub token expired mid-session — awaiting reconnect). A browser cannot run in the sandbox (no Chromium; Playwright CDN unreachable), so the CI job is the only runtime proof. See CHANGELOG [2026-09-29g].<br><br>**Root-caused & fixed (chronological, each verified against app source):**<br>1. `30c11d6` — timer specs waited on a removed "Dismiss cookie notice" button → pre-seed `localStorage focusarx-cookie-consent=essential`.<br>2. `22867d5` — `token-premium` free-users: auth provider skips the session probe without a token/`focusarx_session_hint` cookie, so the mock was never read and `/ai-insights` bounced to `/login` → seed the hint cookie.<br>3. `22867d5` — `cross-tab-leader` follower: it auto-stands-down with a `LeaderMirrorChip` ("Running in another tab"); the Start/Resume button it clicked no longer exists → assert the chip directly.<br>4. `1b27a02` — `pnpm run <script> -- <flags>` never forwarded `--project`/`--workers`, so all 9 projects (~324 tests) ran and OOM/SIGSEGV'd → call `pnpm exec playwright test … --project=desktop --project=w375 --workers=2`.<br>5. `7fe8d7a` — intermittent Chromium **GPU-process SIGSEGV** (signal 11) surfaced as "Target … closed" + 30 s timeouts → `launchOptions.args=["--disable-gpu"]`.<br>6. `7fe8d7a` — `responsive` mobile-nav tests asserted the bottom nav as a **guest**, but the nav lives in `AppShell` which `App.tsx:529` mounts only for `status==="authenticated"` → the tests now sign in first (session stub + hint cookie). |
+| 7 | Low | Sentry DSN + rate-limit coverage on economy/auth routes | 5 | ✅ **CONFIRMED ADEQUATE** — `generalLimiter` mounted globally on `/api` (`app.ts:168`); dedicated limiters on auth/guest/refresh/forgot-password/session-complete/AI/webhooks/admin; Sentry wired into the central error handler, env-gated; double-claim independently prevented by idempotent CAS |
+
+**Sandbox constraints (honest):** Lighthouse runtime scoring (#3) and Playwright
+E2E (#6) require a Chromium binary that cannot be installed here (the download is
+network-blocked and no system Chrome exists) — the exact limitation the repo's
+own `REMAINING.md §8` already documents. Both run on GitHub CI; the Lighthouse
+gate is **proven green on CI**. The new `e2e` job (#6) is the one job **not yet
+green** — its code fixes are complete and committed locally through `7fe8d7a`, but
+the final commit is unpushed because the GitHub token expired mid-session; it
+needs a push + one re-run to confirm. Everything else not gated on a browser was
+executed and verified this session.
+
+### Pre-existing CI failures on `main` (NOT introduced by this work)
+
+CI run `36600196101` (PR #98) reproduced two failures that **already fail on
+`main`** — see run `36008177838` on the base commit `e3b8b2d`, where both are
+also red (the last green `main` CI was ~9 days ago). They are therefore
+pre-existing, not regressions from this branch, and this branch is green on every
+pre-existing job it is responsible for (Validate/typecheck+test+build ✅, Lint ✅,
+Lighthouse ✅, Budgets ✅, Security ✅, Migrations ✅). The only non-green job is the
+**new `e2e` job added this session** (#6), whose fixes are code-complete locally
+and pending a push + re-run (see #6 above):
+
+1. **RESOLVED ✅ — Knip (unused files + dependencies)** now GREEN on CI
+   (run 36605774851). Was failing on both `main` and this PR. Knip can't run in
+   this sandbox (oxc-parser reserves a fixed **6 GiB** buffer; box has 3.9 GB),
+   so the offenders were found by approximating Knip's reachability over the
+   whole-repo import graph (from the real entry points incl. lazy `src/pages/**`
+   imports) and each was verified to have **zero** imports anywhere. Deleted 5
+   genuinely-dead components (`FloatingParticles`, `RazorpayCheckoutCard`,
+   `city/CityBoard`, `city/CityWorld3D`, `ui/RewardToast`); verified locally that
+   `typecheck` + full `build` stay green. See CHANGELOG [2026-09-29c].
+2. **RESOLVED ✅ — Accessibility (Playwright + axe)** now GREEN on CI
+   (run 36605774851, all 8 jobs pass). Was red since PR #95. Because Chromium is
+   uninstallable here and both the raw log and the report artifact are served
+   from blob storage that EOFs from the sandbox, the failing rule was surfaced by
+   adding the Playwright `github` reporter (its `::error::` output lands in
+   check-run annotations, which ARE retrievable via the API). That revealed
+   `link-in-text-block` (serious) on `/focus-guide`: in-prose links used
+   `hover:underline`, so at rest they relied on colour alone to differ from body
+   text — and the two colours contrast at only 1.43:1 (< 3:1). Fixed by
+   underlining in-prose brand links at rest across the content pages. See
+   CHANGELOG [2026-09-29e].
+
+   _Original note:_
+   Accessibility (Playwright + axe) — fails on both `main` and this PR. The
+   spec (`tests/e2e/accessibility.spec.ts`) asserts zero serious/critical axe
+   violations *and* no horizontal overflow across `/`, `/pricing`, two
+   `/comparison/*` pages and `/focus-guide`, at 8 viewport projects incl. 320px.
+   **Cannot run here** (no browser). **INCOMPLETE — needs** the axe failure
+   details from CI (which rule, which page, which viewport) to fix precisely.
+
+---
+---
+
 # FocusArx — Phase 0 Audit (v1 verification, no code changed)
 
 Date: 2026-09-04 · Repo: `rangwalaaliasgar55-bot/focusarx` @ `ea8b67f` · Live: `focusarx.site`
@@ -87,7 +349,7 @@ focusarx/
 - **Streaks are transactional and replay-safe** (`applyStreakProgress` with `FOR UPDATE`, `sessions.ts:565-591`; pure `nextStreakValues`, `sessionCompletionCore.ts:103-117`; same-day repeat returns `changed:false`). Weekly XP resets Monday 00:00 **IST** (`istWeekStartDate`).
 - **Day boundary is hardcoded IST (UTC+5:30), not the user's IANA zone.** `lib/istDate.ts:1-21` ("India-first … never the UTC one"), used for `istToday`, streak `today/yesterday` (`sessions.ts:566-567`), productivity logs (`:430`), missions/battle-pass tests. Correct for India, **wrong for every other timezone** (a US/EU evening session lands on the wrong "day"), and travel/DST is unhandled (IST has no DST, so travellers gain/lose days). No `streaks` history/audit table, no Streak Shield, no user-local-midnight cron — missed-day evaluation happens only on next completion/read.
 
-### 2.6 SEO surface — unusually thorough for a SPA; Lighthouse needs measuring
+### 2.6 SEO surface — unusually thorough for a SPA; Lighthouse now measured (SEO 100 on all key pages — see §6 #3)
 
 - `index.html`: unique title/description, canonical apex, OG + Twitter large-image, 6 JSON-LD blocks (Organization, WebSite+SearchAction, SoftwareApplication *without* self-serving `aggregateRating` — deliberate, documented `:152-163` — FAQPage ×10, ItemList), `theme-color` ×2, `manifest`, `apple-touch-icon`, GA4 (`G-PXMVX28PL5`, `send_page_view:false` to avoid double-count), AdSense async. GSC verification slot present but empty (`:21-23`).
 - `robots.txt`: apex sitemap, private routes disallowed, `/api/` blocked except SEO endpoints, AdsBot/Mediapartners explicitly allowed, AI crawlers deliberately allowed with rationale (`:106-149`).

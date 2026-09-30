@@ -59,23 +59,19 @@ describe("timer flow", () => {
     await waitFor(() => expect(byText("Choose focus type").length).toBe(0));
     // Pick "Deep Work" inside the session-type picker.
     const deepWork = Array.from(document.querySelectorAll("button")).filter((b) => /Deep Work/.test(b.textContent || "") && b.className.includes("rounded-2xl"));
-    // eslint-disable-next-line no-console
     console.log("SESSION TYPES:", deepWork.length, JSON.stringify(deepWork.map((b) => (b.textContent || "").slice(0, 24))));
     await click(deepWork[0]);
     await act(async () => { await Promise.resolve(); });
 
     const confirm = byText("Start session").filter((b) => b.className.includes("brand-600"));
-    // eslint-disable-next-line no-console
     console.log("LOCK CONFIRM:", confirm.length, "ARIA START:", byAria(/pause|start session/i).map((b) => b.getAttribute("aria-label")).join(" | "));
     await click(confirm[0]);
     await act(async () => { await Promise.resolve(); });
 
     const label0 = digits();
-    // eslint-disable-next-line no-console
     console.log("LABEL AFTER START:", JSON.stringify(label0), "RUNNING BUTTONS:", byAria(/pause/i).length);
     await act(async () => { await new Promise((r) => setTimeout(r, 2300)); });
     const label1 = digits();
-    // eslint-disable-next-line no-console
     console.log("LABEL AFTER 2.3s:", JSON.stringify(label1));
     expect(label0).toBeTruthy();
     expect(label1).not.toBe(label0);

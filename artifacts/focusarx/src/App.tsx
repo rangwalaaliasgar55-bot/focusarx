@@ -163,14 +163,44 @@ function MobileWelcomeGate({ children }: { children: ReactNode }) {
       const path = window.location.pathname;
       // Auth / admin pages handle their own flow
       const authPaths = ["/welcome", "/login", "/signup", "/forgot-password", "/reset-password", "/auth", "/admin"];
-      // Public marketing & SEO pages must never redirect — crawlers and direct-link visitors should see content
+      // Public marketing & SEO pages must never redirect — crawlers and
+      // direct-link visitors (incl. real mobile users following a Google result)
+      // must see the content, not the welcome funnel. This list has to track the
+      // public routes registered below; a missing entry silently bounces mobile
+      // visitors to /welcome, which is bad for SEO and conversions. (Protected
+      // routes are guarded independently by ProtectedRoute, so listing a path
+      // here can never expose gated content — it only opts the path out of the
+      // first-run welcome redirect.)
       const publicPaths = [
-        "/focus-guide", "/pomodoro-guide", "/study-techniques", "/virtual-study-room",
-        "/deep-study-guide", "/two-hour-study-method",
-        "/study-rooms", "/breathe", "/break-free", "/roadmap", "/leaderboard",
+        // Timer landing pages
+        "/focus-timer", "/pomodoro-timer", "/study-timer",
+        "/5-minute-timer", "/10-minute-timer", "/15-minute-timer",
+        "/30-minute-timer", "/45-minute-timer",
+        "/study-timer-for-medical-students", "/focus-timer-for-programmers",
+        // Guides & study techniques
+        "/focus-guide", "/pomodoro-guide", "/study-techniques", "/guides",
+        "/deep-study-guide", "/deep-work-guide", "/two-hour-study-method",
+        "/science-of-deep-work", "/feynman-technique", "/how-to-focus-while-studying",
+        "/adhd-focus-tips", "/adhd-focus-tools",
+        // Focus/study content
+        "/virtual-study-room", "/study-rooms", "/study-with-me", "/body-doubling",
+        "/focus-music", "/breathe", "/break-free", "/stop-procrastinating",
+        "/stop-scrolling",
+        // Tools & quizzes
+        "/study-calculator", "/study-method-quiz",
+        // Exams
+        "/exam",
+        // Company / blog / product
+        "/blog", "/changelog", "/press", "/evidence", "/safety", "/accessibility",
+        "/roadmap", "/leaderboard",
         "/about", "/contact", "/support", "/pricing", "/comparison/",
+        // Localised pricing landings (/es, /hi, /in, /us, /pt-br and /<locale>/pricing)
+        "/es", "/hi", "/in", "/us", "/pt-br",
+        // Legal
         "/privacy", "/terms", "/cookie-policy", "/acceptable-use", "/ai-policy",
-        "/data-deletion", "/u/",
+        "/data-deletion", "/camera-data", "/consequences",
+        // Public profiles
+        "/u/",
       ];
       const skip = [...authPaths, ...publicPaths];
       // Deep-link entry points must never bounce to /welcome: the timer is

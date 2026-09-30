@@ -12,6 +12,7 @@
     "test": "corepack pnpm run test:scripts && corepack pnpm -r --if-present run test",
     "test:a11y": "playwright test tests/e2e/accessibility.spec.ts",
     "test:responsive": "playwright test tests/e2e/responsive.spec.ts",
+    "test:e2e:app": "playwright test tests/e2e/cross-tab-leader.spec.ts tests/e2e/responsive.spec.ts tests/e2e/timer-persistence.spec.ts tests/e2e/token-premium.spec.ts",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install --with-deps chromium",
     "lint": "eslint .",

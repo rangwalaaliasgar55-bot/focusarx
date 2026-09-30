@@ -116,7 +116,7 @@ export default function StopProcrastinatingPage() {
           The most useful finding in procrastination research is this: <strong className="text-[var(--foreground)]">procrastination is an emotion-regulation problem, not a time-management problem.</strong> When a task feels boring, overwhelming, ambiguous, or threatening (what if my work isn't good enough?), your brain seeks relief — and relief is one click away. Scrolling isn't the disease; it's the anesthetic.
         </P>
         <P>
-          This explains three puzzling facts. Why you procrastinate on <em>important</em> tasks but not fun ones (importance raises the emotional stakes). Why tighter deadlines sometimes make it worse (more anxiety → more avoidance). And why beating yourself up backfires: shame adds a <em>new</em> negative emotion to the task, making it even more avoidable. In studies, <Link href="/focus-guide" className="text-[var(--brand-400)] hover:underline">students who forgave themselves</Link> for procrastinating procrastinated less on the next exam.
+          This explains three puzzling facts. Why you procrastinate on <em>important</em> tasks but not fun ones (importance raises the emotional stakes). Why tighter deadlines sometimes make it worse (more anxiety → more avoidance). And why beating yourself up backfires: shame adds a <em>new</em> negative emotion to the task, making it even more avoidable. In studies, <Link href="/focus-guide" className="text-[var(--brand-400)] underline underline-offset-2">students who forgave themselves</Link> for procrastinating procrastinated less on the next exam.
         </P>
         <P>
           The escape from the loop is counterintuitive: make starting <em>ridiculously easy</em>, make progress <em>visible</em>, and make the reward <em>immediate</em>. Every method below is one of those three in disguise.
@@ -131,7 +131,7 @@ export default function StopProcrastinatingPage() {
         <P>Shrink any task until its first step takes two minutes: "open the document," "write one ugly sentence," "put on shoes." The rule isn't about finishing in 2 minutes — it's about making starting so cheap that avoidance has nothing to push against.</P>
 
         <H3><span className="flex items-center gap-2"><Clock size={18} className="text-[var(--brand-400)]" /> 2. Timebox, don't task-box</span></H3>
-        <P>Commit to <em>time</em>, not outcomes: "25 minutes on the essay" instead of "finish the essay." A time commitment is always achievable, which keeps your brain from negotiating, and it's exactly how the <Link href="/pomodoro-guide" className="text-[var(--brand-400)] hover:underline">Pomodoro technique</Link> works.</P>
+        <P>Commit to <em>time</em>, not outcomes: "25 minutes on the essay" instead of "finish the essay." A time commitment is always achievable, which keeps your brain from negotiating, and it's exactly how the <Link href="/pomodoro-guide" className="text-[var(--brand-400)] underline underline-offset-2">Pomodoro technique</Link> works.</P>
 
         <H3><span className="flex items-center gap-2"><Brain size={18} className="text-[var(--brand-400)]" /> 3. Implementation intentions</span></H3>
         <P>Pre-decide the trigger: <strong className="text-[var(--foreground)]">"When X happens, I will do Y."</strong> "When I sit down at my desk at 9am, I start my first 25-minute session on chapter 3." Deciding once, in advance, removes the in-the-moment negotiation where procrastination wins. This is one of the most replicated findings in behavioral science.</P>
@@ -146,7 +146,7 @@ export default function StopProcrastinatingPage() {
         <P>"Work on project" is ambiguous, and ambiguity is fuel for avoidance. Rewrite every to-do as the next <em>physical</em> action: "email Dr. Rao the draft," "solve problems 4–7," "write the intro outline." If you can't picture yourself doing it in 10 seconds, it's not defined yet.</P>
 
         <H3><span className="flex items-center gap-2"><Users size={18} className="text-[var(--brand-400)]" /> 7. Body doubling and accountability</span></H3>
-        <P>Work beside someone — a friend, a <Link href="/virtual-study-room" className="text-[var(--brand-400)] hover:underline">virtual study room</Link>, a coworker on a call. Being observed quietly suppresses the impulse to tab-swap, and a promised check-in converts a vague intention into a social commitment.</P>
+        <P>Work beside someone — a friend, a <Link href="/virtual-study-room" className="text-[var(--brand-400)] underline underline-offset-2">virtual study room</Link>, a coworker on a call. Being observed quietly suppresses the impulse to tab-swap, and a promised check-in converts a vague intention into a social commitment.</P>
 
         <H3><span className="flex items-center gap-2"><CheckCircle size={18} className="text-[var(--brand-400)]" /> 8. Make progress visible</span></H3>
         <P>Done-lists, streaks, session counts — visible progress triggers the "don't break the chain" effect. Crossing off a session feels small, but streak psychology is powerful enough to pull you to the desk on low-motivation days. (This is why FocusArx is built around streaks and XP.)</P>
@@ -181,7 +181,7 @@ export default function StopProcrastinatingPage() {
           ))}
         </div>
         <P>
-          Want to go deeper on structuring the blocks themselves? Read the <Link href="/two-hour-study-method" className="text-[var(--brand-400)] hover:underline">2-hour study method</Link>, the <Link href="/focus-guide" className="text-[var(--brand-400)] hover:underline">complete focus guide</Link>, or — if avoidance feels deeper than normal, with intense restlessness or attention swings — our guide on <Link href="/adhd-focus-tips" className="text-[var(--brand-400)] hover:underline">focusing with ADHD</Link>.
+          Want to go deeper on structuring the blocks themselves? Read the <Link href="/two-hour-study-method" className="text-[var(--brand-400)] underline underline-offset-2">2-hour study method</Link>, the <Link href="/focus-guide" className="text-[var(--brand-400)] underline underline-offset-2">complete focus guide</Link>, or — if avoidance feels deeper than normal, with intense restlessness or attention swings — our guide on <Link href="/adhd-focus-tips" className="text-[var(--brand-400)] underline underline-offset-2">focusing with ADHD</Link>.
         </P>
         <div className="mt-8 rounded-2xl border border-[var(--brand-600)]/30 bg-[var(--brand-soft)] to-transparent p-8 text-center">
           <h3 className="mb-2 text-xl font-semibold text-[var(--foreground)]">Beat avoidance with a 2-minute start</h3>
@@ -199,7 +199,7 @@ export default function StopProcrastinatingPage() {
           {FAQS.map((f) => <FAQ key={f.q} {...f} />)}
         </div>
         <p className="mt-10 text-sm text-[var(--foreground-muted)]">
-          More in the <Link href="/guides" className="text-[var(--brand-400)] hover:underline">FocusArx guide library</Link>: <Link href="/study-techniques" className="text-[var(--brand-400)] hover:underline">best study techniques</Link>, <Link href="/science-of-deep-work" className="text-[var(--brand-400)] hover:underline">the science of deep work</Link>, and <Link href="/focus-music" className="text-[var(--brand-400)] hover:underline">the truth about focus music</Link>.
+          More in the <Link href="/guides" className="text-[var(--brand-400)] underline underline-offset-2">FocusArx guide library</Link>: <Link href="/study-techniques" className="text-[var(--brand-400)] underline underline-offset-2">best study techniques</Link>, <Link href="/science-of-deep-work" className="text-[var(--brand-400)] underline underline-offset-2">the science of deep work</Link>, and <Link href="/focus-music" className="text-[var(--brand-400)] underline underline-offset-2">the truth about focus music</Link>.
         </p>
       </Section>
     </div>

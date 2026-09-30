@@ -438,7 +438,7 @@ function MessagesPageInner() {
             <div className="text-center py-12 text-[var(--foreground-subtle)]">
               <MessageSquare size={32} className="mx-auto mb-2 opacity-30" />
               <p className="text-sm">No conversations yet</p>
-              <button onClick={() => setShowNew(true)} className="mt-3 text-xs text-[var(--brand-600)] hover:underline">Start one →</button>
+              <button onClick={() => setShowNew(true)} className="mt-3 text-xs text-[var(--brand-600)] underline underline-offset-2">Start one →</button>
             </div>
           ) : (
             filtered.map((c) => {

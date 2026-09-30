@@ -20,6 +20,19 @@ function isMobileWidth(width: number | undefined) {
   return (width ?? 1280) < 768;
 }
 
+test.beforeEach(async ({ context }) => {
+  // Pre-record a cookie-consent choice so the consent banner never shows. It
+  // otherwise appears after the first interaction (or a 12s fallback) and can
+  // cover the start button on narrow viewports.
+  await context.addInitScript(() => {
+    try {
+      localStorage.setItem("focusarx-cookie-consent", "essential");
+    } catch {
+      /* private mode — the banner simply stays hidden for this view */
+    }
+  });
+});
+
 test.describe("focus deep links", () => {
   test("/focus?duration=25&task=E2E arms the idle timer", async ({ page }) => {
     const response = await page.goto("/focus?duration=25&task=E2E", { waitUntil: "domcontentloaded" });
@@ -45,10 +58,6 @@ test.describe("guest session survival", () => {
   test("a started session resumes after reload with remaining time", async ({ page }) => {
     await page.goto("/focus", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("25:00").first()).toBeVisible({ timeout: 10_000 });
-    // The first-visit notice covers the start button on 320px phones. Dismiss
-    // it as a visitor would, rather than bypassing hit testing with force:true.
-    await page.getByRole("button", { name: "Dismiss cookie notice" }).click();
-
     const width = page.viewportSize()?.width;
     if (isMobileWidth(width)) {
       await page.getByRole("button", { name: "Start focus session" }).click();
@@ -73,7 +82,6 @@ test.describe("guest session survival", () => {
   test("the timer starts while offline", async ({ page, context }) => {
     await page.goto("/focus", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("25:00").first()).toBeVisible({ timeout: 10_000 });
-    await page.getByRole("button", { name: "Dismiss cookie notice" }).click();
     await context.setOffline(true);
     try {
       const width = page.viewportSize()?.width;

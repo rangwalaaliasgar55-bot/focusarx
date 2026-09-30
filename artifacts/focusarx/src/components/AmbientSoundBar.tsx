@@ -346,7 +346,7 @@ export default function AmbientSoundBar({ variant = "pill", className = "" }: Pr
                     </div>
                     <p className="mt-1 truncate pl-8 text-[11px] text-[var(--foreground-subtle)]">
                       {looping ? "Loops continuously" : "Plays once"}{track.credit ? ` · ${track.credit}` : ""}{track.license ? ` · ${track.license}` : ""}
-                      {track.sourceUrl && <a href={track.sourceUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-[var(--brand-400)] hover:underline">Source ↗</a>}
+                      {track.sourceUrl && <a href={track.sourceUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-[var(--brand-400)] underline underline-offset-2">Source ↗</a>}
                     </p>
                   </li>
                 );

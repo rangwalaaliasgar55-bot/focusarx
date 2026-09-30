@@ -79,7 +79,7 @@ router.get("/pets/catalog", async (req, res) => {
 router.get("/pets/inventory", authMiddleware, async (req: AuthRequest, res) => {
   await ensureSeeded();
   try {
-    let inventory = await db.select({
+    const inventory = await db.select({
       inventory: userPetInventoryTable,
       catalog: petCatalogTable,
     }).from(userPetInventoryTable)

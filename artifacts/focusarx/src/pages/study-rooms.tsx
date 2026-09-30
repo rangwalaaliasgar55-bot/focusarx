@@ -826,7 +826,7 @@ export default function StudyRoomsPage() {
       if (!q) return true;
       return r.name.toLowerCase().includes(q) || (r.topic ?? "").toLowerCase().includes(q) || (r.description ?? "").toLowerCase().includes(q);
     });
-  }, [rooms, filter, search]);
+  }, [rooms, filter, search, envFilter]);
 
   const liveRooms = rooms.filter((r) => r.isLive).length;
   const busy = joinMut.isPending || leaveMut.isPending || endMut.isPending;

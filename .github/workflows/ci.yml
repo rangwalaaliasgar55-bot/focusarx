@@ -183,12 +183,148 @@ jobs:
 
       - name: Build frontend
         run: pnpm --filter @workspace/focusarx run build
+        env:
+          VITE_APP_URL: https://www.focusarx.site
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Run accessibility tests
         run: pnpm test:a11y
+
+      # The raw job log is not always retrievable; the HTML report carries the
+      # exact axe rule / overflowing element per page+viewport, so keep it even
+      # (especially) when the step above fails.
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-a11y-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  e2e:
+    name: E2E (behavioural happy paths)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        run: pnpm --filter @workspace/focusarx run build
+        env:
+          VITE_APP_URL: https://www.focusarx.site
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      # cross-tab leader election, guest timer persistence (reload/offline),
+      # mobile responsive contract, and premium-economy UI gating — all run
+      # against the static preview server, no live API required. Restricted to a
+      # representative desktop + one mobile viewport (the specs self-skip by
+      # width): the full 9-project matrix is ~324 tests and belongs to the axe
+      # job, which needs every width for overflow; the behavioural contracts do
+      # not, so two projects keep this job fast without losing coverage.
+      # Call Playwright directly: `pnpm run <script> -- <flags>` does NOT forward
+      # --project/--workers through to Playwright (they were silently dropped, so
+      # all 9 projects ran and chrome-headless-shell SIGSEGV'd under the memory
+      # pressure). `pnpm exec` passes every flag straight to the binary.
+      # --workers=1: unlike the axe job (which only loads pages + runs axe and is
+      # stable at default parallelism), these behavioural specs drive timers,
+      # audio/web-workers and dual cross-tab contexts. Two concurrent browsers
+      # doing that exhausted chrome-headless-shell, which crashed ("Target has
+      # been closed") and took out whichever lightweight test ran next in that
+      # worker. Serialising to one browser removes that contention; the suite is
+      # only ~70 tests so the wall-clock cost is acceptable.
+      - name: Run behavioural E2E
+        run: >
+          pnpm exec playwright test
+          tests/e2e/cross-tab-leader.spec.ts
+          tests/e2e/responsive.spec.ts
+          tests/e2e/timer-persistence.spec.ts
+          tests/e2e/token-premium.spec.ts
+          --project=desktop --project=w375 --workers=1
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  lighthouse:
+    name: Lighthouse (perf + a11y + SEO on key pages)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        run: pnpm --filter @workspace/focusarx run build
+        env:
+          VITE_APP_URL: https://www.focusarx.site
+
+      - name: Serve the production build on :4173
+        # `serve` is `vite preview`; background it and wait for the port so LHCI
+        # measures the real built bundle, the same artifact Vercel ships.
+        run: |
+          corepack pnpm --filter @workspace/focusarx run serve -- --port 4173 &
+          npx --yes wait-on http://127.0.0.1:4173 --timeout 60000
+
+      # Runs the thresholds in lighthouserc.json (perf >= 0.90, a11y/seo >= 0.95,
+      # LCP <= 2.5s, CLS <= 0.05). Observed FLAKY at the boundary on CI on
+      # 2026-09-29: run 36600196101 passed (3m2s), run 36601542687 failed (3m5s)
+      # with no code change — simulated-throttling perf scores fluctuate run to
+      # run right at 0.90. Kept non-blocking (`continue-on-error`) so the numbers
+      # are measured and surfaced without a flaky gate blocking every merge. To
+      # make it a real gate, first stabilise: raise numberOfRuns and/or nudge the
+      # perf threshold to the observed floor once a p50 baseline is known.
+      - name: Lighthouse CI
+        continue-on-error: true
+        run: |
+          npx --yes @lhci/cli@0.15.x autorun \
+            --config=./lighthouserc.json \
+            --upload.target=temporary-public-storage
+
+      # Publish the measured scores where they're retrievable: `::notice::`
+      # annotations (via the check-runs API) + the job summary. The raw LHCI log
+      # and the temporary-public-storage report are not reachable everywhere.
+      - name: Publish Lighthouse scores
+        if: always()
+        run: node scripts/lh-annotate.mjs
 
   security:
     name: Security (secrets + dependency sweep)

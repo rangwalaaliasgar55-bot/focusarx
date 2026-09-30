@@ -77,7 +77,7 @@ export default function SearchPage() {
           {results.length === 0 && (
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-8 text-center">
               <p className="font-bold text-[var(--foreground)]">No results for “{query}”</p>
-              <p className="mt-1 text-sm text-[var(--foreground-muted)]">Try “focus”, “study”, “pomodoro”, or browse the <Link href="/guides" className="text-[var(--brand-400)] hover:underline">full guide library</Link>.</p>
+              <p className="mt-1 text-sm text-[var(--foreground-muted)]">Try “focus”, “study”, “pomodoro”, or browse the <Link href="/guides" className="text-[var(--brand-400)] underline underline-offset-2">full guide library</Link>.</p>
             </div>
           )}
         </div>

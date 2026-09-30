@@ -171,7 +171,7 @@ export default function PremiumPage() {
               Unlock with <span className="font-semibold text-[var(--brand-400)]">Focus Tokens</span> — no real-money payments. Earn tokens through focus.
             </p>
           </div>
-          <Link href="/dashboard" className="text-xs font-medium text-[var(--brand-400)] hover:underline">
+          <Link href="/dashboard" className="text-xs font-medium text-[var(--brand-400)] underline underline-offset-2">
             ← Dashboard
           </Link>
         </div>

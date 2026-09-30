@@ -20,7 +20,29 @@ export default defineConfig({
   // Timing-sensitive specs (reload resume, offline start) flake on loaded
   // runners; one retry distinguishes product bugs from infrastructure noise.
   retries: process.env.CI ? 2 : 0,
-  use: { baseURL: "http://127.0.0.1:4173", trace: "retain-on-failure" },
+  // `list` keeps the console readable; the HTML report (uploaded as a CI
+  // artifact) is the only way to see which axe rule / which element failed on a
+  // headless runner, because GitHub's raw job logs are not always retrievable.
+  // `github` emits `::error::` workflow commands that surface as check-run
+  // annotations — the one failure channel retrievable via the API when both the
+  // raw job log and the HTML-report artifact are served from blob storage that
+  // is not always reachable. It carries the spec's verbose per-violation message
+  // (rule + offending selector). `html` is still uploaded for humans.
+  reporter: process.env.CI
+    ? [["list"], ["github"], ["html", { open: "never", outputFolder: "playwright-report" }]]
+    : [["list"]],
+  use: {
+    baseURL: "http://127.0.0.1:4173",
+    trace: "retain-on-failure",
+    // The GitHub runners were crashing chrome-headless-shell with a SIGSEGV
+    // inside the GPU process ("InitializeSandbox() called with multiple threads
+    // in process gpu-process" → signal 11), which surfaced as spurious
+    // "Target page/context/browser has been closed" and 30 s test timeouts on
+    // whichever spec happened to be running. Disabling the GPU process removes
+    // that crash path entirely; on a headless runner there is nothing to
+    // accelerate anyway.
+    launchOptions: { args: ["--disable-gpu"] },
+  },
   webServer: {
     command: "corepack pnpm --filter @workspace/focusarx run serve -- --port 4173",
     url: "http://127.0.0.1:4173",

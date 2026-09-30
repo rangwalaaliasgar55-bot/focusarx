@@ -1,6 +1,18 @@
 import { test, expect } from "@playwright/test";
 
 /** Browser UI contracts. Ledger atomicity is tested against PostgreSQL, not here. */
+test.beforeEach(async ({ context }) => {
+  // Pre-record a cookie-consent choice so the consent banner never shows and
+  // cannot cover UI or add stray elements to the overflow/metadata assertions.
+  await context.addInitScript(() => {
+    try {
+      localStorage.setItem("focusarx-cookie-consent", "essential");
+    } catch {
+      /* private mode — the banner simply stays hidden for this view */
+    }
+  });
+});
+
 test.describe("Premium economy UI", () => {
   test("premium page requires sign-in for anonymous visitors", async ({ page }) => {
     await page.goto("/premium");
@@ -8,7 +20,15 @@ test.describe("Premium economy UI", () => {
     await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
   });
 
-  test("free users see cost, balance and earn actions without issuing AI requests", async ({ page }) => {
+  test("free users see cost, balance and earn actions without issuing AI requests", async ({ page, context }) => {
+    // The auth provider skips the session probe entirely unless a token or the
+    // `focusarx_session_hint` cookie is present (it avoids a guaranteed 401 on a
+    // first, signed-out visit). Without this hint the mocked /api/auth/session
+    // below is never read, the user reads as signed-out, and ProtectedRoute
+    // bounces /ai-insights to /login before the gate can render.
+    await context.addCookies([
+      { name: "focusarx_session_hint", value: "1", url: "http://127.0.0.1:4173" },
+    ]);
     // Fixtures only replace API responses; the real route, auth provider,
     // premium hook, gate and querying components still run in the browser.
     await page.route("**/api/auth/session", (route) => route.fulfill({ json: {

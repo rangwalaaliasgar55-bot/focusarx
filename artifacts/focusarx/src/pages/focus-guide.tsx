@@ -161,12 +161,12 @@ export default function FocusGuidePage() {
 
         <H3>The Pomodoro Technique</H3>
         <P>
-          Developed by Francesco Cirillo in the late 1980s, Pomodoro breaks work into 25-minute sprints ("pomodoros") separated by 5-minute breaks, with a longer 15–30 minute break after every four. Its power is psychological: a 25-minute commitment feels achievable, which lowers the activation energy to start. For deep, creative work, many people extend the work interval to 45–52 minutes. See our full <Link href="/pomodoro-guide" className="text-[var(--brand-400)] hover:underline">Pomodoro guide</Link>.
+          Developed by Francesco Cirillo in the late 1980s, Pomodoro breaks work into 25-minute sprints ("pomodoros") separated by 5-minute breaks, with a longer 15–30 minute break after every four. Its power is psychological: a 25-minute commitment feels achievable, which lowers the activation energy to start. For deep, creative work, many people extend the work interval to 45–52 minutes. See our full <Link href="/pomodoro-guide" className="text-[var(--brand-400)] underline underline-offset-2">Pomodoro guide</Link>.
         </P>
 
         <H3>Deep Work (Cal Newport)</H3>
         <P>
-          Author Cal Newport defines <em>deep work</em> as "professional activities performed in a state of distraction-free concentration that push your cognitive capabilities to their limit." His core argument: in an economy that rewards rare, valuable skills, the ability to focus intensely is a superpower that's becoming rarer precisely because it's hard. Newport recommends scheduling dedicated deep-work blocks, embracing boredom (resisting the urge to fill every idle moment with stimulation), and quitting shallow work. Read our <Link href="/science-of-deep-work" className="text-[var(--brand-400)] hover:underline">science of deep work</Link> explainer.
+          Author Cal Newport defines <em>deep work</em> as "professional activities performed in a state of distraction-free concentration that push your cognitive capabilities to their limit." His core argument: in an economy that rewards rare, valuable skills, the ability to focus intensely is a superpower that's becoming rarer precisely because it's hard. Newport recommends scheduling dedicated deep-work blocks, embracing boredom (resisting the urge to fill every idle moment with stimulation), and quitting shallow work. Read our <Link href="/science-of-deep-work" className="text-[var(--brand-400)] underline underline-offset-2">science of deep work</Link> explainer.
         </P>
 
         <H3>Time blocking</H3>
@@ -181,12 +181,12 @@ export default function FocusGuidePage() {
 
         <H3>The 2-hour study method</H3>
         <P>
-          For exam prep and deep learning, a structured two-hour block (warm-up → intense focused study → retrieval practice → review) outperforms scattered, unfocused hours. We break it down in our <Link href="/two-hour-study-method" className="text-[var(--brand-400)] hover:underline">2-hour study method</Link> guide.
+          For exam prep and deep learning, a structured two-hour block (warm-up → intense focused study → retrieval practice → review) outperforms scattered, unfocused hours. We break it down in our <Link href="/two-hour-study-method" className="text-[var(--brand-400)] underline underline-offset-2">2-hour study method</Link> guide.
         </P>
 
         <H3>Spaced repetition & the Feynman technique</H3>
         <P>
-          Focus isn't just about staying seated — it's about how you encode information. <strong className="text-[var(--foreground)]">Spaced repetition</strong> (reviewing material at increasing intervals) exploits the forgetting curve, while the <strong className="text-[var(--foreground)]">Feynman technique</strong> (explain a concept in plain language, find the gaps, fill them) turns passive reading into active understanding. Learn more in our <Link href="/feynman-technique" className="text-[var(--brand-400)] hover:underline">Feynman technique</Link> and <Link href="/study-techniques" className="text-[var(--brand-400)] hover:underline">study techniques</Link> guides.
+          Focus isn't just about staying seated — it's about how you encode information. <strong className="text-[var(--foreground)]">Spaced repetition</strong> (reviewing material at increasing intervals) exploits the forgetting curve, while the <strong className="text-[var(--foreground)]">Feynman technique</strong> (explain a concept in plain language, find the gaps, fill them) turns passive reading into active understanding. Learn more in our <Link href="/feynman-technique" className="text-[var(--brand-400)] underline underline-offset-2">Feynman technique</Link> and <Link href="/study-techniques" className="text-[var(--brand-400)] underline underline-offset-2">study techniques</Link> guides.
         </P>
       </Section>
 
@@ -262,7 +262,7 @@ export default function FocusGuidePage() {
         <H2>Focus strategies for different goals</H2>
         <H3>For students</H3>
         <P>
-          Students face a unique challenge: large volumes of information that must be both understood and retained. Pair deep-work blocks with <strong className="text-[var(--foreground)]">active recall</strong> (test yourself instead of re-reading) and <strong className="text-[var(--foreground)]">spaced repetition</strong>. A proven structure is the 2-hour study method: warm-up, focused study, retrieval practice, and review — which we detail in our <Link href="/two-hour-study-method" className="text-[var(--brand-400)] hover:underline">2-hour study method</Link> guide. Exam season rewards the student who has built consistent focus weeks earlier, not the one cramming.
+          Students face a unique challenge: large volumes of information that must be both understood and retained. Pair deep-work blocks with <strong className="text-[var(--foreground)]">active recall</strong> (test yourself instead of re-reading) and <strong className="text-[var(--foreground)]">spaced repetition</strong>. A proven structure is the 2-hour study method: warm-up, focused study, retrieval practice, and review — which we detail in our <Link href="/two-hour-study-method" className="text-[var(--brand-400)] underline underline-offset-2">2-hour study method</Link> guide. Exam season rewards the student who has built consistent focus weeks earlier, not the one cramming.
         </P>
         <H3>For professionals & developers</H3>
         <P>

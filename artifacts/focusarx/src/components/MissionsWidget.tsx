@@ -82,7 +82,7 @@ export default function MissionsWidget() {
           <div className="text-center py-4">
             <p className="text-2xl mb-1"><Target size={16} aria-hidden="true" /></p>
             <p className="text-xs text-[var(--foreground-subtle)]">All daily missions done!</p>
-            <Link href="/missions" className="text-[0.6875rem] text-[var(--brand-400)] hover:underline">Check weekly missions →</Link>
+            <Link href="/missions" className="text-[0.6875rem] text-[var(--brand-400)] underline underline-offset-2">Check weekly missions →</Link>
           </div>
         ) : (
           displayMissions.map((m) => {

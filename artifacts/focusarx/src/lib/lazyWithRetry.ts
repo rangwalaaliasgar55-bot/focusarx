@@ -10,6 +10,11 @@ import { lazy, type ComponentType, type LazyExoticComponent } from "react";
  * version mismatch occurs after a deployment, automatically triggers a single page
  * reload to fetch fresh chunks without breaking the user experience into a white screen.
  */
+// `any` mirrors React's own `React.lazy` / `ComponentType<any>` signature: this
+// is a generic pass-through wrapper, and narrowing the constraint (e.g. to
+// `ComponentType<{}>`) would reject callers whose components declare required
+// props, because component props are contravariant.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function lazyWithRetry<T extends ComponentType<any>>(
   factory: () => Promise<{ default: T }>,
   retries = 2,

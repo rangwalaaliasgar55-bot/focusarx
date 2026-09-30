@@ -34,6 +34,9 @@ overrides:
   # Security pins: patched runtime and build-tool versions.
   '@babel/core@<7.29.6': ^7.29.6
   'brace-expansion@>=5.0.0 <5.0.9': ^5.0.9
+  # engine.io <6.6.10 has a DoS (GHSA-2gc4-cqfq-p2gv); it is transitive via
+  # socket.io, so pin the patched patch release.
+  'engine.io@>=6.6.0 <6.6.10': ^6.6.10
   'browserslist@<4.28.7': ^4.28.7
   'nanoid@>=3.0.0 <3.3.18': ^3.3.18
   'postcss@<8.5.23': ^8.5.23

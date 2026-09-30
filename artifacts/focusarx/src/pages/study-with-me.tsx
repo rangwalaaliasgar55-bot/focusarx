@@ -117,9 +117,9 @@ export default function StudyWithMePage() {
       <Section id="why-it-works">
         <H2>Four reasons study-with-me sessions work</H2>
         <H3><span className="flex items-center gap-2"><CheckCircle size={18} className="text-[var(--brand-400)]" /> 1. Starting stops being a solo battle</span></H3>
-        <P>Task initiation is the hardest step — see our guide on <Link href="/stop-procrastinating" className="text-[var(--brand-400)] hover:underline">how to stop procrastinating</Link>. A session that starts at a fixed time with other people in it removes the negotiation entirely. You don't decide to start; the room starts.</P>
+        <P>Task initiation is the hardest step — see our guide on <Link href="/stop-procrastinating" className="text-[var(--brand-400)] underline underline-offset-2">how to stop procrastinating</Link>. A session that starts at a fixed time with other people in it removes the negotiation entirely. You don't decide to start; the room starts.</P>
         <H3><span className="flex items-center gap-2"><Timer size={18} className="text-[var(--brand-400)]" /> 2. Synchronized timers create rhythm</span></H3>
-        <P>Rooms that run shared <Link href="/pomodoro-guide" className="text-[var(--brand-400)] hover:underline">Pomodoro cycles</Link> — 25 on, 5 off — give your session structure you didn't have to invent. Breaks happen because the room takes them, which also prevents the other failure mode: skipping breaks until you burn out at minute 70.</P>
+        <P>Rooms that run shared <Link href="/pomodoro-guide" className="text-[var(--brand-400)] underline underline-offset-2">Pomodoro cycles</Link> — 25 on, 5 off — give your session structure you didn't have to invent. Breaks happen because the room takes them, which also prevents the other failure mode: skipping breaks until you burn out at minute 70.</P>
         <H3><span className="flex items-center gap-2"><Flame size={18} className="text-[var(--brand-400)]" /> 3. Streaks become social</span></H3>
         <P>When your session count and streak are visible to a room or friends, consistency acquires a social layer. Missing a day feels different when your study buddy notices — and celebrating a 30-day streak together is far stickier than a private checkbox.</P>
         <H3><span className="flex items-center gap-2"><Globe size={18} className="text-[var(--brand-400)]" /> 4. Any hour, someone's awake</span></H3>
@@ -146,7 +146,7 @@ export default function StudyWithMePage() {
       <Section id="start">
         <H2>How to start today</H2>
         <P>
-          The simplest version: pick the task you've been avoiding, open a <Link href="/virtual-study-room" className="text-[var(--brand-400)] hover:underline">virtual study room</Link>, and do one synchronized 25-minute cycle. That's it. If you want a template for longer sessions, our <Link href="/two-hour-study-method" className="text-[var(--brand-400)] hover:underline">2-hour study method</Link> shows how to stack cycles into a complete deep-study block.
+          The simplest version: pick the task you've been avoiding, open a <Link href="/virtual-study-room" className="text-[var(--brand-400)] underline underline-offset-2">virtual study room</Link>, and do one synchronized 25-minute cycle. That's it. If you want a template for longer sessions, our <Link href="/two-hour-study-method" className="text-[var(--brand-400)] underline underline-offset-2">2-hour study method</Link> shows how to stack cycles into a complete deep-study block.
         </P>
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-hover)] p-5">
@@ -175,7 +175,7 @@ export default function StudyWithMePage() {
           {FAQS.map((f) => <FAQ key={f.q} {...f} />)}
         </div>
         <p className="mt-10 text-sm text-[var(--foreground-muted)]">
-          More in the <Link href="/guides" className="text-[var(--brand-400)] hover:underline">FocusArx guide library</Link> — including <Link href="/adhd-focus-tips" className="text-[var(--brand-400)] hover:underline">focusing with ADHD</Link> and <Link href="/focus-music" className="text-[var(--brand-400)] hover:underline">what to listen to while you work</Link>.
+          More in the <Link href="/guides" className="text-[var(--brand-400)] underline underline-offset-2">FocusArx guide library</Link> — including <Link href="/adhd-focus-tips" className="text-[var(--brand-400)] underline underline-offset-2">focusing with ADHD</Link> and <Link href="/focus-music" className="text-[var(--brand-400)] underline underline-offset-2">what to listen to while you work</Link>.
         </p>
       </Section>
     </div>

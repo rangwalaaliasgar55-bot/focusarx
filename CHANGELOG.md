@@ -2,6 +2,390 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [2026-09-30] — security CVE patch, mobile welcome gate, and a green mobile E2E contract
+
+Work toward getting the branch's CI fully green so PR #98 can merge. Three
+distinct changes, each with its own commit.
+
+### Patched two newly-disclosed high-severity CVEs (`a0fe55d`)
+
+- **`nodemailer` and `engine.io`** were bumped to their patched releases after a
+  fresh `pnpm audit` flagged high-severity advisories. **Before:** `pnpm audit`
+  reported the two advisories; **after:** the affected trees resolve to the
+  patched versions and the audit is clean. No API surface change — the mailer and
+  socket transports are used exactly as before, and the api-server suite stays
+  green.
+
+### Mobile welcome gate no longer hijacks public SEO/marketing routes (`978680a`)
+
+- **`MobileWelcomeGate` in `src/App.tsx`** previously redirected almost every
+  first-visit mobile URL to `/welcome`, which meant a crawler (or a user) landing
+  on a public timer, guide, ADHD, exam, blog, changelog, legal or locale-root
+  page was bounced to the welcome screen instead of the content. The
+  `publicPaths` allowlist is now a comprehensive enumeration of the public
+  SEO/marketing surface (timers, guides, ADHD, content, tools, exam,
+  blog/changelog/press/evidence/safety/accessibility, locale roots
+  `/es /hi /in /us /pt-br`, legal, and `/u/` profiles). **`ProtectedRoute`
+  remains the real authentication guard**, so widening this cosmetic gate cannot
+  expose any gated content. **Before/after:** the mobile overflow E2E suite now
+  actually renders `/blog`, `/changelog`, `/pomodoro-timer`, `/study-timer`,
+  `/exam` and `/guides` at 375px (it had silently been measuring `/welcome`), and
+  those pages pass with no horizontal overflow.
+
+### Mobile 44px touch-target audit is robust and no longer false-fails (`978680a` + this commit)
+
+The `responsive.spec.ts` “primary controls meet the 44px minimum” test was both
+flaky and reporting a false positive.
+
+- **Flake fix.** The test now sets `emulateMedia({ reducedMotion: "reduce" })`
+  before navigating and measures every visible control in a single browser-side
+  `evaluateAll` snapshot, rather than looping Playwright locators against the
+  login page’s framer-motion mount animation (which kept the geometry and the
+  `:visible` set in flux until the 30s timeout).
+- **False-positive fix — measure the hydrated app, not the crawler shell.**
+  Prerendered pages ship a static SEO/i18n shell inside `#root` (`.fa-seo`,
+  including the compact `.fa-edition` locale-switcher pills — 17px tall, injected
+  by `scripts/prerender.mjs` purely for crawler hreflang navigation). On boot the
+  bundle keeps that shell painted (fixed, on top) and only removes it once
+  `RoutedContent` fires `focusarx:route-ready` after its Suspense boundary
+  resolves — i.e. once the real React route is ready. The audit had been reading
+  those crawler-only 17px pills, which no user ever sees. `gotoRoute` now waits
+  for the shell handoff (`!document.querySelector(".fa-seo")`) before measuring,
+  so the test audits the hydrated app the user actually interacts with. On routes
+  that were never prerendered the shell is absent and the wait resolves
+  immediately. **Before:** the audit reported four sub-44px controls
+  (`भारत · English`, `हिन्दी`, `Español`, `Português (Brasil)`) on `/login`;
+  **after:** those crawler-only pills are gone by measurement time and the real
+  controls pass. focusarx typecheck + build (132 prerendered pages, SEO validate
+  + bundle budget PASS) stay green.
+
+### Form inputs are 16px on phones so iOS Safari stops zooming on focus
+
+Making the touch-target audit measure the hydrated app (above) also let the
+sibling “inputs use a 16px font so iOS does not zoom on focus” test finally run
+against the real login form — and it caught a genuine defect the previous
+vacuous pass had hidden.
+
+- **The real cause was an unlayered global reset, not the component.**
+  `src/index.css` carries `input, select, textarea { font: inherit }` outside any
+  `@layer`. Unlayered CSS outranks every `@layer utilities` class, so that
+  `font` shorthand pulled the 15px body `font-size` onto every field and silently
+  overrode any Tailwind `text-*` utility a component set — which is why inputs
+  measured 15px app-wide (the type scale is overridden here: `--text-base` is
+  15px). iOS Safari zooms the viewport whenever a focused field is under 16px.
+  A phone-scoped `@media (max-width: 767px)` rule now raises the input `font-size`
+  to 16px (it stays authoritative over utilities, so every input is consistent);
+  desktop keeps its current inherited compact size from the base reset. The
+  override is deliberately keyed off `max-width` rather than a `min-width: 768px`
+  block so it does not collide with the `min-width: 768px` media contract that
+  `QuickLaunchOrb.test` parses. Fixing it at the reset — rather than adding a
+  class the reset would have beaten anyway — means the no-zoom guarantee holds for
+  every form in the app, not just login.
+  **Before:** the audit reported `input 0 is 15px` on `/login` at 375px;
+  **after:** inputs measure 16px on mobile and the test passes. typecheck + build
+  (132 prerendered pages, SEO validate + bundle budget PASS) stay green.
+
+## [2026-09-29] — Phase 0 re-audit + green `pnpm lint` again
+
+A fresh Phase-0 audit was run against the current HEAD (`e3b8b2d`) using the
+real toolchain, not the older docs. `pnpm run typecheck` and `pnpm run test`
+(focusarx: 107 files / 893 tests, plus script + api-server suites) were both
+verified green. `AUDIT.md` gained a dated, evidence-linked re-audit section at
+the top. The fake-logic sweep (TODO/mock/`Math.random` stats/`setTimeout` fake
+loaders/empty catches/native `alert`/client-side economy/unverified webhooks)
+came back clean.
+
+### `pnpm lint` was failing with two errors — now zero
+
+- **`FlowTimer.tsx:128` — `react-hooks/purity`.** `Date.now()` was being called
+  inside a `useRef` initialiser, which runs during render. **Before:** whole-repo
+  `pnpm lint` exited 1. **Fix:** the ref now initialises to `null`; the existing
+  tick effect already sets `startedAtRef.current = Date.now()` on mount whenever
+  the timer is running (including a restored running snapshot) before any
+  interval reads it, so the stopwatch behaviour is byte-for-byte identical.
+  **After:** rule passes; the 15 timer tests (`Timer.integration`, `timer-probe`,
+  `TimerDisplay`) stay green.
+- **`petCatalog.ts:82` — `prefer-const`.** `let inventory` is only ever mutated
+  in place with `.unshift()`, never reassigned, so it is now `const`. No
+  behavioural change. **Before/after:** `pnpm lint` went from
+  `✖ 14 problems (1 error, 13 warnings)` → surfaced a second hidden error →
+  `✖ 12 problems (0 errors, 12 warnings)`, exit 0.
+
+This restores the `REMAINING.md` #23 invariant ("`pnpm lint` = 0 errors"), which
+had drifted.
+
+### Then swept the 12 remaining lint warnings — `eslint .` is now fully clean
+
+`pnpm lint` went from `12 problems (0 errors, 12 warnings)` to **0 problems**.
+typecheck stays green and the full suite (107 files / **893 tests**) stays green.
+
+- **7 dead `// eslint-disable-next-line no-console` directives removed** from
+  `Timer.integration.test.tsx`, `timer-probe.test.tsx`, `focus-probe.test.tsx`
+  (test files are exempt from `no-console`, so the directives suppressed nothing).
+- **`react-hooks/exhaustive-deps` — 4 real stale-closure risks fixed by adding
+  the missing dependency**, not by muting the rule:
+  - `study-rooms.tsx` `visibleRooms` filtered on `envFilter` but omitted it from
+    deps — changing the environment filter would not have refiltered the list.
+    (`[rooms, filter, search]` → `[rooms, filter, search, envFilter]`.)
+  - `CoachPanel.tsx` `fetchTip` read `isGuest` but omitted it (`[isLocked]` →
+    `[isLocked, isGuest]`).
+  - `useSessionPersistence.ts` autosave-interval effect read `options.enabled`
+    but omitted it (`[runSync]` → `[runSync, options.enabled]`).
+  - `Timer.tsx` `handleSessionRecorded` (the shared completion pipeline) was a
+    plain function recreated every render, which recreated the early-exit
+    `useCallback` every render. It is now `useCallback`-wrapped with the exact
+    dependency list the rule enumerated (`addSession`, `completedTasks.length`,
+    `enqueueOffline`, `isPremium`, `onSessionCompleteProp`, `refreshWallet`,
+    `toast`). Safe because `usePomodoro` already consumes `onSessionComplete`
+    through a ref, so its identity churn never mattered there.
+- **`lazyWithRetry.ts` `no-explicit-any`**: the `ComponentType<any>` constraint
+  mirrors React's own `lazy` signature and cannot be narrowed without rejecting
+  callers with required props (props are contravariant); annotated with a
+  single justified, scoped disable.
+
+## [2026-09-29g] — Run the behavioural E2E suite in CI and fix its stale specs
+
+**Problem.** Only `accessibility.spec` ran in CI; the four behavioural specs
+(cross-tab leader election, guest timer persistence, mobile responsive contract,
+premium-economy UI) existed but were never exercised on a runner with a browser —
+so they had silently rotted. Wiring them in (new `e2e` job) surfaced the rot: the
+job hit its 30-min timeout because every test that starts a timer was waiting for
+a `getByRole("button", { name: "Dismiss cookie notice" })` that no longer exists.
+
+**Root cause.** The consent UI was rewritten: `CookieConsent` now offers
+`Accept all` / `Analytics only` / `Essential only` (no "Dismiss" button), and it
+only appears after the first interaction or a 12s fallback — not immediately. The
+specs still clicked the old button, so each timed out (30s) and, with 2 retries,
+blew the job budget.
+
+**Fix.**
+- Each behavioural spec now pre-seeds a consent choice via
+  `context.addInitScript(() => localStorage.setItem("focusarx-cookie-consent",
+  "essential"))`, so the banner never renders and can't cover the start button or
+  confound the responsive tap-target / overflow checks. Removed the four stale
+  `Dismiss cookie notice` clicks.
+- The `e2e` job runs a representative `desktop` + `w375` matrix (72 tests); the
+  every-width matrix stays with the axe job, which needs it for overflow.
+
+Running the job surfaced three further instances of spec rot / infra, each fixed:
+
+- **cross-tab follower** (`cross-tab-leader.spec.ts`): waited to click a
+  `Start focus session`/`Resume` button on the follower tab. The current UX
+  auto-stands-down — the follower detects the leader over the cross-tab mirror
+  and renders `<LeaderMirrorChip/>` ("Running in another tab · …") with no start
+  control. Rewrote the assertion to expect that chip directly, no click.
+- **premium gate** (`token-premium.spec.ts`): `/ai-insights` bounced to `/login`
+  because the auth provider skips the session probe unless a token or the
+  `focusarx_session_hint` cookie is present (it avoids a guaranteed 401 on a
+  first signed-out visit), so the mocked `/api/auth/session` was never read. The
+  test now seeds `focusarx_session_hint=1` before navigating.
+- **Chromium SIGSEGV** on `responsive.spec.ts` (`/terms`): the responsive spec
+  opens a context per route and, at the default one-worker-per-vCPU count,
+  crashed `chrome-headless-shell` under memory pressure. Pinned the `e2e` job to
+  `--workers=2`.
+
+A first green-attempt run then exposed two deeper issues the earlier flags never
+actually reached, both now fixed:
+
+- **`--project`/`--workers` were silently dropped.** `pnpm run <script> -- <flags>`
+  does not forward those flags to Playwright, so all nine projects (~324 tests)
+  ran and chrome-headless-shell SIGSEGV'd under the memory pressure — the `/terms`
+  and `/study-timer` "overflow" failures were both that crash, not real overflow.
+  The `e2e` job now calls `pnpm exec playwright test … --project=desktop
+  --project=w375 --workers=2` so the flags reach the binary.
+- **GPU-process SIGSEGV.** Even at two workers the runner intermittently crashed
+  inside the Chromium GPU process ("InitializeSandbox() called with multiple
+  threads in process gpu-process" → signal 11), surfacing as "Target … has been
+  closed" and 30 s test timeouts on whatever spec was running. Added
+  `launchOptions.args = ["--disable-gpu"]` in `playwright.config.ts`; a headless
+  runner has nothing to accelerate, so this removes the crash path.
+- **`responsive.spec.ts` mobile-nav assertions were testing guest chrome.** The
+  mobile bottom nav lives in `AppShell`, which `App.tsx` mounts only for
+  `status === "authenticated"` (guests get `PublicDialogBoundary`, no shell).
+  The two nav tests now sign in first via a session stub + `focusarx_session_hint`
+  cookie (same pattern as the premium test) before asserting on the nav.
+
+**Test.** `playwright --list` confirms every spec transpiles and the config
+compiles; the CI `e2e` job is the end-to-end verification — a browser cannot run
+in the agent sandbox (no Chromium installed and the Playwright CDN is
+unreachable). Every failure was diagnosed from the check-run annotations emitted
+by the Playwright `github` reporter, cross-checked against the app source
+(`App.tsx`, `AppShell.tsx`, `AuthenticatedChrome.tsx`, `MobileBottomNav.tsx`) to
+confirm each was spec rot or infra rather than a product regression.
+
+## [2026-09-29f] — Publish measured Lighthouse numbers from CI
+
+The `lighthouse` job measured scores but they were only in the raw LHCI log and
+the temporary-public-storage report — neither retrievable from every
+environment, so the numbers were never actually published (audit item #3).
+
+Added `scripts/lh-annotate.mjs`, run after `lhci autorun` (with `if: always()`),
+which reads the raw `.lighthouseci/lhr-*.json` files, groups them by page path,
+and emits per-URL `::notice::` annotations (retrievable via the check-runs API)
+plus a Markdown table in the GitHub job summary: perf / a11y / best-practices /
+seo and LCP / CLS / TTI / TBT / script size, median across runs. (A first cut
+looked for `manifest.json`, which LHCI only writes for the filesystem upload
+target; switched to the raw LHR files.)
+
+**Measured (desktop, simulated, median of 2 — CI run `36607922937`):**
+
+| URL | Perf | A11y | Best-pr | SEO | LCP | CLS | Script |
+|---|---|---|---|---|---|---|---|
+| `/` | 96 | 100 | 96 | 100 | 651ms | 0.006 | 233kb |
+| `/focus` | 97 | 97 | 96 | 100 | 543ms | 0.002 | 405kb |
+| `/pomodoro-timer` | 94 | 98 | 96 | 100 | 1530ms | 0.006 | 246kb |
+| `/dashboard`→`/login` | 95 | 98 | 96 | 100 | 1384ms | 0.006 | 228kb |
+
+All four pages clear every configured threshold with margin (perf floor 94 vs the
+0.90 gate). Recorded in `AUDIT.md` §6 #3. The job stays non-blocking for now; the
+measured p50 (~95–96) makes it safe to enable as a gate later.
+
+## [2026-09-29e] — Fix the Accessibility CI failure: in-prose links now underlined at rest
+
+**Problem.** `Accessibility (Playwright + axe)` was red on `/focus-guide` (all
+viewports) with `link-in-text-block` (serious) — retrieved from the CI check
+annotations added in the previous entry.
+
+**Root cause.** Inline links in prose used `text-[var(--brand-400)]
+hover:underline`: the underline only appeared on hover, so at rest the link was
+distinguished from surrounding `--foreground-muted` body text by **colour
+alone**, and the two colours contrast at just **1.43:1** (WCAG needs ≥3:1 to
+rely on colour). axe's `link-in-text-block` therefore failed.
+
+**Fix.** In-prose links are now underlined at rest: `hover:underline` →
+`underline underline-offset-2` for every `--brand-400`/`--brand-600` link across
+the content pages (`focus-guide`, `adhd-focus`, `stop-procrastinating`,
+`study-with-me`, `focus-music`, `ai-policy`, `contact`, `search`, `premium`,
+`groups`, `messages`, plus the citation link + missions link in components).
+Two `<button>` toggles in `AmbientSoundBar` that shared the class were left on
+`hover:underline` — axe only flags links, and a permanent underline on a button
+reads as a link.
+
+**Test / before-after.** Before: 10 `link-in-text-block` violations on
+`/focus-guide`. After: `pnpm typecheck` + full frontend build stay green; CI
+`Accessibility` job confirms the rule clears. No other rule or page was failing
+(verified from the annotations), and the tested pages `/`, `/pricing`,
+`/comparison/*` were already clean and are untouched.
+
+## [2026-09-29d] — Make the pre-existing Accessibility CI failure diagnosable
+
+`Accessibility (Playwright + axe)` has been red since PR #95 (the base of this
+branch). It needs a real Chromium — which cannot be installed in the agent
+sandbox (the download host is network-blocked) — and the raw job log EOFs when
+fetched from here, so the failing rule was invisible. Ruled out statically what
+could be ruled out: rendered all 5 tested pages in jsdom + axe-core → **zero
+serious/critical structural violations** (button/link names, alt text, labels,
+ARIA), and computed WCAG contrast for every design-token text/surface pair in
+both themes → all pass except `brand-500` as *normal-size* text on `surface-0`
+(4.40:1 vs 4.5 — passes the 3:1 large-text bar). That leaves a layout-dependent
+rule (color-contrast on a one-off element, or horizontal overflow) that only a
+browser can pinpoint.
+
+So this change instruments the check to surface the culprit on the next run:
+
+- `tests/e2e/accessibility.spec.ts` now emits a readable assertion message
+  naming each violated rule, its impact, help URL and first offending selector,
+  attaches the full axe payload as `axe-violations.json`, and — for the overflow
+  assert — reports the actual overflowing elements (tag + classes + geometry)
+  instead of a bare boolean.
+- `playwright.config.ts` adds the `html` reporter under CI.
+- CI uploads the `playwright-a11y-report` artifact (report + traces) even on
+  failure, and builds the a11y frontend with `VITE_APP_URL` for Vercel parity.
+
+Artifacts download via the API path that works from here (unlike raw logs), so
+the exact rule/page/viewport becomes retrievable and fixable next run. Flagged
+INCOMPLETE — needs the next CI run's report to land the actual fix.
+
+## [2026-09-29c] — Remove dead code to fix the pre-existing Knip CI failure
+
+`Knip (unused files + dependencies)` has failed on `main` since before this
+branch (run `36008177838` @ base `e3b8b2d`). It cannot run in the agent sandbox
+(oxc-parser reserves a 6 GiB buffer; the box has 3.9 GB) and the CI log that
+names the offenders is served from blob storage that EOFs here, so the offenders
+were found by approximating Knip's reachability analysis (build the whole-repo
+import graph from the real entry points, incl. lazy route imports from
+`src/pages/**`) and each candidate was verified to have **zero** import
+references anywhere.
+
+Deleted 5 genuinely-unreachable components (dead since a prior refactor —
+Razorpay's card was superseded by the Stripe card, the old city renderer by the
+current one):
+
+- `components/FloatingParticles.tsx`
+- `components/RazorpayCheckoutCard.tsx`
+- `components/city/CityBoard.tsx`
+- `components/city/CityWorld3D.tsx`
+- `components/ui/RewardToast.tsx`
+
+**Verified locally:** `pnpm typecheck` and the full `pnpm --filter
+@workspace/focusarx build` (Vite + 132-page prerender + seo-validate +
+bundle-budget) both stay **green** — proof nothing imported them. The remaining
+`Accessibility (axe)` CI failure is also pre-existing and needs a browser (can't
+run here); it is flagged INCOMPLETE in `AUDIT.md`. Possibly-unused deps were
+checked too and are all legitimate (fonts imported via CSS `@import`,
+`@opentelemetry/api` is an intentional single-snapshot resolution pin).
+
+Continued the Phase-0 pass. Verified the production build and the remaining
+audit items with the real toolchain; wired the one genuinely-orphaned config
+(Lighthouse) into CI.
+
+### Production build + budgets, verified
+
+- `pnpm --filter @workspace/focusarx build` is **green**: Vite build, **132
+  prerendered pages**, `seo-validate` PASS, and `check-bundle-budget` PASS —
+  entry `index` **25.6 kB gzip**, initial JS **155.2 kB gzip across 5 chunks**,
+  three.js confirmed **not** in the entry preload. These are the gating,
+  build-time proxies for Phase-3 performance.
+
+### Lighthouse was configured but never run — now it runs in CI
+
+- `lighthouserc.json` (perf ≥ 0.90, a11y/SEO ≥ 0.95, LCP ≤ 2.5 s, CLS ≤ 0.05)
+  existed but **no workflow executed it**. Added a `lighthouse` job to
+  `.github/workflows/ci.yml`: it builds, serves the real production bundle on
+  :4173, and runs `@lhci/cli autorun` against those thresholds. Kept
+  `continue-on-error` until the first CI run confirms a green baseline on CI
+  hardware (the numbers still surface in the job summary), then it should become
+  a merge gate.
+
+### Audit items confirmed already-done (verified, not assumed)
+
+- **Timezone day boundary (streaks):** `lib/timezone.ts` (DST-safe day keys,
+  zone-switch grace, legacy-IST fallback) is wired into `sessions.ts`,
+  `sessionCompletionCore.ts` and 24 other routes, with **16 passing test cases**
+  covering travellers, DST, zone adoption and streak shields.
+- **Rate limiting + Sentry:** `generalLimiter` is mounted globally on `/api`
+  (`app.ts`), with dedicated stricter limiters on auth, guest, refresh,
+  forgot-password, session-complete, AI, webhooks and admin. Sentry is wired
+  into the central error handler and env-gated (no-op without `SENTRY_DSN`).
+  Double-claim is independently prevented by idempotent CAS.
+
+### Lighthouse measured on CI — flaky at the boundary, kept non-blocking
+
+- The new `lighthouse` job runs against perf ≥ .90 / a11y ≥ .95 / SEO ≥ .95 /
+  LCP ≤ 2.5s / CLS ≤ .05 on `/`, `/focus`, `/pomodoro-timer`, `/dashboard`. It
+  **passed** run `36600196101` (3m2s) then **failed** run `36601542687` (3m5s)
+  with no code change between them — the performance score fluctuates right at
+  0.90 under simulated throttling. So it is left **`continue-on-error`** (measures
+  and surfaces the numbers without a flaky gate blocking every merge); gating it
+  needs a p50 baseline and a threshold tuned to the observed floor first. (An
+  earlier commit briefly flipped it to gating after the single green run; this
+  reverts that once the second run proved it flaky.)
+
+### Honest limits + pre-existing CI reds
+
+- Lighthouse **runtime** scores and **Playwright E2E** cannot execute in this
+  sandbox — no Chromium binary is installable (download network-blocked, no
+  system Chrome), the same constraint `REMAINING.md §8` already records. Lighthouse
+  is proven on CI; E2E runs there too.
+- **Two CI jobs fail on `main` already** (run `36008177838` on base `e3b8b2d`)
+  and are therefore **not regressions** from this branch: **Knip** and
+  **Accessibility (axe)**. Knip cannot be reproduced here (oxc-parser reserves a
+  6 GiB buffer; sandbox has 3.9 GB) and axe needs a browser; the CI logs that
+  would pinpoint each are served from blob storage that EOFs from this sandbox.
+  Both are flagged **INCOMPLETE — needs CI log detail** in `AUDIT.md`. This
+  branch is green on every job it owns (Validate, Lint, Lighthouse, Budgets,
+  Security, Migrations).
+
 ## [2026-09-24] — The AI answers, the pages arrive early, six more timer faces
 
 Three complaints, three root causes. "Gemini doesn't do what I ask" was an
