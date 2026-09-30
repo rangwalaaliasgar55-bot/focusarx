@@ -204,15 +204,18 @@ changes would violate the "prove every design change works" rule.
 (`/dashboard` is auth-gated so LH follows the redirect to `/login`.) All four pages clear every threshold (perf ≥ .90, a11y/seo ≥ .95, LCP ≤ 2.5s, CLS ≤ .05) with margin — the observed perf floor is **94**. The Lighthouse job is still `continue-on-error` because a single earlier run dipped to the 0.90 boundary; with a measured p50 baseline of ~95–96 the gate could now be safely enabled (raise `numberOfRuns`, keep the 0.90 floor). Build-time perf gates ARE green & gating: bundle-budget (entry 25.6 kB gz, initial 155.2 kB gz/5 chunks, no-three-preload) + seo-validate (132 pages).
 | 4 | Med | Per-page gradient/glow/emoji cosmetic sweep | 2 | ⏳ queued — deliberately **not** doing blind mass CSS edits without visual verification (no screenshot capability in sandbox); needs live-preview review |
 | 5 | Med | Timezone day-boundary verification | 1 | ✅ **CONFIRMED DONE** — `lib/timezone.ts` (DST-safe day keys, zone-switch grace, legacy IST fallback) is wired into `sessions.ts` + `sessionCompletionCore.ts` + 24 routes; **16 test cases** in `timezone.test.ts` (incl. traveller/DST/shield) pass in the suite |
-| 6 | Low | Full Playwright happy-path E2E + visual regression | 4 | ✅ **DONE — all 5 E2E specs now run in CI.** Previously only `accessibility.spec` ran; added a dedicated `e2e` job (`desktop` + `w375`) running the 4 behavioural specs (`cross-tab-leader`, `responsive`, `timer-persistence`, `token-premium`). Wiring them in surfaced that they'd rotted — every timer test waited on a removed "Dismiss cookie notice" button and timed the job out. Fixed by pre-seeding consent (`localStorage focusarx-cookie-consent=essential`) so the banner never shows, and removing the stale clicks. CI `e2e` job is the verification (no browser in sandbox). See CHANGELOG [2026-09-29g]. |
+| 6 | Low | Full Playwright happy-path E2E + visual regression | 4 | 🟡 **CODE COMPLETE, CI-GREEN PENDING.** Previously only `accessibility.spec` ran; added a dedicated `e2e` job (`desktop` + `w375`) running the 4 behavioural specs (`cross-tab-leader`, `responsive`, `timer-persistence`, `token-premium`). Wiring them in surfaced that the specs had rotted and that the runner had a browser-stability bug — fixed across 8 root-caused issues (see list below). **Every fix is committed locally through `7fe8d7a`; all 72 tests transpile with the exact CI command.** NOT yet marked ✅ because the `e2e` job has not gone green: the last CI run (`1b27a02`) was red on 4 `w375` failures, and the final fixes (`7fe8d7a`: `--disable-gpu` + auth the nav tests) are committed but **not pushed** (GitHub token expired mid-session — awaiting reconnect). A browser cannot run in the sandbox (no Chromium; Playwright CDN unreachable), so the CI job is the only runtime proof. See CHANGELOG [2026-09-29g].<br><br>**Root-caused & fixed (chronological, each verified against app source):**<br>1. `30c11d6` — timer specs waited on a removed "Dismiss cookie notice" button → pre-seed `localStorage focusarx-cookie-consent=essential`.<br>2. `22867d5` — `token-premium` free-users: auth provider skips the session probe without a token/`focusarx_session_hint` cookie, so the mock was never read and `/ai-insights` bounced to `/login` → seed the hint cookie.<br>3. `22867d5` — `cross-tab-leader` follower: it auto-stands-down with a `LeaderMirrorChip` ("Running in another tab"); the Start/Resume button it clicked no longer exists → assert the chip directly.<br>4. `1b27a02` — `pnpm run <script> -- <flags>` never forwarded `--project`/`--workers`, so all 9 projects (~324 tests) ran and OOM/SIGSEGV'd → call `pnpm exec playwright test … --project=desktop --project=w375 --workers=2`.<br>5. `7fe8d7a` — intermittent Chromium **GPU-process SIGSEGV** (signal 11) surfaced as "Target … closed" + 30 s timeouts → `launchOptions.args=["--disable-gpu"]`.<br>6. `7fe8d7a` — `responsive` mobile-nav tests asserted the bottom nav as a **guest**, but the nav lives in `AppShell` which `App.tsx:529` mounts only for `status==="authenticated"` → the tests now sign in first (session stub + hint cookie). |
 | 7 | Low | Sentry DSN + rate-limit coverage on economy/auth routes | 5 | ✅ **CONFIRMED ADEQUATE** — `generalLimiter` mounted globally on `/api` (`app.ts:168`); dedicated limiters on auth/guest/refresh/forgot-password/session-complete/AI/webhooks/admin; Sentry wired into the central error handler, env-gated; double-claim independently prevented by idempotent CAS |
 
 **Sandbox constraints (honest):** Lighthouse runtime scoring (#3) and Playwright
 E2E (#6) require a Chromium binary that cannot be installed here (the download is
 network-blocked and no system Chrome exists) — the exact limitation the repo's
 own `REMAINING.md §8` already documents. Both run on GitHub CI; the Lighthouse
-gate is now **proven green on CI**. Everything not gated on a browser was executed
-and verified this session.
+gate is **proven green on CI**. The new `e2e` job (#6) is the one job **not yet
+green** — its code fixes are complete and committed locally through `7fe8d7a`, but
+the final commit is unpushed because the GitHub token expired mid-session; it
+needs a push + one re-run to confirm. Everything else not gated on a browser was
+executed and verified this session.
 
 ### Pre-existing CI failures on `main` (NOT introduced by this work)
 
@@ -220,8 +223,10 @@ CI run `36600196101` (PR #98) reproduced two failures that **already fail on
 `main`** — see run `36008177838` on the base commit `e3b8b2d`, where both are
 also red (the last green `main` CI was ~9 days ago). They are therefore
 pre-existing, not regressions from this branch, and this branch is green on every
-job it is responsible for (Validate/typecheck+test+build ✅, Lint ✅, Lighthouse
-✅, Budgets ✅, Security ✅, Migrations ✅):
+pre-existing job it is responsible for (Validate/typecheck+test+build ✅, Lint ✅,
+Lighthouse ✅, Budgets ✅, Security ✅, Migrations ✅). The only non-green job is the
+**new `e2e` job added this session** (#6), whose fixes are code-complete locally
+and pending a push + re-run (see #6 above):
 
 1. **RESOLVED ✅ — Knip (unused files + dependencies)** now GREEN on CI
    (run 36605774851). Was failing on both `main` and this PR. Knip can't run in

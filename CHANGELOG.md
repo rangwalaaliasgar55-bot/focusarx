@@ -101,11 +101,34 @@ Running the job surfaced three further instances of spec rot / infra, each fixed
   crashed `chrome-headless-shell` under memory pressure. Pinned the `e2e` job to
   `--workers=2`.
 
-**Test.** `playwright --list` confirms all four specs transpile; CI `e2e` job is
-the end-to-end verification (a browser can't run in the agent sandbox). Every
-failure was diagnosed from the check-run annotations emitted by the Playwright
-`github` reporter — the raw job log and report artifact are on blob storage the
-sandbox can't reach.
+A first green-attempt run then exposed two deeper issues the earlier flags never
+actually reached, both now fixed:
+
+- **`--project`/`--workers` were silently dropped.** `pnpm run <script> -- <flags>`
+  does not forward those flags to Playwright, so all nine projects (~324 tests)
+  ran and chrome-headless-shell SIGSEGV'd under the memory pressure — the `/terms`
+  and `/study-timer` "overflow" failures were both that crash, not real overflow.
+  The `e2e` job now calls `pnpm exec playwright test … --project=desktop
+  --project=w375 --workers=2` so the flags reach the binary.
+- **GPU-process SIGSEGV.** Even at two workers the runner intermittently crashed
+  inside the Chromium GPU process ("InitializeSandbox() called with multiple
+  threads in process gpu-process" → signal 11), surfacing as "Target … has been
+  closed" and 30 s test timeouts on whatever spec was running. Added
+  `launchOptions.args = ["--disable-gpu"]` in `playwright.config.ts`; a headless
+  runner has nothing to accelerate, so this removes the crash path.
+- **`responsive.spec.ts` mobile-nav assertions were testing guest chrome.** The
+  mobile bottom nav lives in `AppShell`, which `App.tsx` mounts only for
+  `status === "authenticated"` (guests get `PublicDialogBoundary`, no shell).
+  The two nav tests now sign in first via a session stub + `focusarx_session_hint`
+  cookie (same pattern as the premium test) before asserting on the nav.
+
+**Test.** `playwright --list` confirms every spec transpiles and the config
+compiles; the CI `e2e` job is the end-to-end verification — a browser cannot run
+in the agent sandbox (no Chromium installed and the Playwright CDN is
+unreachable). Every failure was diagnosed from the check-run annotations emitted
+by the Playwright `github` reporter, cross-checked against the app source
+(`App.tsx`, `AppShell.tsx`, `AuthenticatedChrome.tsx`, `MobileBottomNav.tsx`) to
+confirm each was spec rot or infra rather than a product regression.
 
 ## [2026-09-29f] — Publish measured Lighthouse numbers from CI
 
