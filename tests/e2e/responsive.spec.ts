@@ -53,6 +53,35 @@ test.beforeEach(async ({ context }) => {
   });
 });
 
+/**
+ * Sign the page in for the tests that need authenticated app chrome.
+ *
+ * The mobile bottom navigation lives in AppShell, which App.tsx mounts *only*
+ * for `status === "authenticated"` (guests get PublicDialogBoundary with no
+ * shell). The auth provider also skips its session probe unless a token or the
+ * `focusarx_session_hint` cookie is present, so we seed that hint and stub the
+ * session endpoint — no database fixture required. `onboardingCompleted: true`
+ * keeps MobileWelcomeGate from bouncing a mobile visitor to /welcome.
+ */
+async function authenticate(page: Page) {
+  await page.context().addCookies([
+    { name: "focusarx_session_hint", value: "1", url: "http://127.0.0.1:4173" },
+  ]);
+  await page.route("**/api/auth/session", (route) =>
+    route.fulfill({
+      json: {
+        user: {
+          id: "responsive-nav-test",
+          email: "nav@example.invalid",
+          name: "Nav Test",
+          role: "user",
+          onboardingCompleted: true,
+        },
+      },
+    }),
+  );
+}
+
 async function gotoRoute(page: Page, route: string) {
   const response = await page.goto(route, { waitUntil: "domcontentloaded" });
   // Some routes are prerendered at build time; a 404 on those is a real bug
@@ -88,13 +117,16 @@ test.describe("mobile layout", () => {
   test.skip(({ viewport }) => (viewport?.width ?? 1280) > 500, "mobile-only contract");
 
   test("renders the bottom navigation", async ({ page }) => {
-    // Auth routes deliberately omit AppShell. The public focus route exposes
-    // the real mobile navigation without requiring a database fixture.
+    // The mobile bottom nav is authenticated-only chrome (AppShell), so sign in
+    // first. /focus sits idle here (no session started), so the nav is not in
+    // its auto-hidden focus-mode state and stays visible.
+    await authenticate(page);
     await gotoRoute(page, "/focus");
     await expect(page.locator(BOTTOM_NAV)).toBeVisible();
   });
 
   test("bottom nav targets meet the 44px minimum", async ({ page }) => {
+    await authenticate(page);
     await gotoRoute(page, "/focus");
     await expect(page.locator(BOTTOM_NAV)).toBeVisible();
 

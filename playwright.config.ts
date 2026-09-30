@@ -31,7 +31,18 @@ export default defineConfig({
   reporter: process.env.CI
     ? [["list"], ["github"], ["html", { open: "never", outputFolder: "playwright-report" }]]
     : [["list"]],
-  use: { baseURL: "http://127.0.0.1:4173", trace: "retain-on-failure" },
+  use: {
+    baseURL: "http://127.0.0.1:4173",
+    trace: "retain-on-failure",
+    // The GitHub runners were crashing chrome-headless-shell with a SIGSEGV
+    // inside the GPU process ("InitializeSandbox() called with multiple threads
+    // in process gpu-process" → signal 11), which surfaced as spurious
+    // "Target page/context/browser has been closed" and 30 s test timeouts on
+    // whichever spec happened to be running. Disabling the GPU process removes
+    // that crash path entirely; on a headless runner there is nothing to
+    // accelerate anyway.
+    launchOptions: { args: ["--disable-gpu"] },
+  },
   webServer: {
     command: "corepack pnpm --filter @workspace/focusarx run serve -- --port 4173",
     url: "http://127.0.0.1:4173",
