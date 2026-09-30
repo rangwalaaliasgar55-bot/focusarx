@@ -59,6 +59,24 @@ flaky and reporting a false positive.
   controls pass. focusarx typecheck + build (132 prerendered pages, SEO validate
   + bundle budget PASS) stay green.
 
+### Form inputs are 16px on phones so iOS Safari stops zooming on focus
+
+Making the touch-target audit measure the hydrated app (above) also let the
+sibling “inputs use a 16px font so iOS does not zoom on focus” test finally run
+against the real login form — and it caught a genuine defect the previous
+vacuous pass had hidden.
+
+- **`components/ui/input.tsx`** rendered `text-sm`, which computes to 15px in
+  this build (the type scale is overridden: `--text-base` is 15px, `--text-sm`
+  13px). iOS Safari zooms the viewport whenever a focused field is under 16px,
+  which is jarring on a phone. The shared field primitive now renders
+  `text-[16px] md:text-sm` — a guaranteed 16px on phones, with the compact
+  desktop size unchanged from `md` up. Because this is the shared `Input`, the
+  no-zoom guarantee now holds for every form in the app, not just login.
+  **Before:** the audit reported `input 0 is 15px` on `/login` at 375px;
+  **after:** inputs measure 16px on mobile and the test passes. typecheck + build
+  (132 prerendered pages, SEO validate + bundle budget PASS) stay green.
+
 ## [2026-09-29] — Phase 0 re-audit + green `pnpm lint` again
 
 A fresh Phase-0 audit was run against the current HEAD (`e3b8b2d`) using the

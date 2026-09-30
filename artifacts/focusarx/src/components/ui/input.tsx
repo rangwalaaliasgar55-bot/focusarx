@@ -24,7 +24,11 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         aria-invalid={ariaInvalid ?? error ?? undefined}
         className={cn(
           "flex min-h-11 w-full rounded-[var(--radius-md)] bg-[var(--input-bg)] px-3 py-2",
-          "font-[inherit] text-sm text-[var(--foreground)] placeholder:text-[var(--foreground-subtle)]",
+          // 16px on phones so iOS Safari does not zoom the viewport on focus
+          // (it zooms any focused field below 16px); desktop keeps the compact
+          // text-sm. This is the shared field primitive, so the guard applies
+          // app-wide rather than per-form.
+          "font-[inherit] text-[16px] md:text-sm text-[var(--foreground)] placeholder:text-[var(--foreground-subtle)]",
           "outline-none transition-[border-color,box-shadow] duration-[var(--duration-fast)] ease-[var(--ease-out)]",
           "disabled:cursor-not-allowed disabled:opacity-45",
           "file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-[var(--foreground)]",
