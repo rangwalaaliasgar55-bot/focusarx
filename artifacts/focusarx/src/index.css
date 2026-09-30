@@ -579,6 +579,17 @@ button {
 input, select, textarea {
   font: inherit;
   color: inherit;
+  /* iOS Safari zooms the viewport whenever a focused field is under 16px, which
+     is jarring on a phone. `font: inherit` above pulls in the 15px body size, so
+     force a 16px floor on phones (this rule is unlayered and therefore stays
+     authoritative over utility classes, keeping every input consistent). Desktop
+     keeps the compact inherited size from md up. */
+  font-size: 16px;
+}
+@media (min-width: 768px) {
+  input, select, textarea {
+    font-size: var(--text-base);
+  }
 }
 input[type="range"] { accent-color: var(--brand-600); }
 

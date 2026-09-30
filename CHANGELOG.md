@@ -66,13 +66,18 @@ sibling “inputs use a 16px font so iOS does not zoom on focus” test finally 
 against the real login form — and it caught a genuine defect the previous
 vacuous pass had hidden.
 
-- **`components/ui/input.tsx`** rendered `text-sm`, which computes to 15px in
-  this build (the type scale is overridden: `--text-base` is 15px, `--text-sm`
-  13px). iOS Safari zooms the viewport whenever a focused field is under 16px,
-  which is jarring on a phone. The shared field primitive now renders
-  `text-[16px] md:text-sm` — a guaranteed 16px on phones, with the compact
-  desktop size unchanged from `md` up. Because this is the shared `Input`, the
-  no-zoom guarantee now holds for every form in the app, not just login.
+- **The real cause was an unlayered global reset, not the component.**
+  `src/index.css` carries `input, select, textarea { font: inherit }` outside any
+  `@layer`. Unlayered CSS outranks every `@layer utilities` class, so that
+  `font` shorthand pulled the 15px body `font-size` onto every field and silently
+  overrode any Tailwind `text-*` utility a component set — which is why inputs
+  measured 15px app-wide (the type scale is overridden here: `--text-base` is
+  15px). iOS Safari zooms the viewport whenever a focused field is under 16px.
+  The reset now sets `font-size: 16px` (it stays authoritative over utilities, so
+  every input is consistent) with an `@media (min-width: 768px)` override back to
+  `var(--text-base)` so desktop keeps its current compact size. Fixing it at the
+  reset — rather than adding a class the reset would have beaten anyway — means
+  the no-zoom guarantee holds for every form in the app, not just login.
   **Before:** the audit reported `input 0 is 15px` on `/login` at 375px;
   **after:** inputs measure 16px on mobile and the test passes. typecheck + build
   (132 prerendered pages, SEO validate + bundle budget PASS) stay green.
