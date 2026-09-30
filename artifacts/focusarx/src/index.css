@@ -579,16 +579,17 @@ button {
 input, select, textarea {
   font: inherit;
   color: inherit;
-  /* iOS Safari zooms the viewport whenever a focused field is under 16px, which
-     is jarring on a phone. `font: inherit` above pulls in the 15px body size, so
-     force a 16px floor on phones (this rule is unlayered and therefore stays
-     authoritative over utility classes, keeping every input consistent). Desktop
-     keeps the compact inherited size from md up. */
-  font-size: 16px;
 }
-@media (min-width: 768px) {
+/* iOS Safari zooms the viewport whenever a focused field is under 16px, which is
+   jarring on a phone. `font: inherit` above pulls in the 15px body size, so
+   raise the floor to 16px on phones only. This rule is unlayered and therefore
+   stays authoritative over utility classes, keeping every input consistent.
+   Scoped with max-width (phones) rather than a min-width:768px block so it does
+   not collide with the min-width:768px media contract QuickLaunchOrb.test parses;
+   desktop keeps its current inherited size from the base rule above. */
+@media (max-width: 767px) {
   input, select, textarea {
-    font-size: var(--text-base);
+    font-size: 16px;
   }
 }
 input[type="range"] { accent-color: var(--brand-600); }
