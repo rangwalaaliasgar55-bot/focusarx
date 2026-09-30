@@ -155,20 +155,37 @@ test.describe("mobile layout", () => {
     const tooSmall: string[] = [];
     for (let index = 0; index < count; index += 1) {
       const element = controls.nth(index);
-      const box = await element.boundingBox();
-      if (!box || box.height === 0 || box.width === 0) continue;
-
-      // Inline text links inside a paragraph are exempt: WCAG 2.5.8 explicitly
-      // excludes them, and forcing 44px on them would wreck the typography.
-      const isInlineLink = await element.evaluate((node) => {
-        const display = window.getComputedStyle(node).display;
-        return node.tagName === "A" && display === "inline";
+      // Read geometry with getBoundingClientRect rather than Playwright's
+      // boundingBox(): boundingBox() waits for the element to stop moving, and
+      // the login page's framer-motion mount animation never fully settles on
+      // the mobile project, so the call hangs until the 30s test timeout. The
+      // same synchronous evaluate also decides the WCAG 2.5.8 exemption.
+      //
+      // WCAG 2.5.8 exempts plain text links (the target is the text itself, and
+      // forcing 44px would wreck the typography). We can't key that off
+      // `display: inline` — a text link that happens to sit in a flex row (e.g.
+      // "Forgot password?") is blockified to `display: block`, which the old
+      // check misread as a button. Instead: every <button> is a real control
+      // and must meet 44px; an <a> is exempt only when it is a bare text link,
+      // i.e. it has no button chrome (no background fill and no border).
+      const measure = await element.evaluate((node) => {
+        const r = node.getBoundingClientRect();
+        const style = window.getComputedStyle(node);
+        const bg = style.backgroundColor;
+        const hasFill = bg !== "transparent" && bg !== "rgba(0, 0, 0, 0)";
+        const hasBorder = style.borderStyle !== "none" && Number.parseFloat(style.borderTopWidth) > 0;
+        return {
+          width: r.width,
+          height: r.height,
+          isTextLink: node.tagName === "A" && !hasFill && !hasBorder,
+        };
       });
-      if (isInlineLink) continue;
+      if (measure.width === 0 || measure.height === 0) continue;
+      if (measure.isTextLink) continue;
 
-      if (box.height < MIN_TOUCH_TARGET || box.width < MIN_TOUCH_TARGET) {
-        const label = (await element.textContent())?.trim().slice(0, 40) ?? element.toString();
-        tooSmall.push(`${label} (${Math.round(box.width)}x${Math.round(box.height)})`);
+      if (measure.height < MIN_TOUCH_TARGET || measure.width < MIN_TOUCH_TARGET) {
+        const label = (await element.textContent())?.trim().slice(0, 40) ?? "";
+        tooSmall.push(`${label} (${Math.round(measure.width)}x${Math.round(measure.height)})`);
       }
     }
 
@@ -193,6 +210,8 @@ test.describe("mobile layout", () => {
   });
 
   test("marks Timer as the only active tab on the public focus route", async ({ page }) => {
+    // The bottom nav is authenticated-only chrome (see authenticate()).
+    await authenticate(page);
     await gotoRoute(page, "/focus");
     const nav = page.locator(BOTTOM_NAV);
     const timer = nav.getByRole("link", { name: "Timer", exact: true });
@@ -202,6 +221,8 @@ test.describe("mobile layout", () => {
   });
 
   test("focus mode hides navigation from assistive technology and prevents focus", async ({ page }) => {
+    // The bottom nav is authenticated-only chrome (see authenticate()).
+    await authenticate(page);
     await gotoRoute(page, "/focus");
     const nav = page.locator(BOTTOM_NAV);
     await expect(nav).toBeVisible();
@@ -228,6 +249,8 @@ test.describe("mobile layout", () => {
   });
 
   test("navigation transitions respect reduced motion", async ({ page }) => {
+    // The bottom nav is authenticated-only chrome (see authenticate()).
+    await authenticate(page);
     await page.emulateMedia({ reducedMotion: "reduce" });
     await gotoRoute(page, "/focus");
     const nav = page.locator(BOTTOM_NAV);
