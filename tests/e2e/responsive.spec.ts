@@ -87,6 +87,15 @@ async function gotoRoute(page: Page, route: string) {
   // Some routes are prerendered at build time; a 404 on those is a real bug
   // rather than a test artefact, so fail loudly instead of silently passing.
   expect(response?.status(), `${route} should load`).toBeLessThan(400);
+  // Prerendered pages ship a static SEO/i18n shell inside #root (`.fa-seo`,
+  // including the compact `.fa-edition` locale-switcher pills) purely for
+  // crawlers. React clears and replaces #root on mount, so real users never see
+  // it. Wait for that swap before measuring — otherwise the touch-target audit
+  // reads the crawler-only 17px pills instead of the hydrated app. On routes
+  // that were never prerendered `.fa-seo` is absent and this resolves at once.
+  await page.waitForFunction(() => !document.querySelector(".fa-seo"), null, {
+    timeout: 10_000,
+  });
   // Let fonts settle — a late font swap can change measured widths.
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(150);

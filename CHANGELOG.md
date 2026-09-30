@@ -2,6 +2,63 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [2026-09-30] — security CVE patch, mobile welcome gate, and a green mobile E2E contract
+
+Work toward getting the branch's CI fully green so PR #98 can merge. Three
+distinct changes, each with its own commit.
+
+### Patched two newly-disclosed high-severity CVEs (`a0fe55d`)
+
+- **`nodemailer` and `engine.io`** were bumped to their patched releases after a
+  fresh `pnpm audit` flagged high-severity advisories. **Before:** `pnpm audit`
+  reported the two advisories; **after:** the affected trees resolve to the
+  patched versions and the audit is clean. No API surface change — the mailer and
+  socket transports are used exactly as before, and the api-server suite stays
+  green.
+
+### Mobile welcome gate no longer hijacks public SEO/marketing routes (`978680a`)
+
+- **`MobileWelcomeGate` in `src/App.tsx`** previously redirected almost every
+  first-visit mobile URL to `/welcome`, which meant a crawler (or a user) landing
+  on a public timer, guide, ADHD, exam, blog, changelog, legal or locale-root
+  page was bounced to the welcome screen instead of the content. The
+  `publicPaths` allowlist is now a comprehensive enumeration of the public
+  SEO/marketing surface (timers, guides, ADHD, content, tools, exam,
+  blog/changelog/press/evidence/safety/accessibility, locale roots
+  `/es /hi /in /us /pt-br`, legal, and `/u/` profiles). **`ProtectedRoute`
+  remains the real authentication guard**, so widening this cosmetic gate cannot
+  expose any gated content. **Before/after:** the mobile overflow E2E suite now
+  actually renders `/blog`, `/changelog`, `/pomodoro-timer`, `/study-timer`,
+  `/exam` and `/guides` at 375px (it had silently been measuring `/welcome`), and
+  those pages pass with no horizontal overflow.
+
+### Mobile 44px touch-target audit is robust and no longer false-fails (`978680a` + this commit)
+
+The `responsive.spec.ts` “primary controls meet the 44px minimum” test was both
+flaky and reporting a false positive.
+
+- **Flake fix.** The test now sets `emulateMedia({ reducedMotion: "reduce" })`
+  before navigating and measures every visible control in a single browser-side
+  `evaluateAll` snapshot, rather than looping Playwright locators against the
+  login page’s framer-motion mount animation (which kept the geometry and the
+  `:visible` set in flux until the 30s timeout).
+- **False-positive fix — measure the hydrated app, not the crawler shell.**
+  Prerendered pages ship a static SEO/i18n shell inside `#root` (`.fa-seo`,
+  including the compact `.fa-edition` locale-switcher pills — 17px tall, injected
+  by `scripts/prerender.mjs` purely for crawler hreflang navigation). On boot the
+  bundle keeps that shell painted (fixed, on top) and only removes it once
+  `RoutedContent` fires `focusarx:route-ready` after its Suspense boundary
+  resolves — i.e. once the real React route is ready. The audit had been reading
+  those crawler-only 17px pills, which no user ever sees. `gotoRoute` now waits
+  for the shell handoff (`!document.querySelector(".fa-seo")`) before measuring,
+  so the test audits the hydrated app the user actually interacts with. On routes
+  that were never prerendered the shell is absent and the wait resolves
+  immediately. **Before:** the audit reported four sub-44px controls
+  (`भारत · English`, `हिन्दी`, `Español`, `Português (Brasil)`) on `/login`;
+  **after:** those crawler-only pills are gone by measurement time and the real
+  controls pass. focusarx typecheck + build (132 prerendered pages, SEO validate
+  + bundle budget PASS) stay green.
+
 ## [2026-09-29] — Phase 0 re-audit + green `pnpm lint` again
 
 A fresh Phase-0 audit was run against the current HEAD (`e3b8b2d`) using the
