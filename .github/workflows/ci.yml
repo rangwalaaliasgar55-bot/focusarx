@@ -241,8 +241,12 @@ jobs:
       # width): the full 9-project matrix is ~324 tests and belongs to the axe
       # job, which needs every width for overflow; the behavioural contracts do
       # not, so two projects keep this job fast without losing coverage.
+      # --workers=2: the responsive spec opens a fresh browser context per route,
+      # and the default worker count (one per vCPU) crashed chrome-headless-shell
+      # with SIGSEGV under the combined memory pressure. Two workers keep it
+      # stable while still parallel.
       - name: Run behavioural E2E
-        run: pnpm test:e2e:app -- --project=desktop --project=w375
+        run: pnpm test:e2e:app -- --project=desktop --project=w375 --workers=2
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}

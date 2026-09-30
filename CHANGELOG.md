@@ -84,9 +84,28 @@ blew the job budget.
 - The `e2e` job runs a representative `desktop` + `w375` matrix (72 tests); the
   every-width matrix stays with the axe job, which needs it for overflow.
 
+Running the job surfaced three further instances of spec rot / infra, each fixed:
+
+- **cross-tab follower** (`cross-tab-leader.spec.ts`): waited to click a
+  `Start focus session`/`Resume` button on the follower tab. The current UX
+  auto-stands-down — the follower detects the leader over the cross-tab mirror
+  and renders `<LeaderMirrorChip/>` ("Running in another tab · …") with no start
+  control. Rewrote the assertion to expect that chip directly, no click.
+- **premium gate** (`token-premium.spec.ts`): `/ai-insights` bounced to `/login`
+  because the auth provider skips the session probe unless a token or the
+  `focusarx_session_hint` cookie is present (it avoids a guaranteed 401 on a
+  first signed-out visit), so the mocked `/api/auth/session` was never read. The
+  test now seeds `focusarx_session_hint=1` before navigating.
+- **Chromium SIGSEGV** on `responsive.spec.ts` (`/terms`): the responsive spec
+  opens a context per route and, at the default one-worker-per-vCPU count,
+  crashed `chrome-headless-shell` under memory pressure. Pinned the `e2e` job to
+  `--workers=2`.
+
 **Test.** `playwright --list` confirms all four specs transpile; CI `e2e` job is
-the end-to-end verification (a browser can't run in the agent sandbox). Diagnosed
-via the check-run annotations emitted by the Playwright `github` reporter.
+the end-to-end verification (a browser can't run in the agent sandbox). Every
+failure was diagnosed from the check-run annotations emitted by the Playwright
+`github` reporter — the raw job log and report artifact are on blob storage the
+sandbox can't reach.
 
 ## [2026-09-29f] — Publish measured Lighthouse numbers from CI
 

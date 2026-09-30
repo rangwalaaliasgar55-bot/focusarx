@@ -48,16 +48,12 @@ test.describe("cross-tab single timer", () => {
         .poll(async () => page.title(), { timeout: 10_000 })
         .toMatch(/\d{1,3}:\d{2} · FocusArx/);
 
-      // Follower tab opens the same session. It may briefly restore the
-      // leader's snapshot as running — let the election settle (~600 ms),
-      // then force the race explicitly.
+      // Follower tab opens the same session. It detects the leader over the
+      // cross-tab mirror and stands down on its own — rendering the leader's
+      // live clock via <LeaderMirrorChip/> ("Running in another tab · …")
+      // instead of starting a second clock. No user action is required; the
+      // follower never offers its own start control while a leader is live.
       await second.goto("/focus", { waitUntil: "domcontentloaded" });
-      await expect
-        .poll(async () => second.title(), { timeout: 10_000 })
-        .not.toMatch(/\d{1,3}:\d{2} · FocusArx/);
-      await second.getByRole("button", { name: /^(Start focus session|Resume)$/ }).click();
-
-      // Follower stands down and shows the leader's live clock.
       await expect(second.getByText(/Running in another tab/)).toBeVisible({ timeout: 15_000 });
 
       // Exactly one running clock: the leader's.
