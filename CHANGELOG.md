@@ -60,6 +60,34 @@ typecheck stays green and the full suite (107 files / **893 tests**) stays green
   callers with required props (props are contravariant); annotated with a
   single justified, scoped disable.
 
+## [2026-09-29g] — Run the behavioural E2E suite in CI and fix its stale specs
+
+**Problem.** Only `accessibility.spec` ran in CI; the four behavioural specs
+(cross-tab leader election, guest timer persistence, mobile responsive contract,
+premium-economy UI) existed but were never exercised on a runner with a browser —
+so they had silently rotted. Wiring them in (new `e2e` job) surfaced the rot: the
+job hit its 30-min timeout because every test that starts a timer was waiting for
+a `getByRole("button", { name: "Dismiss cookie notice" })` that no longer exists.
+
+**Root cause.** The consent UI was rewritten: `CookieConsent` now offers
+`Accept all` / `Analytics only` / `Essential only` (no "Dismiss" button), and it
+only appears after the first interaction or a 12s fallback — not immediately. The
+specs still clicked the old button, so each timed out (30s) and, with 2 retries,
+blew the job budget.
+
+**Fix.**
+- Each behavioural spec now pre-seeds a consent choice via
+  `context.addInitScript(() => localStorage.setItem("focusarx-cookie-consent",
+  "essential"))`, so the banner never renders and can't cover the start button or
+  confound the responsive tap-target / overflow checks. Removed the four stale
+  `Dismiss cookie notice` clicks.
+- The `e2e` job runs a representative `desktop` + `w375` matrix (72 tests); the
+  every-width matrix stays with the axe job, which needs it for overflow.
+
+**Test.** `playwright --list` confirms all four specs transpile; CI `e2e` job is
+the end-to-end verification (a browser can't run in the agent sandbox). Diagnosed
+via the check-run annotations emitted by the Playwright `github` reporter.
+
 ## [2026-09-29f] — Publish measured Lighthouse numbers from CI
 
 The `lighthouse` job measured scores but they were only in the raw LHCI log and

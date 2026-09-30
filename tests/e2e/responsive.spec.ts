@@ -39,6 +39,20 @@ const MIN_TOUCH_TARGET = 44;
 /** Matches the aria-label rendered by `components/mobile/MobileBottomNav`. */
 const BOTTOM_NAV = "nav[aria-label='Mobile navigation']";
 
+test.beforeEach(async ({ context }) => {
+  // Pre-record a cookie-consent choice so the consent banner never shows. It is
+  // fixed to the bottom of the viewport, so on a phone it would otherwise
+  // confound the very things this suite measures — horizontal overflow, tap
+  // targets, and content hidden behind the bottom nav.
+  await context.addInitScript(() => {
+    try {
+      localStorage.setItem("focusarx-cookie-consent", "essential");
+    } catch {
+      /* private mode — the banner simply stays hidden for this view */
+    }
+  });
+});
+
 async function gotoRoute(page: Page, route: string) {
   const response = await page.goto(route, { waitUntil: "domcontentloaded" });
   // Some routes are prerendered at build time; a 404 on those is a real bug

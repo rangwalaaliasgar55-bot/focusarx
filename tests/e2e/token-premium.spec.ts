@@ -1,6 +1,18 @@
 import { test, expect } from "@playwright/test";
 
 /** Browser UI contracts. Ledger atomicity is tested against PostgreSQL, not here. */
+test.beforeEach(async ({ context }) => {
+  // Pre-record a cookie-consent choice so the consent banner never shows and
+  // cannot cover UI or add stray elements to the overflow/metadata assertions.
+  await context.addInitScript(() => {
+    try {
+      localStorage.setItem("focusarx-cookie-consent", "essential");
+    } catch {
+      /* private mode — the banner simply stays hidden for this view */
+    }
+  });
+});
+
 test.describe("Premium economy UI", () => {
   test("premium page requires sign-in for anonymous visitors", async ({ page }) => {
     await page.goto("/premium");

@@ -18,13 +18,25 @@ function isMobileWidth(width: number | undefined) {
 }
 
 test.describe("cross-tab single timer", () => {
+  test.beforeEach(async ({ context }) => {
+    // Pre-record a cookie-consent choice so the consent banner never shows.
+    // It otherwise appears after the first interaction (or a 12s fallback) and
+    // can cover the start button. Seeding at the context level covers both tabs.
+    await context.addInitScript(() => {
+      try {
+        localStorage.setItem("focusarx-cookie-consent", "essential");
+      } catch {
+        /* private mode — the banner simply stays hidden for this view */
+      }
+    });
+  });
+
   test("second tab stands down and mirrors the leader", async ({ page, context }) => {
     const second = await context.newPage();
     try {
       // Leader tab starts a session.
       await page.goto("/focus", { waitUntil: "domcontentloaded" });
       await expect(page.getByText("25:00").first()).toBeVisible({ timeout: 10_000 });
-      await page.getByRole("button", { name: "Dismiss cookie notice" }).click();
 
       const width = page.viewportSize()?.width;
       if (isMobileWidth(width)) {
@@ -40,7 +52,6 @@ test.describe("cross-tab single timer", () => {
       // leader's snapshot as running — let the election settle (~600 ms),
       // then force the race explicitly.
       await second.goto("/focus", { waitUntil: "domcontentloaded" });
-      await second.getByRole("button", { name: "Dismiss cookie notice" }).click();
       await expect
         .poll(async () => second.title(), { timeout: 10_000 })
         .not.toMatch(/\d{1,3}:\d{2} · FocusArx/);
