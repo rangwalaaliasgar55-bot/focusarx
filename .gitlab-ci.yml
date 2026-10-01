@@ -1,0 +1,20 @@
+# Auto-mirror: every push to GitLab is forwarded to GitHub.
+# Auth uses the SSH_PRIVATE_KEY file variable (deploy key "GitLab CI push
+# mirror" with write access on the GitHub repo). No force-push: if GitHub
+# moved ahead (e.g. a direct push there), the job fails instead of
+# clobbering — sync it locally and push again.
+stages: [mirror]
+
+mirror-to-github:
+  stage: mirror
+  image: alpine:latest
+  rules:
+    - if: $CI_COMMIT_BRANCH
+  before_script:
+    - apk add --no-cache git openssh-client >/dev/null
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - cp "$SSH_PRIVATE_KEY" ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+    - ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+    - git remote add github git@github.com:rangwalaaliasgar55-bot/focusarx.git 2>/dev/null || true
+  script:
+    - git push github "$CI_COMMIT_SHA:refs/heads/$CI_COMMIT_BRANCH"
