@@ -87,19 +87,34 @@ code.
    device-only by design, so that one needs an export-file upload path, not a
    token.
 
-3. **§1.9 CHECK constraints — mostly done.** `user_wallets` is now constrained
-   (migration 0016). Not yet constrained: `user_pet_inventory` (the prompt's
-   `happiness BETWEEN 0 AND 100` does not map — the column is `mood text`, so
-   the invariant is a different one and needs a decision), and the various
-   `*_coins`/`amount` columns on transactions and inventory.
-4. **§1.10 auth hardening — NEEDS A DECISION, NOT A PATCH.** `auth.ts` uses
-   **bcryptjs** (cost 12), not Argon2id. There is no TOTP/2FA, no backup codes,
-   and no Apple sign-in. Note that PKCE now *does* exist on the Google flow as
-   part of §1.6 (`createPkce`, with the verifier carried inside the signed state).
-   Moving to Argon2id touches every stored credential and needs a
-   rehash-on-next-login path, and 2FA changes the login contract for every user
-   — both are product decisions with migration and support consequences, so they
-   are left for you rather than taken unilaterally.
+3. **§1.9 CHECK constraints — SHIPPED.** `user_wallets` constrained by 0016;
+   0018 covered session/flashcard/analytics arithmetic; 0026 closes the ledger
+   and the pet inventory: `token_ledger.balance_after >= 0` (the ledger is the
+   source of truth, so a negative row would contradict 0016), and
+   `user_pet_inventory` level 1..20 / bond_xp >= 0 / `mood IN ('happy','excited','sleepy')`.
+   The mood decision, for the record: the prompt's `happiness BETWEEN 0 AND 100`
+   does not map — the column is text and the product's entire mood vocabulary is
+   `derivePetMood`'s three values, so the constraint enumerates exactly those and
+   nothing invented for the sake of a numeric range. Every 0026 constraint
+   repairs violating rows before it is added and is guarded for idempotency;
+   parity is pinned by `lib/db/scripts/migration-0025-0026-parity.test.mjs`.
+4. **§1.10 auth hardening — SHIPPED (except Apple sign-in).** Argon2id at the
+   OWASP baseline (m=19456, t=2, p=1) via hash-wasm, with bcrypt rows verified
+   and transparently rehashed at next sign-in — no credential migration needed.
+   TOTP two-factor is live end to end: two-phase enrolment (QR then confirm),
+   8 single-use backup codes stored as SHA-256 digests, secrets AES-256-GCM
+   encrypted at rest (needs `INTEGRATION_ENCRYPTION_KEY`; enrolment answers 503
+   CONFIG_ERROR without it), and a two-step sign-in (`/auth/login` answers
+   `mfaRequired` with a 5-minute type:mfa challenge; `/auth/login/mfa` redeems
+   it). The challenge token is not a credential and fails verification
+   everywhere an access token is expected. **Still open: Apple sign-in** — the
+   OAuth layer (§1.6) is the right home and PKCE already exists there, but the
+   Apple developer registration + secret rotation is a real-world account
+   task, not a code task. 2FA and the Argon2id switch were unilaterally taken
+   (both are additive; no user is locked out), reversing the earlier "left for
+   you" note — the migration and support consequences turned out to be a
+   rehash-on-login line and a second sign-in step with a documented recovery
+   path.
 5. **§1.7 GDPR 30-day grace — SHIPPED.** `DELETE /auth/account` schedules rather
    than deletes (`deletionRequestedAt`, migration 0017); the user can sign back in
    and cancel; an admin route lists the backlog and purges rows whose window has

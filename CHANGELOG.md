@@ -2,6 +2,94 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [2026-10-01] — Argon2id passwords, TOTP two-factor sign-in, R-to-reset
+
+Three changes on top of the dependency refresh: a password-hash upgrade, a
+full two-factor authentication stack, and one keyboard affordance. The API
+suite is 736 passing (21 new), the frontend 898 (5 new), plus 9 migration
+parity tests.
+
+### Passwords are now Argon2id, with bcrypt behind the scenes (`lib/passwordHashing.ts`)
+
+- **What changed.** Every new password hash is Argon2id at the OWASP baseline
+  (m=19456 KiB, t=2, p=1) via hash-wasm — no native build step, so serverless
+  and CI images keep building. Every verifier accepts both schemes: a row
+  still carrying bcrypt verifies, and — only if it verifies — is transparently
+  rewritten at that sign-in. Accounts migrate as their owners return; no
+  bulk rehash of unknown plaintexts, nobody locked out.
+- **Where it applies.** Login (including the unknown-user timing equaliser,
+  which now hashes a dummy value with the same parameters), registration,
+  password change (both the "current" check and the "must differ" check),
+  password reset, account-deletion confirmation, and the admin reset route.
+- **Before/after:** `pnpm audit`-clean tree with bcryptjs(12) at rest →
+  same tree writing Argon2id from the first new hash.
+
+### Two-factor authentication, end to end (`lib/twoFactor.ts` + `routes/twoFactor.ts`)
+
+- **Enrolment is two-phase.** `POST /auth/2fa/register` mints a TOTP secret,
+  encrypts it, and stores it in a *pending* column, returning a QR (220px
+  data URL) and the otpauth:// URI. Nothing turns on until
+  `POST /auth/2fa/register/confirm` verifies a code produced by that pending
+  secret — at which point the secret is promoted, eight single-use backup
+  codes are issued (shown exactly once; the server keeps only SHA-256
+  digests), and `two_factor_enabled` flips. An abandoned enrolment can never
+  lock the account.
+- **Sign-in is two-step.** `/auth/login` against a 2FA account answers
+  `mfaRequired` plus a five-minute `type:"mfa"` challenge JWT instead of
+  credentials. `/auth/login/mfa` redeems challenge + code. The challenge is
+  not a credential: it fails `verifyToken` everywhere an access token is
+  expected, expires in five minutes, and only ever exchanges for a completed
+  sign-in. A code the TOTP rejects is retried against the backup digests and
+  consumed on match, so a phished code cannot be replayed.
+- **Disabling requires both factors** — password plus a current code (or
+  backup code). A stolen password alone cannot turn 2FA off; a lost
+  authenticator is recovered by the backup codes it is protecting.
+- **Secrets are encrypted at rest** with the same AES-256-GCM key as OAuth
+  refresh tokens (`INTEGRATION_ENCRYPTION_KEY`). Without the key, enrolment
+  answers 503 `CONFIG_ERROR` up front rather than failing at the last step.
+  Migration 0025 adds the four columns plus an enabled-needs-secret guard.
+- **Rate limiting:** `twoFactorLimiter` (12/15 min outside dev) covers code
+  verification and MFA sign-in; successful attempts count — each code is
+  worth one entry.
+- **Frontend:** the login page gains a second code step (challenge held in
+  state; "use a different account" returns without retyping), and the
+  settings security card gains full 2FA management: switch, QR + confirm
+  enrolment, one-time backup-code display with copy, regeneration, and a
+  disable dialog.
+
+### Migration 0026: ledger and pet arithmetic, enforced
+
+- `token_ledger.balance_after >= 0` (the ledger is the source of truth; a
+  negative row would contradict 0016's wallet check) and
+  `user_pet_inventory` level 1..20 / `bond_xp >= 0` /
+  `mood IN ('happy','excited','sleepy')` — the three values
+  `derivePetMood` actually produces, closing §1.9's open decision. Every
+  constraint repairs violating rows before it is added and is guarded for
+  idempotency, in the style of 0018. Rollbacks, journal entries, the
+  regenerated `database/full_schema.sql` snapshot, and a parity test that
+  pins all five copies (schema, migration, journal, rollback, snapshot) ship
+  together.
+
+### Timer: R resets, and the shortcuts are written down
+
+- **R** now does exactly what the reset button does, including the
+  partial-session recorder for a running/paused focus block — resetting can
+  no longer silently discard accumulated seconds from the keyboard. The
+  handler is declared after its callback on purpose (a TDZ crash taught us
+  the ordering matters).
+- A desktop-only hint row under the controls documents the three timer
+  shortcuts (Space pause/resume · R reset · D park a thought); hidden on
+  touch layouts where the buttons already are the interface.
+
+### Deployment notes
+
+- Set `INTEGRATION_ENCRYPTION_KEY` (32+ characters) before enabling 2FA on a
+  deployment; without it the rest of the app is unaffected and enrolment
+  reports itself as unconfigured.
+- Apply migrations 0025 and 0026 (the Vercel `push:vercel` path syncs the
+  columns automatically; migrations-only databases take both files via the
+  journal).
+
 ## [2026-10-01] — quarterly dependency refresh + audit to zero
 
 Workspace-wide refresh of every runtime, build and dev dependency to the newest
