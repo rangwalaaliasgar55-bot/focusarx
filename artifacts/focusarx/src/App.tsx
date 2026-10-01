@@ -175,7 +175,7 @@ function MobileWelcomeGate({ children }: { children: ReactNode }) {
         // Timer landing pages
         "/focus-timer", "/pomodoro-timer", "/study-timer",
         "/5-minute-timer", "/10-minute-timer", "/15-minute-timer",
-        "/30-minute-timer", "/45-minute-timer",
+        "/30-minute-timer", "/45-minute-timer", "/90-minute-timer",
         "/study-timer-for-medical-students", "/focus-timer-for-programmers",
         // Guides & study techniques
         "/focus-guide", "/pomodoro-guide", "/study-techniques", "/guides",
@@ -347,6 +347,7 @@ function RoutedContent() {
               <Route path="/15-minute-timer"><ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={15} /></Suspense></ErrorBoundary></Route>
               <Route path="/30-minute-timer"><ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={30} /></Suspense></ErrorBoundary></Route>
               <Route path="/45-minute-timer"><ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={45} /></Suspense></ErrorBoundary></Route>
+              <Route path="/90-minute-timer"><ErrorBoundary><Suspense fallback={<PageLoader />}><MinuteTimerPage minutes={90} /></Suspense></ErrorBoundary></Route>
               <Route path="/deep-work-guide"><ErrorBoundary><Suspense fallback={<PageLoader />}><DeepWorkGuidePage /></Suspense></ErrorBoundary></Route>
               <Route path="/body-doubling"><ErrorBoundary><Suspense fallback={<PageLoader />}><BodyDoublingPage /></Suspense></ErrorBoundary></Route>
               <Route path="/how-to-focus-while-studying"><ErrorBoundary><Suspense fallback={<PageLoader />}><HowToFocusWhileStudyingPage /></Suspense></ErrorBoundary></Route>

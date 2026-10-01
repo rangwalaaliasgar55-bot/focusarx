@@ -46,6 +46,7 @@ reciprocal with the English pages they sit beside.
 - [15 Minute Timer](https://www.focusarx.site/15-minute-timer): pre-armed fifteen-minute countdown for active-recall revision sprints — flashcards, past-paper questions, formula drills.
 - [30 Minute Timer](https://www.focusarx.site/30-minute-timer): pre-armed half-hour countdown for repeatable one-task deep work blocks, scored and logged.
 - [45 Minute Timer](https://www.focusarx.site/45-minute-timer): pre-armed forty-five-minute countdown matching a school period or one exam section, for mock-paper practice.
+- [90 Minute Timer](https://www.focusarx.site/90-minute-timer): pre-armed ninety-minute countdown for full-paper practice and one-task deep sessions, with a real break built into the method.
 - [Study Time Calculator](https://www.focusarx.site/study-calculator): enter an exam date and topic list, get a dated revision schedule with spaced repeats.
 - [Study Method Quiz](https://www.focusarx.site/study-method-quiz): two minutes to match a study method to your schedule and goals.
 - [60-Second Scroll Reset](https://www.focusarx.site/break-free): a short interruption pattern for breaking a distraction loop.

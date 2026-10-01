@@ -90,6 +90,7 @@ function baseUrl(): string {
  */
 const SEO_CONTENT_REVIEWED = "2026-08-29"; // src/content/seo-pages.mjs LAST_REVIEWED
 const MINUTE_TIMERS_REVIEWED = "2026-09-08"; // src/content/minute-timers.mjs
+const MINUTE_TIMER_90_REVIEWED = "2026-10-01"; // the /90-minute-timer copy was written and reviewed on this date
 const AUDIENCE_PAGES_REVIEWED = "2026-09-11"; // the two audience pages (WS8d)
 const GUIDE_LIBRARY_REVIEWED = "2026-09-11"; // src/content/seo-pages.mjs
 const ABOUT_REVIEWED = "2026-09-11"; // src/content/seo-pages.mjs — editorial standards copy
@@ -149,6 +150,7 @@ const PAGE_LASTMOD: Record<string, string> = {
   "/15-minute-timer": MINUTE_TIMERS_REVIEWED,
   "/30-minute-timer": MINUTE_TIMERS_REVIEWED,
   "/45-minute-timer": MINUTE_TIMERS_REVIEWED,
+  "/90-minute-timer": MINUTE_TIMER_90_REVIEWED,
 
   // Guides reviewed with the rest of the SEO content set.
   "/deep-work-guide": SEO_CONTENT_REVIEWED,
@@ -238,6 +240,7 @@ const TOOL_PAGES: Page[] = [
   { url: "/15-minute-timer", changefreq: "monthly", priority: "0.8" },
   { url: "/30-minute-timer", changefreq: "monthly", priority: "0.8" },
   { url: "/45-minute-timer", changefreq: "monthly", priority: "0.8" },
+  { url: "/90-minute-timer", changefreq: "monthly", priority: "0.8" },
 ];
 
 /**

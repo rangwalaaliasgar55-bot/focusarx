@@ -153,6 +153,7 @@ const APP_ENTRIES: SearchEntry[] = [
   { path: "/15-minute-timer", section: "Tools", title: "15-Minute Timer", description: "A fifteen-minute countdown for a quarter pomodoro or a reading block.", keywords: "15 minute timer countdown fifteen" },
   { path: "/30-minute-timer", section: "Tools", title: "30-Minute Timer", description: "A thirty-minute countdown for a half-hour deep-work block.", keywords: "30 minute timer countdown thirty half hour" },
   { path: "/45-minute-timer", section: "Tools", title: "45-Minute Timer", description: "A forty-five-minute countdown for a long focus block.", keywords: "45 minute timer countdown forty five long" },
+  { path: "/90-minute-timer", section: "Tools", title: "90-Minute Timer", description: "A ninety-minute countdown for full papers and one-task deep sessions.", keywords: "90 minute timer countdown ninety full paper deep session" },
   { path: "/pomodoro-timer", section: "Tools", title: "Pomodoro Timer", description: "The classic 25/5 pomodoro cycle, with your history tracked.", keywords: "pomodoro timer 25 5 technique tomato cycle" },
   { path: "/study-timer", section: "Tools", title: "Study Timer", description: "A study timer with session lengths for revision blocks.", keywords: "study timer revision exam sessions school" },
   { path: "/focus-timer-for-programmers", section: "Tools", title: "Focus Timer for Programmers", description: "Longer deep-work blocks for coding, with break cues that do not break flow.", keywords: "programmer developer coding timer deep work flow" },

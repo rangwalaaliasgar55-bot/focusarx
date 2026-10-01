@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════
-// Minute-length timer pages — /5-minute-timer … /45-minute-timer
+// Minute-length timer pages — /5-minute-timer … /90-minute-timer
 // ══════════════════════════════════════════════════════════════════
 // One page per duration people actually search for. Each is a *working* timer
 // (src/pages/minute-timer.tsx pre-arms the focus timer to that length) plus
@@ -18,9 +18,9 @@
 //   • sources are real and specific — see /evidence for the claim policy.
 
 /** The durations published as their own page. */
-export const MINUTE_TIMER_DURATIONS = [5, 10, 15, 30, 45];
+export const MINUTE_TIMER_DURATIONS = [5, 10, 15, 30, 45, 90];
 
-/** "path|Label" sibling links, so every timer page links the other four. */
+/** "path|Label" sibling links, so every timer page links the other five. */
 const siblingLinks = (minutes) =>
   MINUTE_TIMER_DURATIONS.filter((m) => m !== minutes).map(
     (m) => `/${m}-minute-timer|${m} minute timer`,
@@ -372,6 +372,73 @@ export const MINUTE_TIMER_PAGES = {
       "K. Anders Ericsson et al., 'Deliberate Practice' (1993) — practice structured to match performance conditions.",
       "NTA and CBSE published exam patterns — paper length and section structure for JEE Main, NEET UG and board exams.",
       "Dunlosky et al. (2013) — interleaved and distributed practice ratings.",
+    ],
+  },
+
+  "/90-minute-timer": {
+    kind: "tool",
+    title: "90 Minute Timer for Full Papers & Deep Sessions | FocusArx",
+    description:
+      "A free 90 minute timer for full-length papers and one-task deep sessions. Pre-armed countdown with focus scoring — build the stamina long exams demand.",
+    h1: "90 minute timer for full papers and one-task sessions",
+    lead:
+      "Ninety minutes is the length of a full seminar, one ultradian cycle, and the honest minimum for a complete mock paper. It is the block where practice stops rehearsing the exam and starts being the exam — so it deserves its own timer, not a Pomodoro stretched past its design.",
+    answerFirst:
+      "A 90 minute timer is built for the longest legitimate block of work: one full exam paper, a mock under real conditions, or a single deep task that needs the whole morning arc. Work the block without checking anything else, then take a proper twenty-minute break — at this length recovery is part of the method.",
+    software: {
+      name: "FocusArx 90 Minute Timer",
+      category: "ProductivityApplication",
+      description:
+        "Browser countdown for ninety-minute deep sessions and full-length paper practice, with focus scoring, session logs and study rooms.",
+    },
+    howTo: {
+      name: "How to run a 90 minute deep block",
+      steps: [
+        { name: "Choose exactly one deliverable", text: "One paper, one chapter draft, one problem set — a block this long without a single target turns into wandering. Write the target down before you start the timer." },
+        { name: "Stage everything before you start", text: "Water, rough paper, the exact pages or files. Ninety minutes fails at minute forty when getting the next thing costs leaving the desk." },
+        { name: "Pause on purpose, not on impulse", text: "A planned thirty-second reset every half-hour beats an unbroken grind — vigilance fades with time on task and a brief deliberate break restores it." },
+        { name: "End with a written log", text: "Note what got done and where attention broke. Two honest 90-minute blocks are a serious study day; a pile of them usually means the blocks were not honest." },
+      ],
+    },
+    sections: [
+      {
+        h: "Who is ninety minutes for?",
+        p: [
+          "For anyone whose real task is longer than a class period: full-length entrance papers (JEE Advanced, NEET, UPSC mains answer writing), a dissertation chapter, a problem set that needs one continuous hour of setup-heavy work. If finishing requires re-building your context every twenty-five minutes, the Pomodoro is working against you — the settling cost is paid once per block, and at ninety minutes it is finally worth it.",
+        ],
+      },
+      {
+        h: "Is 90 minutes of studying too long?",
+        p: [
+          "Not if it is one task with staged materials — and genuinely too long if it is three tasks wearing a trench coat. Sustained attention degrades measurably after roughly this span, which is why the block ends with a real break rather than a scroll. Two honest ninety-minute blocks a day outperform six fractured hours, and the session log will show you which kind of day you actually had.",
+        ],
+      },
+      {
+        h: "What should the break afterwards look like?",
+        p: [
+          "Twenty minutes, away from a screen, with food or movement in it. Recovery scales with block length: the ten minutes that recharge a forty-five-minute block will not clear the debt a ninety-minute one runs up. A walk, a meal, a shower — anything that lets the default-mode network consolidate what you just did. Screens mostly reset nothing and borrow from the next block.",
+        ],
+      },
+      {
+        h: "How do I build up to a 90 minute block?",
+        p: [
+          "In steps, not in one heroic jump: forty-five-minute blocks until they feel routine, then sixty, then ninety — keeping exam conditions at every length. If forty-five is still hard, stay there for now and use the 45 minute timer; the stamina you build there transfers directly. Jump straight to ninety and the most common failure is not exhaustion but quiet, unnoticed drift after minute fifty.",
+        ],
+      },
+    ],
+    faq: [
+      ["Is the 90 minute timer free?", "Yes, with no signup required. The focus score, session log and streaks are free too; Focus Tokens only unlock Premium extras."],
+      ["How many 90 minute blocks can I realistically do in a day?", "Two to three, with real breaks between them. Beyond that the blocks stop being deep work and start being time served — the log's focus score will tell you which one you were doing."],
+      ["Can I use this for a full mock exam?", "For the paper itself you want three uninterrupted hours; use this block for one full section or for the paper's first half under timed conditions, then review immediately while the misses are fresh."],
+      ["Is 90 minutes better than the Pomodoro technique?", "It is a different tool, not an upgrade: 25/5 suits new material and high-friction starts, ninety minutes suits performance-scale tasks where the setup cost dominates. Most serious weeks need both."],
+      ["Does the timer keep running if I close the tab?", "Yes — the session survives a closed tab or a locked phone, and recovery brings it back with the elapsed time intact. Nothing to install; it runs in the browser."]],
+    cta: { href: "/focus?duration=90", label: "Start a 90 minute session" },
+    related: [...siblingLinks(90), "/exam|Exam prep hub", "/focus-music|Best music for studying", "/adhd-focus-tools|ADHD focus tools", ...HUB_LINKS],
+    lastReviewed: "2026-10-01",
+    sources: [
+      "N. Kleitman, 'Sleep and Wakefulness' (1963) — the basic rest–activity cycle and its roughly 90-minute rhythm.",
+      "Ariga & Lleras (2011), Cognition — brief and rare mental breaks slow the vigilance decrement during sustained tasks.",
+      "Published structures of JEE Advanced, NEET UG and UPSC mains papers — full papers run three hours; section-scale practice is the trainable unit.",
     ],
   },
 };

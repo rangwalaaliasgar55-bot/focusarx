@@ -87,6 +87,14 @@ const RULES = [
     match: /Ericsson|Deliberate Practice/i,
     url: scholar("The Role of Deliberate Practice in the Acquisition of Expert Performance Ericsson 1993"),
   },
+  {
+    match: /Kleitman|Sleep and Wakefulness|rest–activity cycle|rest-activity cycle/i,
+    url: "https://press.uchicago.edu/",
+  },
+  {
+    match: /Ariga.*Lleras|brief and rare mental breaks/i,
+    url: scholar("Brief and rare mental breaks keep you focused Ariga Lleras 2011"),
+  },
   { match: /Ebbinghaus|forgetting curve/i, url: scholar("Ebbinghaus forgetting curve memory 1885") },
   {
     match: /Skinner|variable-ratio/i,

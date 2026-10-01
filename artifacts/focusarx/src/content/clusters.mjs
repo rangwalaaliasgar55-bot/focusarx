@@ -122,6 +122,7 @@ export const CLUSTERS = [
       { path: "/adhd-focus-tips", label: "How to focus with ADHD" },
       { path: "/30-minute-timer", label: "30 minute timer" },
       { path: "/45-minute-timer", label: "45 minute timer" },
+      { path: "/90-minute-timer", label: "90 minute timer" },
       { path: "/pomodoro-timer", label: "Pomodoro timer" },
       { path: "/study-with-me", label: "Study with me sessions" },
       { path: "/virtual-study-room", label: "Virtual study room" },

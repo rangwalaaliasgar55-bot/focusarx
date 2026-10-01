@@ -664,6 +664,7 @@ export const SEO_PAGES = {
       "/deep-work-guide|Deep work guide",
       "/science-of-deep-work|Neuroscience of deep work",
       "/45-minute-timer|45 minute timer",
+      "/90-minute-timer|90 minute timer",
       "/30-minute-timer|30 minute timer",
       "/two-hour-study-method|The 2-hour study method",
       "/stop-scrolling|How to stop scrolling",

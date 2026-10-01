@@ -316,11 +316,14 @@ found.
   table-parity gates included), bundle-budget PASS, API 424 passed, frontend 421
   passed, typecheck clean, eslint clean on all five changed files.
 - **Still open:** de-duplicate `/break-free` and `/breathe` in the sitemap
-  segments (117 `<loc>` entries describe 115 URLs); `/90-minute-timer` is the one
-  defensible new page, since the product pre-arms 25/50/90 and
-  `MINUTE_TIMER_DURATIONS` stops at 45 — it needs the full treatment the other
-  five got, not a stub; CTA-click analytics events still do not exist, so the
-  effect of the CTA change above cannot be measured in GA4 until they do.
+  segments (117 `<loc>` entries describe 115 URLs); CTA-click analytics events
+  still do not exist, so the effect of the CTA change above cannot be measured
+  in GA4 until they do.
+- **Done since:** `/90-minute-timer` shipped with the full treatment (2026-10-01):
+  its own genuinely different copy in `minute-timers.mjs` — full-paper and
+  one-task deep-session angle, ultradian-cycle sources — plus route, chunk map,
+  search index, deep-work cluster spoke, landing footer link, llms.txt line and
+  a tools-segment lastmod bump to 2026-10-01.
 
 ## Done 2026-09-17 — Search Console indexing audit + content-depth gates (this branch, in review)
 

@@ -6,10 +6,10 @@ import { MINUTE_TIMER_DURATIONS } from "@/content/minute-timers.mjs";
 
 /**
  * ══════════════════════════════════════════════════════════════════
- * X-minute timer page — one component, five routes
+ * X-minute timer page — one component, six routes
  * ══════════════════════════════════════════════════════════════════
  * `/5-minute-timer`, `/10-minute-timer`, `/15-minute-timer`,
- * `/30-minute-timer`, `/45-minute-timer`.
+ * `/30-minute-timer`, `/45-minute-timer`, `/90-minute-timer`.
  *
  * The page *is* the timer: the countdown is pre-armed to that length the
  * moment the route mounts, so a visitor who searched "15 minute timer" lands

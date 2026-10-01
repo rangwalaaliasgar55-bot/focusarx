@@ -94,7 +94,7 @@ const COMPARISONS = [
 const FOOTER_GROUPS = [
   { title: "Product", links: [["Dashboard", "/dashboard"], ["Virtual study rooms", "/virtual-study-room"], ["Live study rooms", "/study-rooms"], ["Flashcards", "/flashcards"], ["Pricing", "/pricing"]] },
   { title: "Learn", links: [["All guides", "/guides"], ["Exam prep hub", "/exam"], ["Focus guide", "/focus-guide"], ["Pomodoro guide", "/pomodoro-guide"], ["ADHD focus tips", "/adhd-focus-tips"], ["Stop procrastinating", "/stop-procrastinating"], ["Focus music", "/focus-music"]] },
-  { title: "Timers", links: [["Pomodoro timer", "/pomodoro-timer"], ["5 minute timer", "/5-minute-timer"], ["15 minute timer", "/15-minute-timer"], ["30 minute timer", "/30-minute-timer"], ["45 minute timer", "/45-minute-timer"]] },
+  { title: "Timers", links: [["Pomodoro timer", "/pomodoro-timer"], ["5 minute timer", "/5-minute-timer"], ["15 minute timer", "/15-minute-timer"], ["30 minute timer", "/30-minute-timer"], ["45 minute timer", "/45-minute-timer"], ["90 minute timer", "/90-minute-timer"]] },
   { title: "Company", links: [["About", "/about"], ["Contact", "/contact"], ["Support", "/support"]] },
 ];
 

@@ -25,6 +25,7 @@ export const ROUTE_CHUNKS: Record<string, () => Promise<unknown>> = {
   "/30-minute-timer": () => import("@/pages/minute-timer"),
   "/45-minute-timer": () => import("@/pages/minute-timer"),
   "/5-minute-timer": () => import("@/pages/minute-timer"),
+  "/90-minute-timer": () => import("@/pages/minute-timer"),
   "/about": () => import("@/pages/about"),
   "/acceptable-use": () => import("@/pages/acceptable-use"),
   "/accessibility": () => import("@/pages/accessibility"),
