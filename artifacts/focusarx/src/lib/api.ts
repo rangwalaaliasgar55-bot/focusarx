@@ -1,4 +1,4 @@
-import { clearToken, getToken, setToken } from "@/lib/auth";
+import { clearToken, getToken, setToken, hasSessionHint } from "@/lib/auth";
 import {
   FRONTEND_DEPLOYMENT_VERSION,
   recordServerVersion,
@@ -267,7 +267,11 @@ export async function apiFetch(path: string, init: ApiRequestInit = {}, _retried
   }
 
   // ── 401: silent refresh + single retry ────────────────────────────────────
-  if (response.status === 401 && !_retried && !isAuthPath(path)) {
+  // A request that went out with no credential hint (cookie marker or bearer
+  // token) cannot be fixed by rotating the refresh cookie — retrying the
+  // refresh for a guest only added a guaranteed-401 POST to every guest 401
+  // and, on the core pages, turned one wasted call into two.
+  if (response.status === 401 && !_retried && !isAuthPath(path) && hasSessionHint()) {
     const outcome = await tryRefreshSession();
     if (outcome === "ok") return apiFetch(path, init, true);
     if (outcome === "unavailable") {

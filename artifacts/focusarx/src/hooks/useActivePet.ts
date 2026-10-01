@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getToken } from "@/lib/auth";
+import { getToken, hasSessionHint } from "@/lib/auth";
 
 /**
  * The user's currently-active companion, normalized across both storage
@@ -95,11 +95,17 @@ export async function fetchActivePet(): Promise<ActivePet | null> {
 
 /** Shared query for every surface that renders the companion. */
 export function useActivePet() {
+  // Guests have no pet: skip the request entirely instead of collecting a
+  // guaranteed 401 (plus a refresh attempt) on every timer page they open.
+  // PetCompanion renders its starter art only when data exists, so an
+  // undefined result simply means no companion for anonymous visitors.
+  const signedIn = hasSessionHint();
   const query = useQuery<ActivePet | null>({
     queryKey: ["active-pet"],
     queryFn: fetchActivePet,
     staleTime: 30_000,
     retry: false,
+    enabled: signedIn,
   });
 
   // The pets page dispatches ACTIVE_PET_EVENT after an activate; invalidate so

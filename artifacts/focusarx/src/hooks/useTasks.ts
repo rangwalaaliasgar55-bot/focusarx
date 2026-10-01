@@ -3,6 +3,7 @@ import { useMemo, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { generateId } from "@/lib/timerUtils";
 import { apiJson, apiFetch } from "@/lib/api";
+import { hasSessionHint } from "@/lib/auth";
 import { trackSiteEvent } from "@/lib/site-analytics";
 import type { Task } from "@/types/timer";
 
@@ -44,10 +45,17 @@ const refreshEvery = typeof document === "undefined" || document.visibilityState
 /** Shared task cache: every screen observes the same optimistic task state. */
 export function useTasks() {
   const qc = useQueryClient();
+  // A visitor without any credential hint is a guest: /api/tasks would answer
+  // 401 on every fetch AND on every 20-second poll, forever, on the core timer
+  // pages — wasted radio time on slow links plus a refresh attempt per miss.
+  // Gating the query on the session hint keeps the signed-in behaviour
+  // identical and renders the same empty list for guests, with zero requests.
+  const signedIn = hasSessionHint();
   const query = useQuery({
     queryKey: key,
     queryFn: async () => (await apiJson<{ tasks: ServerTask[] }>("/api/tasks")).tasks.map(toTask),
-    refetchInterval: refreshEvery,
+    refetchInterval: signedIn ? refreshEvery : false,
+    enabled: signedIn,
   });
   const tasks = useMemo(() => query.data ?? [], [query.data]);
   const invalidateRelated = useCallback(() => {

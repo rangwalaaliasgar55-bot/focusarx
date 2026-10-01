@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 /** Public site settings shape returned by GET /api/site/settings. */
 export interface SiteSettings {
@@ -29,36 +29,38 @@ const DEFAULTS: SiteSettings = {
   heroCtaText: null,
 };
 
+async function fetchSiteSettings(): Promise<SiteSettings> {
+  try {
+    const res = await fetch("/api/site/settings");
+    if (!res.ok) return DEFAULTS;
+    const data = (await res.json()) as Partial<SiteSettings>;
+    return { ...DEFAULTS, ...data };
+  } catch {
+    // Offline / API down — keep defaults.
+    return DEFAULTS;
+  }
+}
+
 /**
- * Fetch + poll the public site settings (maintenance mode, announcement,
- * branding). Polls every 30s so an admin toggle takes effect app-wide without
- * a reload. Never throws — falls back to safe defaults so the app always works
- * even if the API is unreachable.
+ * Public site settings (maintenance mode, announcement, branding).
+ *
+ * This used to be a raw useEffect + setInterval per consumer, so every mounted
+ * consumer (MaintenanceGate, AnnouncementBanner, …) fired its own request AND
+ * its own 30-second poller for the same URL — duplicate boot traffic on every
+ * page load, forever. As a React Query hook the identical queryKey collapses
+ * all consumers into one cached request and one shared poller, whatever the
+ * mount count. Never throws — falls back to safe defaults so the app always
+ * works even if the API is unreachable.
  */
 export function useSiteSettings(): SiteSettings {
-  const [settings, setSettings] = useState<SiteSettings>(DEFAULTS);
-
-  useEffect(() => {
-    let alive = true;
-
-    const load = async () => {
-      try {
-        const res = await fetch("/api/site/settings");
-        if (!res.ok) return;
-        const data = (await res.json()) as Partial<SiteSettings>;
-        if (alive) setSettings({ ...DEFAULTS, ...data });
-      } catch {
-        // Offline / API down — keep defaults.
-      }
-    };
-
-    void load();
-    const id = setInterval(load, 30_000);
-    return () => {
-      alive = false;
-      clearInterval(id);
-    };
-  }, []);
-
-  return settings;
+  const { data } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: fetchSiteSettings,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    // Settings degrade to defaults offline; a failed poll must not spam the
+    // global error toast (it also fires for the maintenance gate's own use).
+    retry: false,
+  });
+  return data ?? DEFAULTS;
 }

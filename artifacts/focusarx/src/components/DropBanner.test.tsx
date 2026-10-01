@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 vi.mock("@/lib/socket", () => ({ useSocketEvent: () => undefined }));
 vi.mock("@/lib/haptics", () => ({ haptic: vi.fn() }));
@@ -26,7 +27,16 @@ describe("DropBanner", () => {
 
   it("foregrounds one actionable event and collapses concurrent events until requested", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ drops }), { status: 200 })));
-    render(<DropBanner />);
+    // DropBanner reads through the shared React Query cache now, so it needs
+    // a provider like every other query-consuming surface.
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: 0 } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <DropBanner />
+      </QueryClientProvider>
+    );
 
     await waitFor(() => expect(screen.getByRole("heading", { name: "Lunar coin rain" })).toBeTruthy());
     expect(screen.getByText("42 of 100 left")).toBeTruthy();

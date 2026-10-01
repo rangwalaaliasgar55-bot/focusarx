@@ -117,7 +117,17 @@ const appMount = hasStaticShell && staticRoot?.parentElement
       const mount = document.createElement("div");
       mount.id = "root";
       staticRoot.insertAdjacentElement("afterend", mount);
-      window.addEventListener("focusarx:route-ready", () => staticRoot.remove(), { once: true });
+      const removeShell = () => staticRoot.remove();
+      window.addEventListener("focusarx:route-ready", removeShell, { once: true });
+      // Fail-safe: the shell is a dead snapshot — links work, but every button
+      // is inert because React has not taken the page over yet. If the route
+      // chunk is still in flight after 4s (slow link, captive portal), showing
+      // the app's own interactive skeleton beats a page that LOOKS loaded but
+      // ignores every tap. The SEO shell still wins the fast path: on a normal
+      // connection route-ready fires well inside the window.
+      window.setTimeout(() => {
+        if (staticRoot.isConnected) staticRoot.remove();
+      }, 4000);
       return mount;
     })()
   : staticRoot;

@@ -219,7 +219,11 @@ export default function PetCompanion({
     return h;
   }
 
+  // Marketplace inventory only exists for signed-in members; a guest request
+  // is a guaranteed 401 (and this component used to fire it twice on mount —
+  // the [] effect and the [isRunning] effect both run on first render).
   useEffect(() => {
+    if (!getToken()) return;
     fetch("/api/marketplace/inventory", { headers: authH() })
       .then(r => r.json())
       .then((d: { inventory?: { itemId: string; equipped: boolean; type?: string }[] }) => {
@@ -230,6 +234,7 @@ export default function PetCompanion({
 
   // Refresh inventory when session ends or after purchases
   useEffect(() => {
+    if (!getToken()) return;
     const h = authH();
     fetch("/api/marketplace/inventory", { headers: h })
       .then(r => r.json())

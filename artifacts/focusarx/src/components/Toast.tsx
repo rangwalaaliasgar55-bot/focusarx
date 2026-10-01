@@ -90,7 +90,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const remove = useCallback((id: string) => setToasts((current) => current.filter((item) => item.id !== id)), []);
 
   useEffect(() => {
+    // Every failed React Query dispatches `focusarx:api-error`. On a flaky
+    // mobile link a single page can fail a handful of queries at once, and
+    // each one used to raise its own danger toast — a stack of identical
+    // "couldn't load" messages that made the app look broken even when the
+    // retry ladder was recovering. One representative toast per 5s window is
+    // enough for a human; the failed queries themselves keep retrying.
+    let lastShown = 0;
     const handleApiError = (event: Event) => {
+      const now = Date.now();
+      if (now - lastShown < 5_000) return;
+      lastShown = now;
       const detail = (event as CustomEvent<{ message?: string }>).detail;
       toast(detail?.message || "We couldn't refresh this data. Try again in a moment.", "danger");
     };

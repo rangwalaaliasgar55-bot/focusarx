@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { Volume2, VolumeX, Music, X, Sparkles, SlidersHorizontal, Square, Play, Pause, ChevronDown, ChevronUp, Repeat2 } from "lucide-react";
 import {
   ambientEngine,
@@ -76,9 +77,21 @@ export default function AmbientSoundBar({ variant = "pill", className = "" }: Pr
   const activeCount = state.activeIds.length;
   const isFull = activeCount >= MAX_LAYERS;
 
-  const [customTracks, setCustomTracks] = useState<CustomTrack[]>([]);
-  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
-  const [trackError, setTrackError] = useState<string | null>(null);
+  // Released direct-audio recordings, shared via React Query: AmbientSoundBar
+  // can be mounted on several chrome variants at once, and the old per-mount
+  // useEffect fired one identical GET /api/site/ambient-tracks per mount on
+  // every page load. One queryKey = one request, cached across navigation.
+  const { data: customTracks = [] } = useQuery({
+    queryKey: ["ambient-tracks"],
+    queryFn: async () => {
+      const res = await fetch("/api/site/ambient-tracks", { credentials: "include" });
+      const list = res.ok ? await res.json() : [];
+      return Array.isArray(list) ? (list as CustomTrack[]).slice(0, 30) : [];
+    },
+    staleTime: 5 * 60_000,
+    retry: false,
+    // Decorative — an empty list keeps the mixer working when offline.
+  });
   const [trackPreferences, setTrackPreferences] = useState<TrackPreferences>(() => safeGetJson<TrackPreferences>(TRACK_PREFERENCES_KEY, { volumes: {}, loops: {} }));
   const trackAudioRef = useRef<HTMLAudioElement | null>(null);
   const trackVolumes = trackPreferences.volumes;
@@ -86,14 +99,8 @@ export default function AmbientSoundBar({ variant = "pill", className = "" }: Pr
 
   useEffect(() => { safeSetJson(TRACK_PREFERENCES_KEY, trackPreferences); }, [trackPreferences]);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/site/ambient-tracks", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((list: unknown) => { if (!cancelled && Array.isArray(list)) setCustomTracks(list.slice(0, 30)); })
-      .catch(() => { /* decorative — empty list keeps the mixer working */ });
-    return () => { cancelled = true; };
-  }, []);
+  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
+  const [trackError, setTrackError] = useState<string | null>(null);
 
   const stopTrack = useCallback(() => {
     const el = trackAudioRef.current;

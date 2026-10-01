@@ -8,8 +8,9 @@
  * promotes one relevant event and keeps any others behind an explicit,
  * non-overlay disclosure.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { useSocketEvent } from "@/lib/socket";
 import { haptic } from "@/lib/haptics";
 import { getToken } from "@/lib/auth";
@@ -100,43 +101,54 @@ function primaryLabel(drop: Drop): string {
 }
 
 export function DropBanner() {
-  const [drops, setDrops] = useState<Drop[]>([]);
   const [now, setNow] = useState(() => Date.now());
   const [claiming, setClaiming] = useState<string | null>(null);
-  const [claimed, setClaimed] = useState<Record<string, boolean>>({});
+  // Local claim confirmations sit on top of whatever the server last said, so
+  // a just-claimed drop stays claimed even before the next poll agrees.
+  const [claimedOverrides, setClaimedOverrides] = useState<Record<string, boolean>>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState<Record<string, boolean>>({});
   const [showAll, setShowAll] = useState(false);
   const noticeTimer = useRef<number | null>(null);
 
-  const refresh = useCallback(async () => {
-    try {
-      const token = getToken();
-      const response = await fetch("/api/drops", {
-        credentials: "include",
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
-      if (!response.ok) return;
-      const data = await response.json() as { drops?: Drop[] };
-      const nextDrops = Array.isArray(data.drops) ? data.drops : [];
-      setDrops(nextDrops);
-      setClaimed(Object.fromEntries(nextDrops.filter((drop) => drop.claimed).map((drop) => [drop.id, true])));
-    } catch {
-      // A drop is optional UI; never turn a temporary API failure into page UI.
-    }
-  }, []);
+  // Shared React Query cache: multiple mount points (authenticated chrome,
+  // public dialogs) and every socket-triggered refetch collapse into one
+  // request per interval instead of one per mounted instance.
+  const dropsQuery = useQuery({
+    queryKey: ["drops"],
+    queryFn: async (): Promise<Drop[]> => {
+      try {
+        const token = getToken();
+        const response = await fetch("/api/drops", {
+          credentials: "include",
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        if (!response.ok) return [];
+        const data = await response.json() as { drops?: Drop[] };
+        return Array.isArray(data.drops) ? data.drops : [];
+      } catch {
+        // A drop is optional UI; never turn a temporary API failure into page UI.
+        return [];
+      }
+    },
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    retry: false,
+  });
+  const drops = dropsQuery.data ?? [];
+  const refresh = useCallback(() => void dropsQuery.refetch(), [dropsQuery]);
+  const claimed = useMemo(
+    () => ({
+      ...Object.fromEntries(drops.filter((drop) => drop.claimed).map((drop) => [drop.id, true])),
+      ...claimedOverrides,
+    }),
+    [drops, claimedOverrides],
+  );
 
   // Socket delivery is instant for signed-in members; polling retains a
   // serverless/public fallback without putting a permanent socket on guests.
-  useSocketEvent("drop:started", () => { void refresh(); });
-  useEffect(() => {
-    const first = window.setTimeout(() => void refresh(), 0);
-    const interval = window.setInterval(() => void refresh(), 60_000);
-    return () => {
-      window.clearTimeout(first);
-      window.clearInterval(interval);
-    };
-  }, [refresh]);
+  // Mount-time + 60s polling is owned by the React Query options above.
+  useSocketEvent("drop:started", refresh);
 
   const active = drops.filter((drop) => drop.live || drop.upcoming);
   useEffect(() => {
@@ -174,7 +186,7 @@ export function DropBanner() {
         showNotice(data.error ?? "This reward is no longer available.");
         return;
       }
-      setClaimed((current) => ({ ...current, [drop.id]: true }));
+      setClaimedOverrides((current) => ({ ...current, [drop.id]: true }));
       const rewards: string[] = [];
       if (data.rewardCoins) rewards.push(`+${data.rewardCoins.toLocaleString()} coins`);
       if (data.rewardXp) rewards.push(`+${data.rewardXp.toLocaleString()} XP`);
