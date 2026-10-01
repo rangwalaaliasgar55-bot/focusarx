@@ -429,6 +429,9 @@ export async function replayQueuedMutations(): Promise<number> {
           },
           body: mutation.body,
           credentials: "include",
+          // Replay happens while the app is already showing a skew banner:
+          // bounded so a dead API cannot pile hung requests on top of it.
+          signal: AbortSignal.timeout?.(15_000),
         });
 
         if (res.ok) {

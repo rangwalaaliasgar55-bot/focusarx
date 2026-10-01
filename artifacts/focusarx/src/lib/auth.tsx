@@ -180,6 +180,9 @@ async function probeSessionOnce(): Promise<SessionProbe> {
     res = await fetch("/api/auth/session", {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       credentials: "include",
+      // Boot-path request: bounded so an unreachable API resolves the probe in
+      // seconds instead of hanging the first paint on the browser's default.
+      signal: AbortSignal.timeout?.(10_000),
     });
   } catch {
     // The request never got an answer. `unavailable`, not `signed-out`.
@@ -211,6 +214,7 @@ async function probeSessionOnce(): Promise<SessionProbe> {
       const retryRes = await fetch("/api/auth/session", {
         headers: { Authorization: `Bearer ${getToken() ?? ""}` },
         credentials: "include",
+        signal: AbortSignal.timeout?.(10_000),
       }).catch(() => null);
       if (retryRes?.ok) {
         try {

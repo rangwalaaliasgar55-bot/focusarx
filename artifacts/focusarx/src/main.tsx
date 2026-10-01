@@ -26,6 +26,8 @@ registerPremiumChecker(async () => {
     const token = getToken();
     const res = await fetch("/api/premium/status", {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
+      // Boot-path request: bounded so a hung API cannot stall theme gating.
+      signal: AbortSignal.timeout?.(10_000),
     });
     if (!res.ok) return false;
     const data = await res.json();

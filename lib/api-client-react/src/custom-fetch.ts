@@ -1,5 +1,7 @@
 export type CustomFetchOptions = RequestInit & {
   responseType?: "json" | "text" | "blob" | "auto";
+  /** Override the default time-to-first-byte guard for this one call (ms). */
+  timeoutMs?: number;
 };
 
 export type ErrorType<T = unknown> = ApiError<T>;
@@ -42,6 +44,72 @@ export function setBaseUrl(url: string | null): void {
  */
 export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
   _authTokenGetter = getter;
+}
+
+// ---------------------------------------------------------------------------
+// Time-to-first-byte guard
+// ---------------------------------------------------------------------------
+
+const DEFAULT_HEADER_TIMEOUT_MS = 20_000;
+const MUTATION_HEADER_TIMEOUT_MS = 45_000;
+
+/**
+ * Bound how long a request may take to deliver its response HEADERS.
+ *
+ * Without this, a hung connection (dead proxy, stalled cold start, captive
+ * portal) left every generated hook's request outstanding for the browser's
+ * full default timeout while the panel it belongs to spun indefinitely — the
+ * app painted but every panel felt dead. Once headers arrive the guard is
+ * withdrawn, so slow bodies and streams are never cut short by the timer.
+ *
+ * A caller-provided `init.signal` (React Query forwards one to every generated
+ * hook) keeps full cancellation semantics — wired through the controller so
+ * late aborts still cancel body reads — but the header timer is ALSO installed:
+ * their signal only fires on unmount/invalidation, not on a dead connection.
+ */
+function headerTimeoutGuard(
+  init: { signal?: AbortSignal | null; timeoutMs?: number },
+  method: string,
+): { signal: AbortSignal | undefined; headersArrived: () => void } {
+  const outer = init.signal ?? undefined;
+
+  const controller = new AbortController();
+  if (outer?.aborted) {
+    controller.abort(outer.reason);
+    return { signal: controller.signal, headersArrived: () => {} };
+  }
+
+  const timeout =
+    init.timeoutMs ??
+    (["GET", "HEAD", "OPTIONS"].includes(method)
+      ? DEFAULT_HEADER_TIMEOUT_MS
+      : MUTATION_HEADER_TIMEOUT_MS);
+
+  let timer: ReturnType<typeof setTimeout> | undefined = setTimeout(() => {
+    timer = undefined;
+    controller.abort();
+  }, timeout);
+
+  const onOuterAbort = () => {
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      timer = undefined;
+    }
+    controller.abort(outer?.reason);
+  };
+  if (outer) outer.addEventListener("abort", onOuterAbort, { once: true });
+
+  return {
+    signal: controller.signal,
+    headersArrived() {
+      if (timer !== undefined) {
+        clearTimeout(timer);
+        timer = undefined;
+      }
+      // The outer-abort listener stays attached on purpose: after headers,
+      // only the caller's signal (or nothing) should cancel a body read.
+    },
+  };
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
@@ -360,7 +428,16 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  const { signal, headersArrived } = headerTimeoutGuard(init, method);
+
+  let response: Response;
+  try {
+    response = await fetch(input, { ...init, signal, method, headers });
+  } finally {
+    // Headers are in (or the attempt failed) — withdraw the guard so a slow
+    // body or stream read downstream is never cut off by the timer.
+    headersArrived();
+  }
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);

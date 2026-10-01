@@ -48,6 +48,9 @@ export function tryRefreshSession(): Promise<RefreshOutcome> {
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: "{}",
+        // Bounded like every other boot request: an unreachable API must not
+        // leave the silent refresh pending for the browser's full timeout.
+        signal: AbortSignal.timeout?.(10_000),
       });
       if (res.ok) {
         try {
@@ -94,17 +97,99 @@ function isAuthPath(path: string): boolean {
 }
 
 /**
+ * Time-to-first-byte guards.
+ *
+ * Before these existed, a hung connection (dead proxy, stalled serverless
+ * function, captive portal) left every request outstanding for the browser's
+ * full default timeout — 30–90 s per request — while the app spun on the auth
+ * bootstrap and every panel waited on its query. The app did eventually paint,
+ * but it *felt* dead: "lagging, nothing working". The timeout below bounds how
+ * long a request may take to deliver its response HEADERS; once headers have
+ * arrived the guard is withdrawn, so streaming and slow-body reads are never
+ * cut short by it.
+ *
+ * Caller signals are honoured (React Query hands one to every generated hook):
+ * they are wired through the guard's controller so their cancellation — including
+ * late aborts that land mid-body — still works. A per-call override is available
+ * via `timeoutMs`.
+ */
+export interface ApiRequestInit extends RequestInit {
+  /** Override the default header timeout for this one call. */
+  timeoutMs?: number;
+}
+
+const DEFAULT_HEADER_TIMEOUT_MS = 20_000;
+const MUTATION_HEADER_TIMEOUT_MS = 45_000;
+
+/**
+ * Build the signal apiFetch fetches with, plus the function that withdraws the
+ * timeout once headers arrive.
+ *
+ * When the caller supplies a signal of their own (React Query always does for
+ * generated hooks), their cancellation is preserved — wired through the
+ * controller so late aborts still cancel body reads — but the header timer is
+ * ALSO installed. Their signal only fires on unmount/invalidation, so without
+ * the timer a hung connection would keep every panel's request outstanding for
+ * the browser's full default timeout.
+ */
+function headerTimeoutGuard(
+  init: ApiRequestInit,
+  method: string,
+): { signal: AbortSignal | undefined; headersArrived: () => void } {
+  const outer = init.signal ?? undefined;
+
+  const controller = new AbortController();
+  if (outer?.aborted) {
+    controller.abort(outer.reason);
+    return { signal: controller.signal, headersArrived: () => {} };
+  }
+
+  const timeout =
+    init.timeoutMs ??
+    (["GET", "HEAD", "OPTIONS"].includes(method)
+      ? DEFAULT_HEADER_TIMEOUT_MS
+      : MUTATION_HEADER_TIMEOUT_MS);
+
+  let timer: ReturnType<typeof setTimeout> | undefined = setTimeout(() => {
+    timer = undefined;
+    controller.abort(new DOMException("Header timeout", "TimeoutError"));
+  }, timeout);
+
+  const onOuterAbort = () => {
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      timer = undefined;
+    }
+    controller.abort(outer?.reason);
+  };
+  if (outer) outer.addEventListener("abort", onOuterAbort, { once: true });
+
+  return {
+    signal: controller.signal,
+    headersArrived() {
+      if (timer !== undefined) {
+        clearTimeout(timer);
+        timer = undefined;
+      }
+      // The outer-abort listener stays attached on purpose: after headers,
+      // only the caller's signal (or nothing) should cancel a body read.
+    },
+  };
+}
+
+/**
  * The only browser API entry point for authenticated application data.
  *
  * Handles:
  * - Bearer token attachment from localStorage
  * - Deployment version header for skew protection
  * - Server version tracking from response headers
+ * - Header timeout: requests that never get a response fail in seconds, not minutes
  * - 409 DEPLOYMENT_SKEW: queues the mutation for replay, dispatches skew event
  * - 401: silent refresh + single retry
  * - Chunk load errors: triggers recovery via deploymentSkew module
  */
-export async function apiFetch(path: string, init: RequestInit = {}, _retried = false): Promise<Response> {
+export async function apiFetch(path: string, init: ApiRequestInit = {}, _retried = false): Promise<Response> {
   const token = getToken();
   const headers = new Headers(init.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -113,9 +198,20 @@ export async function apiFetch(path: string, init: RequestInit = {}, _retried = 
   // Attach deployment version header for skew protection.
   headers.set("X-FocusArx-Deployment", FRONTEND_DEPLOYMENT_VERSION);
 
-  // A failed fetch (offline, DNS, aborted) rejects and propagates as-is: the
-  // only thing callers need to know is that the request never got an answer.
-  const response = await fetch(path, { ...init, headers, credentials: "include" });
+  // A failed fetch (offline, DNS, aborted, header timeout) rejects and
+  // propagates as-is: the only thing callers need to know is that the request
+  // never got an answer. The guard below bounds how long "no answer" can take.
+  const method = (init.method ?? "GET").toUpperCase();
+  const { signal, headersArrived } = headerTimeoutGuard(init, method);
+
+  let response: Response;
+  try {
+    response = await fetch(path, { ...init, signal, headers, credentials: "include" });
+  } finally {
+    // Headers are in (or the attempt failed) — the guard's job is done, and a
+    // slow body/stream read downstream must not be cut off by the timer.
+    headersArrived();
+  }
 
   // Record the server's deployment version from the response header.
   const serverVersion = response.headers.get("X-FocusArx-Deployment");
