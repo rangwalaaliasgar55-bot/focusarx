@@ -597,6 +597,24 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     setExitPhrase("");
   }, [persistence, reset, getSnapshot, getActiveSeconds]);
 
+  // R resets, exactly as the reset button does — including the partial-session
+  // recorder for a running/paused focus block. Declared after handleReset on
+  // purpose: an effect above would close over the variable before it is
+  // initialized (TDZ) and crash on mount.
+  useEffect(() => {
+    const onResetKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "r" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (el?.isContentEditable) return;
+      e.preventDefault();
+      handleReset();
+    };
+    window.addEventListener("keydown", onResetKey);
+    return () => window.removeEventListener("keydown", onResetKey);
+  }, [handleReset]);
+
   // There is no destructive exit from a focus block: every exit path uses the
   // same partial-session recorder so elapsed time cannot disappear behind a
   // red "abandon" button.
@@ -944,6 +962,16 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             onReset={handleReset}
             onSkip={skipToNext}
           />
+
+          {/* Desktop keyboard map — the three shortcuts the timer owns.
+              Hidden from touch layouts where the buttons already are the UI. */}
+          <p className="hidden items-center justify-center gap-3 text-[11px] text-[var(--foreground-subtle)] lg:flex" aria-label="Keyboard shortcuts">
+            <span className="flex items-center gap-1"><kbd className="rounded border border-[var(--border-subtle)] px-1 font-bold">Space</kbd> pause/resume</span>
+            <span aria-hidden="true">·</span>
+            <span className="flex items-center gap-1"><kbd className="rounded border border-[var(--border-subtle)] px-1 font-bold">R</kbd> reset</span>
+            <span aria-hidden="true">·</span>
+            <span className="flex items-center gap-1"><kbd className="rounded border border-[var(--border-subtle)] px-1 font-bold">D</kbd> park a thought</span>
+          </p>
 
           {/* Complete Early */}
           <AnimatePresence>
