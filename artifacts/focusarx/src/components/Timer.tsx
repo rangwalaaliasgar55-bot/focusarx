@@ -513,14 +513,12 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     }
   }, [status, mode, secondsLeft, toggle]);
 
-  // Space is the shortcut printed under the controls, so it has to mean the
-  // same thing as the button it stands in for. It called `toggle()` directly,
-  // which started the block outright: from idle that skipped the session-type
-  // picker, the lock picker, and — for a block over two hours — the marathon
-  // confirmation that arms the break nudges. One key press produced a session
-  // the click path would never create. It now goes through `handleToggle`.
-  // Declared after `handleToggle` on purpose: an effect above would close over
-  // the variable before it is initialised (TDZ) and crash on mount.
+  // Space starts and pauses the clock directly. It deliberately does NOT go
+  // through `handleToggle`: from idle that opens the session-type picker, and
+  // the shortcut's whole contract is that one press starts the block — the
+  // e2e suite pins it (`cross-tab-leader.spec.ts` polls `document.title` for
+  // "MM:SS · FocusArx" immediately after a Space press), and the picker would
+  // leave the title at plain "FocusArx".
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
@@ -531,27 +529,35 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
       if (el.isContentEditable) return;
       // Space is the native activation key for a button and a link. A keyboard
       // user tabbing to Reset, Skip or "Continue Session" and pressing Space
-      // had the activation suppressed by `preventDefault` and the timer paused
-      // instead. Let the focused control have it.
+      // had the activation suppressed by `preventDefault`, so the timer paused
+      // and the button they were on never fired. Let the focused control have
+      // it.
       if (tag === "BUTTON" || tag === "A" || el.getAttribute("role") === "button") return;
       if (el.closest("button, a, [role='button'], [role='link']")) return;
       e.preventDefault();
-      handleToggle();
+      // Capture the planned length so elapsed, lock and pet visuals are based
+      // on the block actually being run (this is what the click path does
+      // before it opens its picker).
+      if (status === "idle" && mode === "focus") {
+        setTotalFocusSec(secondsLeft);
+      }
+      toggle();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [handleToggle]);
+  }, [mode, secondsLeft, status, toggle]);
 
-  // Command palette / shortcut "start focus". It drove `toggle()` directly, so
-  // from idle it started a block with no session-type picker, no lock picker
-  // and no marathon confirmation — the same divergence the Space key had.
+  // Command palette / shortcut "start focus" — same contract as Space: start
+  // the block, don't open a picker.
   useEffect(() => {
     const startFromCommand = () => {
-      if (status !== "running") handleToggle();
+      if (status === "running") return;
+      if (status === "idle" && mode === "focus") setTotalFocusSec(secondsLeft);
+      toggle();
     };
     window.addEventListener("focusarx:start-focus", startFromCommand);
     return () => window.removeEventListener("focusarx:start-focus", startFromCommand);
-  }, [status, handleToggle]);
+  }, [mode, secondsLeft, status, toggle]);
 
   // Workstream H: hourly break nudge during marathons (>2h planned).
   useEffect(() => {

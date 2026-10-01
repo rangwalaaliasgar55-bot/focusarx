@@ -86,6 +86,17 @@ function formatEndTime(timestamp: number): string {
   return new Date(timestamp).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
+/**
+ * Coordinate space of the face. Every radius, tick and node below is expressed
+ * in these units and the SVG is scaled to fit by `viewBox`, so the drawing is
+ * resolution-independent.
+ *
+ * The face used to be a hard 300×300 px element. It fits the desktop card, but
+ * a 320px phone leaves 288px of usable width inside the page gutter, so the
+ * ring was clipped by 12px on the smallest screens still in use. The element is
+ * now `width: 100%` capped at 300px with the same `viewBox`, which keeps every
+ * proportion above and stops the clipping.
+ */
 const SIZE = 300;
 const STROKE = 14;
 const EASE = [0.32, 0.72, 0, 1] as const;
@@ -262,8 +273,8 @@ export function TimerDisplay({
 
   return (
     <motion.div
-      className="relative grid place-items-center"
-      style={{ width: SIZE, height: SIZE }}
+      className="relative grid aspect-square w-full place-items-center"
+      style={{ maxWidth: SIZE, maxHeight: SIZE }}
       initial={false}
       animate={{ scale: breathe ? 1.025 : 1 }}
       transition={{ duration: 0.25, ease: EASE }}
@@ -310,7 +321,7 @@ export function TimerDisplay({
       />
 
       {/* Ring */}
-      <svg width={SIZE} height={SIZE} className="absolute inset-0 -rotate-90" aria-hidden>
+      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="absolute inset-0 h-full w-full -rotate-90" preserveAspectRatio="xMidYMid meet" aria-hidden>
         <defs>
           <filter id={shadowId} x="-20%" y="-20%" width="140%" height="140%">
             <feDropShadow
