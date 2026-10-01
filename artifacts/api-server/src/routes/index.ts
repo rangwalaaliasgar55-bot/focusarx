@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
 import { authRouter } from "./auth";
+import { twoFactorRouter } from "./twoFactor";
 import { sessionsRouter } from "./sessions";
 import { statsRouter } from "./stats";
 import { tasksRouter } from "./tasks";
@@ -86,6 +87,10 @@ const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+// 2FA account management rides directly behind the auth router so its
+// /auth/2fa/* paths inherit auth.ts's no-store semantics in the same order
+// a request actually flows.
+router.use(twoFactorRouter);
 router.use(sessionsRouter);
 router.use(statsRouter);
 router.use(tasksRouter);

@@ -8,7 +8,8 @@ interface AuthLayoutProps {
   title: string;
   subtitle: string;
   children: React.ReactNode;
-  footer: React.ReactNode;
+  /** Optional: the MFA step of sign-in has no footer link. */
+  footer?: React.ReactNode;
 }
 
 const PROOF = [
@@ -77,7 +78,7 @@ export function AuthLayout({ eyebrow, title, subtitle, children, footer }: AuthL
                 <div className="mt-7">{children}</div>
               </CardContent>
             </Card>
-            <div className="mt-6 text-center text-sm text-[var(--foreground-muted)]">{footer}</div>
+            {footer != null && <div className="mt-6 text-center text-sm text-[var(--foreground-muted)]">{footer}</div>}
             <div className="mt-6 hidden justify-center gap-4 text-xs text-[var(--foreground-subtle)] lg:flex">
               <Link href="/" className="hover:text-[var(--foreground)]">Home</Link>
               <Link href="/privacy" className="hover:text-[var(--foreground)]">Privacy</Link>
