@@ -20,6 +20,28 @@ import { fileURLToPath } from "node:url";
 const DIST = fileURLToPath(new URL("../dist/public", import.meta.url));
 const CANONICAL_HOST = "https://www.focusarx.site";
 
+/**
+ * Normalise a route to `/a/b` form, with no trailing separator.
+ *
+ * `path.relative` returns the OS separator, so on Windows a prerendered
+ * `terms/index.html` came back as `terms\`. The old version only stripped
+ * trailing *forward* slashes, so the route was built as `/terms\` — which
+ * matches no manifest entry, no `THIN_COPY_BASELINE` key and no hreflang
+ * alternate. Every route-level gate then fired at once and the build reported
+ * 746 problems that do not exist on Linux (CI runs the identical command and
+ * is green). Backslashes are folded to forward slashes here so a route is the
+ * same string on every platform. Declared at the top because the very first use
+ * is the `htmlByPath` map below.
+ */
+const normPath = (p) => {
+  const forward = p.replace(/\\/g, "/");
+  return forward === "/" ? "/" : forward.replace(/\/+$/, "");
+};
+const routeOf = (file) => {
+  const rel = relative(DIST, file).replace(/index\.html$/, "").replace(/\.html$/, "");
+  return normPath(rel ? `/${rel}` : "/");
+};
+
 /** Routes that are intentionally not in the sitemap (auth/private screens). */
 const NON_SITEMAP_ALLOWLIST = new Set([
   "/login",
@@ -55,8 +77,10 @@ function escapeRegexForHtmlText(text) {
  */
 const htmlByPath = new Map();
 for (const f of walkHtml(DIST)) {
-  const rel = relative(DIST, f).replace(/index\.html$/, "").replace(/\.html$/, "");
-  htmlByPath.set(rel ? `/${rel}`.replace(/\/+$/, "") : "/", readFileSync(f, "utf8"));
+  // Keyed through the same `normPath` as every other route lookup below, so a
+  // key built here and a key built from a URL agree on Windows as well as
+  // Linux. This was a second copy of the separator bug (see `normPath`).
+  htmlByPath.set(routeOf(f), readFileSync(f, "utf8"));
 }
 
 // Assigned inside the table-parity block below and read by the summary line, so
@@ -116,7 +140,7 @@ for (const file of files) {
   // A directory-style page (`search/index.html`) yields "/search/" — with the
   // trailing slash it never matches the manifest's "/search", the robots group
   // or NON_INDEXABLE, so every check below silently skipped it. Normalise.
-  const routePath = route ? `/${route}`.replace(/\/+$/, "") : "/";
+  const routePath = normPath(route ? `/${route}` : "/");
   const html = readFileSync(file, "utf8");
 
   const title = html.match(/<title[^>]*>([^<]*)<\/title>/)?.[1]?.trim();
@@ -223,7 +247,9 @@ for (const file of files) {
           problems.push(`${routePath}: hreflang="${alt.locale}" points off-site (${alt.href})`);
           continue;
         }
-        const altPath = alt.href.slice(CANONICAL_HOST.length) || "/";
+        // Through `normPath` so a URL's path and a prerendered file's key compare
+        // equal. A URL can carry a trailing slash the on-disk route does not.
+        const altPath = normPath(alt.href.slice(CANONICAL_HOST.length) || "/");
         if (!htmlByPath.has(altPath)) {
           problems.push(`${routePath}: hreflang="${alt.locale}" points at ${alt.href}, which this build did not prerender — an alternate must resolve to a live document`);
         }
@@ -233,8 +259,9 @@ for (const file of files) {
       //    /hi must say this page is its English original. Google only honours
       //    clusters where both directions are declared; a one-way link is
       //    dropped, and a half-wired edition looks like a duplicate instead.
-      if (englishHref && htmlByPath.has(englishHref.slice(CANONICAL_HOST.length))) {
-        const backHtml = htmlByPath.get(englishHref.slice(CANONICAL_HOST.length));
+      const englishPath = englishHref ? normPath(englishHref.slice(CANONICAL_HOST.length) || "/") : null;
+      if (englishPath && htmlByPath.has(englishPath)) {
+        const backHtml = htmlByPath.get(englishPath);
         const pointsBack = [...backHtml.matchAll(/<link\s+rel="alternate"\s+hreflang="[^"]*"\s+href="([^"]*)"/g)]
           .some((m) => m[1] === canonicalHref);
         if (!pointsBack && canonicalHref !== englishHref) {
@@ -392,12 +419,6 @@ const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 
 /** Paths that are assets, not pages. */
 const NON_PAGE_HREF = /^(\/assets\/|\/favicon|\/manifest\.json|\/feed\.xml|\/brand\/|\/icon-|\/logo|\/opengraph|\/sw\.js|\/robots\.txt|\/sitemap|\/llms\.txt|\/site\.webmanifest)/;
-
-const normPath = (p) => (p === "/" ? "/" : p.replace(/\/+$/, ""));
-const routeOf = (file) => {
-  const rel = relative(DIST, file).replace(/index\.html$/, "").replace(/\.html$/, "");
-  return normPath(rel ? `/${rel}` : "/");
-};
 
 /** Every prerendered document, read once and reused by the gates below. */
 const documents = files.map((file) => ({
@@ -742,7 +763,7 @@ const breadcrumbRouteSet = (() => {
 
 for (const file of files) {
   const route = relative(DIST, file).replace(/index\.html$/, "").replace(/\.html$/, "");
-  const routePath = route ? `/${route}`.replace(/\/+$/, "") : "/";
+  const routePath = normPath(route ? `/${route}` : "/");
   const html = readFileSync(file, "utf8");
 
   const ids = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
