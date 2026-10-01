@@ -51,6 +51,36 @@ function clearLsBackup() {
   try { localStorage.removeItem(LS_BACKUP_KEY); } catch {}
 }
 
+/**
+ * The last local checkpoint, if it is recent enough to still be meaningful.
+ *
+ * `writeLsBackup` ran on every autosave, on `visibilitychange` and on
+ * `pagehide`, but nothing ever read it back: the backup was written on every
+ * autosave and consulted on none, so it protected nothing. If the server row
+ * cannot be reached — offline, or `/api/sessions/active` answering 5xx, which
+ * `fetchActiveSession` swallows into `null` — the user was dropped onto a fresh
+ * idle timer with a complete, timestamped record sitting in localStorage.
+ *
+ * This is the reader. It is deliberately the *fallback*, not the primary: the
+ * server row stays authoritative (it carries `serverRemaining`/`serverElapsed`
+ * corrections a local checkpoint cannot), and the same staleness window guards
+ * the local copy so an ancient backup cannot resurrect a finished session.
+ */
+function readLsBackup(): (Record<string, unknown> & { _ts: number }) | null {
+  try {
+    const raw = localStorage.getItem(LS_BACKUP_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, unknown> & { _ts?: number };
+    if (typeof parsed?._ts !== "number") return null;
+    if (Date.now() - parsed._ts > SESSION_TTL_MS) return null;
+    if (typeof parsed.timerStatus !== "string" || typeof parsed.mode !== "string") return null;
+    if (parsed.timerStatus === "idle") return null;
+    return parsed as Record<string, unknown> & { _ts: number };
+  } catch {
+    return null;
+  }
+}
+
 function isSessionStale(updatedAt?: string | null): boolean {
   if (!updatedAt) return false;
   return Date.now() - new Date(updatedAt).getTime() > SESSION_TTL_MS;
@@ -225,6 +255,40 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions) {
             });
 
             optionsRef.current.onRecovered?.(row);
+          }
+        }
+
+        // No server row (or it was stale and abandoned): fall back to the last
+        // local checkpoint rather than dropping the user on a fresh timer.
+        // Runs outside `hasRestoredRef` deliberately — a failed server lookup
+        // must not mark the session restored, so a later successful poll can
+        // still take over — but it is itself idempotent.
+        if (!hasRestoredRef.current) {
+          const backup = readLsBackup();
+          if (backup) {
+            const secondsLeft = Number(backup.secondsLeft);
+            const activeSeconds = Number(backup.activeSeconds);
+            if (Number.isFinite(secondsLeft) && secondsLeft > 0) {
+              hasRestoredRef.current = true;
+              const timerStatus = (backup.timerStatus === "running"
+                ? "running"
+                : "paused") as TimerStatus;
+              optionsRef.current.restoreTimer({
+                mode: backup.mode as TimerMode,
+                // A locally-backed run is restored paused. Its deadline was
+                // stamped on a page that no longer exists, so letting it
+                // auto-advance on a guessed wall clock would burn the user's
+                // session; they resume deliberately.
+                status: "paused",
+                secondsLeft,
+                activeSeconds: Number.isFinite(activeSeconds) ? activeSeconds : 0,
+                plannedSeconds: Number(backup.plannedSeconds) || undefined,
+              });
+              optionsRef.current.onRecovered?.({
+                monitorEnabled: backup.monitorEnabled === true,
+                timerStatus,
+              } as Parameters<NonNullable<typeof optionsRef.current.onRecovered>>[0]);
+            }
           }
         }
       }

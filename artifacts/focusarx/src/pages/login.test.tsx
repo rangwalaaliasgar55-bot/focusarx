@@ -25,7 +25,7 @@ vi.mock("@/lib/safeRedirect", () => ({ redirectFromSearch: () => "/app" }));
 vi.mock("@/components/Toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
 vi.mock("@/components/PageSEO", () => ({ PageSEO: () => null, PAGE_SEO: { login: {} } }));
 vi.mock("wouter", () => ({
-  Link: ({ children }: { children: React.ReactNode }) => <a href="#">{children}</a>,
+  Link: ({ children }: { children: React.ReactNode }) => <a href="/app">{children}</a>,
   useLocation: () => ["/", vi.fn()],
 }));
 

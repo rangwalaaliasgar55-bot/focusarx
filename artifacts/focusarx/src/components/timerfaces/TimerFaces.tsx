@@ -26,6 +26,8 @@ export interface TimerFaceProps {
   mode: TimerMode;
   isRunning: boolean;
   progress: number;
+  /** Planned length of the session. Authoritative — see `sessionTotal`. */
+  totalSeconds?: number;
   onEditClick?: () => void;
   sessionType?: string;
   /** Cosmetic membership tier — tints the accent, never the meaning. */
@@ -35,6 +37,36 @@ export interface TimerFaceProps {
 
 function formatEndTime(timestamp: number): string {
   return new Date(timestamp).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+/**
+ * The session's planned length, in seconds.
+ *
+ * The four layout faces all need to know the *total* — how many minutes there
+ * are in the block, how many bars to draw — but they were only handed the
+ * remaining seconds and `progress`. Recovering the total from those two by
+ * dividing (`secondsLeft / progress`) is wrong, because `progress` is the
+ * *elapsed* fraction: `progress = 1 - secondsLeft / total`. Dividing by it
+ * inverts the quantity, so a 25-minute block one second in was read as 15
+ * million seconds long and drew ~250,000 segments; by the last minute the same
+ * block was read as 63 seconds. The ring face hid this because it draws
+ * straight from `progress`, and nothing covered the layout faces.
+ *
+ * The correct inversion is `secondsLeft / (1 - progress)`, and that is only a
+ * fallback for callers that cannot supply the real value — the countdown's own
+ * `totalSeconds` is exact, is already known at idle (where `progress` is 0 and
+ * the fallback degenerates), and does not drift. `TimerDisplay` passes it down.
+ */
+export function sessionTotal(
+  secondsLeft: number,
+  progress: number,
+  totalSeconds?: number,
+): number {
+  if (typeof totalSeconds === "number" && Number.isFinite(totalSeconds) && totalSeconds > 0) {
+    return Math.round(totalSeconds);
+  }
+  const remaining = 1 - Math.min(1, Math.max(0, progress));
+  return Math.max(1, Math.round(secondsLeft / Math.max(remaining, 0.0001)));
 }
 
 function useFaceLabels(secondsLeft: number) {
@@ -76,11 +108,11 @@ function EditHint({ onClick, running, label }: { onClick?: () => void; running: 
  * running, so the face has a heartbeat without any of it being decorative: the
  * pulse marks where "now" is on the dial.
  */
-export function TimerFaceSegments({ secondsLeft, mode, isRunning, progress, onEditClick, sessionType, accent, accentSoft }: TimerFaceProps) {
+export function TimerFaceSegments({ secondsLeft, mode, isRunning, progress, totalSeconds, onEditClick, sessionType, accent, accentSoft }: TimerFaceProps) {
   const reduced = !!useReducedMotion();
   const { minutes, seconds } = formatTime(secondsLeft);
   const { spoken, endsAt } = useFaceLabels(secondsLeft);
-  const total = Math.max(1, Math.round(secondsLeft / Math.max(progress, 0.0001)));
+  const total = sessionTotal(secondsLeft, progress, totalSeconds);
   const totalMinutes = Math.max(1, Math.round(total / 60));
   const elapsed = Math.min(totalMinutes, Math.floor((total - secondsLeft) / 60));
   const label = sessionType ? sessionType.replace(/_/g, " ") : mode === "focus" ? "Focus" : mode === "break" ? "Break" : "Long break";
@@ -151,15 +183,15 @@ export function TimerFaceSegments({ secondsLeft, mode, isRunning, progress, onEd
  * cap at 12 and each then represents an equal share of the session, so a 90-minute
  * block still reads instead of becoming a smear of hairlines.
  */
-export function TimerFaceBars({ secondsLeft, mode, isRunning, progress, onEditClick, sessionType, accent, accentSoft }: TimerFaceProps) {
+export function TimerFaceBars({ secondsLeft, mode, isRunning, progress, totalSeconds, onEditClick, sessionType, accent, accentSoft }: TimerFaceProps) {
   const reduced = !!useReducedMotion();
   const { minutes, seconds } = formatTime(secondsLeft);
   const { spoken, endsAt } = useFaceLabels(secondsLeft);
-  const totalSeconds = Math.max(1, Math.round(secondsLeft / Math.max(progress, 0.0001)));
-  const bars = Math.min(12, Math.max(4, Math.round(totalSeconds / 60)));
-  const perBar = totalSeconds / bars;
-  const index = Math.min(bars - 1, Math.floor((totalSeconds - secondsLeft) / perBar));
-  const fill = Math.min(1, Math.max(0, (perBar - ((totalSeconds - secondsLeft) % perBar)) / perBar));
+  const total = sessionTotal(secondsLeft, progress, totalSeconds);
+  const bars = Math.min(12, Math.max(4, Math.round(total / 60)));
+  const perBar = total / bars;
+  const index = Math.min(bars - 1, Math.floor((total - secondsLeft) / perBar));
+  const fill = Math.min(1, Math.max(0, (perBar - ((total - secondsLeft) % perBar)) / perBar));
   const label = sessionType ? sessionType.replace(/_/g, " ") : mode === "focus" ? "Focus" : mode === "break" ? "Break" : "Long break";
 
   return (
@@ -222,16 +254,16 @@ export function TimerFaceBars({ secondsLeft, mode, isRunning, progress, onEditCl
  * discouraging but five-minute blocks still feel achievable — which is most
  * two-hour study blocks, and every session where the student is tired.
  */
-export function TimerFaceDots({ secondsLeft, mode, isRunning, progress, onEditClick, sessionType, accent, accentSoft }: TimerFaceProps) {
+export function TimerFaceDots({ secondsLeft, mode, isRunning, progress, totalSeconds, onEditClick, sessionType, accent, accentSoft }: TimerFaceProps) {
   const reduced = !!useReducedMotion();
   const { minutes, seconds } = formatTime(secondsLeft);
   const { spoken, endsAt } = useFaceLabels(secondsLeft);
-  const totalSeconds = Math.max(1, Math.round(secondsLeft / Math.max(progress, 0.0001)));
+  const total = sessionTotal(secondsLeft, progress, totalSeconds);
   const BLOCK = 5 * 60;
   // Above 24 blocks (2 hours) each dot carries more than five minutes, so a
   // four-hour session stays a grid instead of a wall. The caption says so.
-  const blockSeconds = Math.max(BLOCK, Math.ceil(totalSeconds / 24 / BLOCK) * BLOCK);
-  const blocks = Math.max(1, Math.ceil(totalSeconds / blockSeconds));
+  const blockSeconds = Math.max(BLOCK, Math.ceil(total / 24 / BLOCK) * BLOCK);
+  const blocks = Math.max(1, Math.ceil(total / blockSeconds));
   const left = Math.max(0, Math.ceil(secondsLeft / blockSeconds));
   const inBlock = secondsLeft % blockSeconds;
   const blockFill = Math.min(1, Math.max(0, inBlock / blockSeconds));
@@ -316,15 +348,15 @@ export function TimerFaceDots({ secondsLeft, mode, isRunning, progress, onEditCl
  * A session shorter than one round gets a single round; a 25-minute block is
  * exactly one round, which is the case this face was written for.
  */
-export function TimerFaceRounds({ secondsLeft, mode, isRunning, progress, onEditClick, sessionType, accent, accentSoft }: TimerFaceProps) {
+export function TimerFaceRounds({ secondsLeft, mode, isRunning, progress, totalSeconds, onEditClick, sessionType, accent, accentSoft }: TimerFaceProps) {
   const reduced = !!useReducedMotion();
   const { minutes, seconds } = formatTime(secondsLeft);
   const { spoken, endsAt } = useFaceLabels(secondsLeft);
-  const totalSeconds = Math.max(1, Math.round(secondsLeft / Math.max(progress, 0.0001)));
+  const total = sessionTotal(secondsLeft, progress, totalSeconds);
   const ROUND = 25 * 60;
-  const rounds = Math.min(8, Math.max(1, Math.ceil(totalSeconds / ROUND)));
-  const roundSeconds = totalSeconds / rounds;
-  const elapsed = totalSeconds - secondsLeft;
+  const rounds = Math.min(8, Math.max(1, Math.ceil(total / ROUND)));
+  const roundSeconds = total / rounds;
+  const elapsed = total - secondsLeft;
   const index = Math.min(rounds - 1, Math.floor(elapsed / roundSeconds));
   const roundProgress = Math.min(1, Math.max(0, (elapsed % roundSeconds) / roundSeconds));
   const label = sessionType ? sessionType.replace(/_/g, " ") : mode === "focus" ? "Focus" : mode === "break" ? "Break" : "Long break";

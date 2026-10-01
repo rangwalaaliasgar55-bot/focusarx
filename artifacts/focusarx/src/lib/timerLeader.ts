@@ -91,6 +91,14 @@ export function acquireTimerLead(tabId?: string): Promise<LeadGrant> {
             done({ acquired: false, release() {} });
             return;
           }
+          // If the 800 ms fallback already settled, the caller is holding a
+          // `broadcastGrant` whose `release` is a no-op — it never received
+          // this grant. Parking here anyway took the real lock and could never
+          // release it, so every other tab saw `lock === null` for the life of
+          // this one: after four failed attempts each stood down with
+          // "Timer is already running in another tab" and none could ever
+          // lead again. Give the lock straight back instead.
+          if (settled) return;
           done({
             acquired: true,
             release() {

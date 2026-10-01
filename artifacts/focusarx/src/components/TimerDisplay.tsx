@@ -14,6 +14,9 @@ import { TimerFaceBars, TimerFaceDots, TimerFaceRounds, TimerFaceSegments } from
 interface TimerDisplayProps {
   secondsLeft: number;
   progress: number;
+  /** Planned length of the session. Handed to the layout faces, which need the
+   *  total to draw "how much is left" and cannot recover it from `progress`. */
+  totalSeconds?: number;
   mode: TimerMode;
   isRunning: boolean;
   onEditClick?: () => void;
@@ -133,6 +136,7 @@ const MODE_CONFIG: Record<TimerMode, ModePalette & { gradient: boolean }> = {
 export function TimerDisplay({
   secondsLeft,
   progress,
+  totalSeconds,
   mode,
   isRunning,
   onEditClick,
@@ -232,6 +236,7 @@ export function TimerDisplay({
       mode,
       isRunning,
       progress: clamped,
+      totalSeconds,
       onEditClick,
       sessionType,
       accent: ring,

@@ -53,7 +53,12 @@ test("covers committed, staged, unstaged and untracked changes without deletions
 
 test("preserves unusual filenames and filters ignored output", () => {
   const { cwd, base } = fixture();
-  const filename = "space and 'quotes'\nname.ts";
+  // The point of this test is that a filename containing spaces and quotes
+  // survives the shell-quoting on the way out of `git`. A newline is also
+  // interesting to git, but NTFS has no legal representation for one, so the
+  // extra case only runs where the filesystem can actually hold it.
+  const filename =
+    process.platform === "win32" ? "space and 'quotes' name.ts" : "space and 'quotes'\nname.ts";
   writeFileSync(path.join(cwd, filename), "export {};\n");
   writeFileSync(path.join(cwd, ".gitignore"), "ignored.js\n");
   writeFileSync(path.join(cwd, "ignored.js"), "export {};\n");

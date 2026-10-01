@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
-import { join, relative } from "node:path";
+import { basename, join, relative } from "node:path";
 
 /**
  * A page must not be able to render a claim about the user's data when the
@@ -90,7 +90,7 @@ describe("page failure handling", () => {
     for (const p of pages) {
       const src = stripComments(read(p));
       if (!isDataFetchingPage(src)) continue;
-      if (REDIRECT_ONLY_PAGES.has(p.split("/").pop()!)) continue;
+      if (REDIRECT_ONLY_PAGES.has(basename(p))) continue;
       if (!observesFailure(src)) offenders.push(relative(process.cwd(), p));
     }
     expect(offenders, `pages that cannot tell a failed fetch from an empty one:\n${offenders.join("\n")}`).toEqual(

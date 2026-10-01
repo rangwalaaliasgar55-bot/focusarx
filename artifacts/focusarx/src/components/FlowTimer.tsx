@@ -8,7 +8,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, Pause, RotateCcw, Check, Sparkles, Coffee, Flame, Zap } from "lucide-react";
+import { Play, Pause, RotateCcw, Check, Sparkles, Coffee, Flame, Zap, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { generateId } from "@/lib/timerUtils";
 import { flowSuggestedBreakMin } from "@/lib/sessionPresets";
@@ -726,13 +726,19 @@ export default function FlowTimer({ taskName, onFinish, onExitPreset }: FlowTime
         </motion.div>
       )}
 
-      {/* Back to presets */}
+      {/* Back to presets. This is the only way out of Flowtime, and it sat beside
+          the Finish button as an 11px line of underlined text — roughly 15px
+          tall. On a phone that is a mis-tap away from Finish, which *records a
+          session*; a miss here costs the user the run they wanted to keep. Given
+          the 44px floor the rest of the mobile timer already holds to, it gets
+          the same target, and the two are no longer adjacent look-alikes. */}
       <button
         type="button"
         onClick={leaveFlow}
-        className="relative z-10 text-[11px] font-semibold text-[var(--foreground-subtle)] hover:text-[var(--foreground)] underline-offset-2 hover:underline transition-colors"
+        className="relative z-10 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--border-subtle)] px-4 py-2 text-xs font-semibold text-[var(--foreground-subtle)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
       >
-        ← Save elapsed time & back to Pomodoro presets
+        <ArrowLeft size={14} aria-hidden="true" />
+        Save elapsed time &amp; back to Pomodoro presets
       </button>
     </div>
   );

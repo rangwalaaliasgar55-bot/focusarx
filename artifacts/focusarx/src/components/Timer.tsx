@@ -45,6 +45,7 @@ import { TimerRitualsPanel, ReflectionModal } from "./TimerRituals";
 import { LeaderMirrorChip } from "./LeaderMirrorChip";
 import { usePremium } from "@/hooks/usePremium";
 import { useOfflineQueue } from "@/hooks/useOfflineQueue";
+import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 
 const MODES: TimerMode[] = ["focus", "break", "longBreak"];
 
@@ -164,11 +165,18 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   // harmless; the dependency list below is enforced by react-hooks/exhaustive-deps.
   const handleSessionRecorded = useCallback(async (session: Session, flowServerSessionId?: string | null) => {
       addSession(session);
-      playSessionNotification(session.mode);
-      if (session.mode === "focus") {
-        playCoachVoice("session_complete");
-      } else {
-        playCoachVoice("break_time");
+      // Cues are best-effort and must never take the session down with them.
+      // Both reach unguarded localStorage reads inside `soundEngine`, which
+      // throw when storage is unavailable (Safari private mode, a
+      // storage-blocked policy). Unguarded, that rejection aborted the rest of
+      // this function: no burst, no summary, no confetti, no XP toast — a
+      // finished session with no feedback at all. Same rule as the guarded
+      // `playCoachVoice("session_start")` below.
+      try {
+        playSessionNotification(session.mode);
+        playCoachVoice(session.mode === "focus" ? "session_complete" : "break_time");
+      } catch {
+        /* audio is a nicety; the record and the summary are not */
       }
       setJustCompleted(true);
       setTimeout(() => setJustCompleted(false), 800);
@@ -303,7 +311,20 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     onSessionComplete: handleSessionRecorded,
   });
 
-  const totalFocusSec = status !== "idle" && startedFocusSec === 0 ? totalSeconds : startedFocusSec;
+  // Planned length of the run. `startedFocusSec` is captured at start, but a
+  // paused block can be re-armed at a *new* length — `applyPreset` and
+  // `handleEditTime` both call `setCustomDuration`, which re-arms the paused
+  // clock on purpose (see `usePomodoro.setCustomDuration`). The captured value
+  // was never updated, so switching a paused 25m block to the 50m "Extended"
+  // preset and resuming left `totalFocusSec` at 1500 while `secondsLeft` was
+  // 3000: `totalFocusSec - secondsLeft` = -500 fed to the task timeline and the
+  // pet, the lock overlay drew a 25-minute ring, and early-exit recorded a
+  // completion percentage against the wrong planned length.
+  //
+  // While running, the length is whatever was captured at start and must not be
+  // rewritten (the countdown's deadline math depends on it). Otherwise it is
+  // the hook's own planned duration, which is authoritative and always current.
+  const totalFocusSec = status === "running" ? startedFocusSec || totalSeconds : totalSeconds;
 
   useEffect(() => {
     if (status === "running" && mode === "focus") {
@@ -356,13 +377,9 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    const startFromCommand = () => {
-      if (status !== "running") toggle();
-    };
-    window.addEventListener("focusarx:start-focus", startFromCommand);
-    return () => window.removeEventListener("focusarx:start-focus", startFromCommand);
-  }, [status, toggle]);
+  // Command palette / shortcut "start focus" is wired up beside the Space key
+  // below, for the same reason: an effect declared up here cannot close over
+  // `handleToggle` before it is initialised (TDZ).
 
   const persistence = useSessionPersistence({
     // FlowTimer owns its own local/server stopwatch so the countdown recovery
@@ -454,21 +471,6 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     return () => { document.title = "FocusArx"; };
   }, [secondsLeft, status]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.code !== "Space") return;
-      const el = e.target as HTMLElement | null;
-      if (!el) return;
-      const tag = el.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-      if (el.isContentEditable) return;
-      e.preventDefault();
-      toggle();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [toggle]);
-
   // Distraction parking (9.4): D jots a thought, hidden until the break.
   useEffect(() => {
     const onParkKey = (e: KeyboardEvent) => {
@@ -511,6 +513,46 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
     }
   }, [status, mode, secondsLeft, toggle]);
 
+  // Space is the shortcut printed under the controls, so it has to mean the
+  // same thing as the button it stands in for. It called `toggle()` directly,
+  // which started the block outright: from idle that skipped the session-type
+  // picker, the lock picker, and — for a block over two hours — the marathon
+  // confirmation that arms the break nudges. One key press produced a session
+  // the click path would never create. It now goes through `handleToggle`.
+  // Declared after `handleToggle` on purpose: an effect above would close over
+  // the variable before it is initialised (TDZ) and crash on mount.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== "Space") return;
+      const el = e.target as HTMLElement | null;
+      if (!el) return;
+      const tag = el.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (el.isContentEditable) return;
+      // Space is the native activation key for a button and a link. A keyboard
+      // user tabbing to Reset, Skip or "Continue Session" and pressing Space
+      // had the activation suppressed by `preventDefault` and the timer paused
+      // instead. Let the focused control have it.
+      if (tag === "BUTTON" || tag === "A" || el.getAttribute("role") === "button") return;
+      if (el.closest("button, a, [role='button'], [role='link']")) return;
+      e.preventDefault();
+      handleToggle();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [handleToggle]);
+
+  // Command palette / shortcut "start focus". It drove `toggle()` directly, so
+  // from idle it started a block with no session-type picker, no lock picker
+  // and no marathon confirmation — the same divergence the Space key had.
+  useEffect(() => {
+    const startFromCommand = () => {
+      if (status !== "running") handleToggle();
+    };
+    window.addEventListener("focusarx:start-focus", startFromCommand);
+    return () => window.removeEventListener("focusarx:start-focus", startFromCommand);
+  }, [status, handleToggle]);
+
   // Workstream H: hourly break nudge during marathons (>2h planned).
   useEffect(() => {
     if (!isRunning || mode !== "focus" || totalFocusSec < 2 * 60 * 60) return;
@@ -540,6 +582,13 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   }, [totalFocusSec, activeTasks.length]);
 
   const handleCompleteEarly = useCallback(async () => {
+    // The dialog is about a *focus* session, so it only applies to one. It used
+    // to bail out here, above `setShowExitConfirm(false)`, which left the modal
+    // on screen through the natural phase change into a break: the primary
+    // button became a silent no-op and the user was left looking at a dialog
+    // about ending a focus block that `advancePhase` had already recorded.
+    // Dismiss first, then decide whether there is anything left to do.
+    setShowExitConfirm(false);
     if (mode !== "focus") return;
     const activeSeconds = getActiveSeconds();
     // Even a short, real block is worth recording. The old ten-second guard
@@ -617,10 +666,9 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
 
   // There is no destructive exit from a focus block: every exit path uses the
   // same partial-session recorder so elapsed time cannot disappear behind a
-  // red "abandon" button.
-  const handleCancelNoSave = useCallback(() => {
-    void handleCompleteEarly();
-  }, [handleCompleteEarly]);
+  // red "abandon" button. The dialog reflects that honestly — two choices,
+  // keep going or save and end, rather than a third button that ran the same
+  // recorder under a different name.
 
   const handleLockExit = useCallback(() => { setShowExitConfirm(true); }, []);
 
@@ -774,7 +822,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
           </div>
         ) : (
         <div className="relative px-4 pt-4">
-          <div className="flex gap-1.5 rounded-xl bg-[var(--palette-zinc-950)]/60 p-1 ring-1 ring-[var(--palette-zinc-800)]/50">
+          <div className="flex gap-1.5 rounded-xl bg-[var(--palette-zinc-950)]/60 p-1 ring-1 ring-[var(--palette-zinc-800)]/50" role="tablist" aria-label="Timer mode">
             {MODES.map((m) => {
               const active = mode === m;
               const ui = MODEUI[m];
@@ -782,6 +830,8 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                 <button
                   key={m}
                   type="button"
+                  role="tab"
+                  aria-selected={active}
                   disabled={!canPickMode}
                   onClick={() => selectMode(m)}
                   className={`relative z-[var(--z-content)] flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-semibold transition-all ${ active ? "text-[var(--palette-zinc-50)]" : "text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)] disabled:cursor-not-allowed disabled:opacity-40" }`}
@@ -794,7 +844,12 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                     />
                   )}
                   <span>{ui.icon}</span>
+                  {/* The icon is `aria-hidden`, so below `sm` this label is
+                      display:none — which also drops it from the accessibility
+                      tree, leaving the tab with no accessible name at all.
+                      The visually-hidden twin keeps the name available. */}
                   <span className="hidden sm:inline">{ui.label}</span>
+                  <span className="sr-only sm:hidden">{ui.label}</span>
                 </button>
               );
             })}
@@ -805,7 +860,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               paused re-arms the block (see applyPreset), so "I started the wrong
               one" has a fix that isn't abandoning the session. */}
           {mode === "focus" && status !== "running" && (
-            <div className="mt-3 flex flex-wrap items-center gap-1.5" role="group" aria-label="Session mode">
+            <div className="mt-3 flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label="Session mode">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-600)] mr-0.5">
                 Mode
               </span>
@@ -815,10 +870,14 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                   <button
                     key={p.id}
                     type="button"
+                    role="radio"
                     onClick={() => applyPreset(p.id)}
                     title={p.blurb}
-                    aria-pressed={active}
-                    className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition-all min-h-[28px] ${ active ? "border-[var(--brand-400)]/50 bg-[var(--rgba-124-58-237-0_15)] text-[var(--brand-400)]" : "border-[var(--border-subtle)] bg-[var(--palette-zinc-900)]/60 text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)]" }`}
+                    // Single-select, so `role="radio"`/`aria-checked` rather than
+                    // `aria-pressed`: a toggle button implies each option is
+                    // independently pressable, when choosing one deselects the rest.
+                    aria-checked={active}
+                    className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition-all min-h-[32px] ${ active ? "border-[var(--brand-400)]/50 bg-[var(--rgba-124-58-237-0_15)] text-[var(--brand-400)]" : "border-[var(--border-subtle)] bg-[var(--palette-zinc-900)]/60 text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)]" }`}
                   >
                     {p.label}{p.focusMin ? ` ${p.focusMin}m` : ""}
                   </button>
@@ -875,6 +934,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
             <TimerDisplay
               secondsLeft={secondsLeft}
               progress={progress}
+              totalSeconds={totalSeconds}
               mode={mode}
               isRunning={isRunning}
               onEditClick={status === "idle" ? handleEditTime : undefined}
@@ -914,7 +974,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               reached by the people paying for the product. Skins still dress the
               ring faces; the layout faces take the skin's colour as their accent. */}
           {!isFlow && (
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5" role="group" aria-label="Timer face design">
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5" role="radiogroup" aria-label="Timer face design">
               <span className="mr-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--palette-zinc-600)]">
                 Face
               </span>
@@ -924,10 +984,13 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                   <button
                     key={t.id}
                     type="button"
+                    role="radio"
                     onClick={() => chooseTimerTheme(t.id)}
                     title={t.blurb}
-                    aria-pressed={active}
-                    className={`min-h-[28px] rounded-full border px-2.5 py-1 text-[11px] font-bold transition-all ${ active ? "border-[var(--brand-400)]/50 bg-[var(--rgba-124-58-237-0_15)] text-[var(--brand-400)]" : "border-[var(--border-subtle)] bg-[var(--palette-zinc-900)]/60 text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)]" }`}
+                    // Single-select face, so radio semantics rather than
+                    // `aria-pressed` (see the session-mode group above).
+                    aria-checked={active}
+                    className={`min-h-[32px] rounded-full border px-2.5 py-1 text-[11px] font-bold transition-all ${ active ? "border-[var(--brand-400)]/50 bg-[var(--rgba-124-58-237-0_15)] text-[var(--brand-400)]" : "border-[var(--border-subtle)] bg-[var(--palette-zinc-900)]/60 text-[var(--palette-zinc-500)] hover:text-[var(--palette-zinc-300)]" }`}
                   >
                     {t.label}
                   </button>
@@ -1214,107 +1277,91 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
       )}
     </AnimatePresence>
 
-    {/* Workstream H: marathon micro-confirm (>2h) */}
-    <AnimatePresence>
-      {showMarathonConfirm && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/75 p-4"
-        >
-          <motion.div
-            initial={{ scale: 0.92, y: 16, opacity: 0 }}
-            animate={{ scale: 1, y: 0, opacity: 1 }}
-            exit={{ scale: 0.92, y: 10, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 340, damping: 28 }}
-            className="w-full max-w-sm rounded-2xl border border-[var(--rgba-167-139-250-0_35)] bg-[var(--surface-1)] p-5 shadow-[var(--shadow-lg)]"
+    {/* Workstream H: marathon micro-confirm (>2h). Also on Radix — this dialog
+        used to be a bare motion.div, so Tab walked straight out of it into the
+        page behind and focus was never returned to the start button. */}
+    <Dialog
+      open={showMarathonConfirm}
+      onOpenChange={(open) => { if (!open) setShowMarathonConfirm(false); }}
+    >
+      <DialogContent
+        showClose={false}
+        className="max-w-sm border border-[var(--rgba-167-139-250-0_35)] bg-[var(--surface-1)] p-5 shadow-[var(--shadow-lg)]"
+      >
+        <DialogTitle className="sr-only">Marathon ahead — {Math.floor(secondsLeft / 60)} minutes</DialogTitle>
+        <div className="mb-4 text-center">
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--rgba-167-139-250-0_15)] ring-1 ring-[var(--rgba-167-139-250-0_3)] text-[var(--palette-violet-300)]"><Mountain size={26} aria-hidden="true" /></div>
+          <h3 className="text-sm font-semibold text-[var(--palette-zinc-100)]">Marathon ahead — {Math.floor(secondsLeft / 60)} minutes</h3>
+          <p className="mt-1.5 text-xs leading-relaxed text-[var(--palette-zinc-500)]">
+            You're planning <span className="font-bold text-[var(--brand-400)]">more than 2 hours</span> of
+            unbroken focus. Beyond the first 2h, XP and coins pay at 75%, and I'll nudge you for a break at
+            every hour mark. Hydrate before you start.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <button
+            onClick={beginMarathonStart}
+            className="w-full rounded-xl border border-[var(--brand-400)]/40 bg-[var(--rgba-124-58-237-0_15)] px-4 py-3 text-left transition-all hover:bg-[var(--rgba-124-58-237-0_25)]"
           >
-            <div className="mb-4 text-center">
-              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--rgba-167-139-250-0_15)] ring-1 ring-[var(--rgba-167-139-250-0_3)] text-[var(--palette-violet-300)]"><Mountain size={26} aria-hidden="true" /></div>
-              <h3 className="text-sm font-semibold text-[var(--palette-zinc-100)]">Marathon ahead — {Math.floor(secondsLeft / 60)} minutes</h3>
-              <p className="mt-1.5 text-xs leading-relaxed text-[var(--palette-zinc-500)]">
-                You're planning <span className="font-bold text-[var(--brand-400)]">more than 2 hours</span> of
-                unbroken focus. Beyond the first 2h, XP and coins pay at 75%, and I'll nudge you for a break at
-                every hour mark. Hydrate before you start.
-              </p>
-            </div>
-            <div className="space-y-2">
-              <button
-                onClick={beginMarathonStart}
-                className="w-full rounded-xl border border-[var(--brand-400)]/40 bg-[var(--rgba-124-58-237-0_15)] px-4 py-3 text-left transition-all hover:bg-[var(--rgba-124-58-237-0_25)]"
-              >
-                <p className="text-xs font-bold text-[var(--brand-400)]"><Mountain size={12} aria-hidden="true" /> Let's ride the marathon</p>
-                <p className="text-[11px] text-[var(--palette-zinc-500)] mt-0.5">Break nudges on · 75% XP beyond 2h</p>
-              </button>
-              <button
-                onClick={() => { setShowMarathonConfirm(false); setCustomDuration(mode, 2 * 60 * 60); }}
-                className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--palette-zinc-900)]/60 px-4 py-3 text-left transition-all hover:border-[var(--brand-500)]/40"
-              >
-                <p className="text-xs font-bold text-[var(--palette-zinc-200)]"> Cap it at 2 hours</p>
-                <p className="text-[11px] text-[var(--palette-zinc-600)] mt-0.5">Full XP rate the whole way</p>
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+            <p className="text-xs font-bold text-[var(--brand-400)]"><Mountain size={12} aria-hidden="true" /> Let's ride the marathon</p>
+            <p className="text-[11px] text-[var(--palette-zinc-500)] mt-0.5">Break nudges on · 75% XP beyond 2h</p>
+          </button>
+          <button
+            onClick={() => { setShowMarathonConfirm(false); setCustomDuration(mode, 2 * 60 * 60); }}
+            className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--palette-zinc-900)]/60 px-4 py-3 text-left transition-all hover:border-[var(--brand-500)]/40"
+          >
+            <p className="text-xs font-bold text-[var(--palette-zinc-200)]"> Cap it at 2 hours</p>
+            <p className="text-[11px] text-[var(--palette-zinc-600)] mt-0.5">Full XP rate the whole way</p>
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
 
-    {/* Exit Confirmation */}
-    <AnimatePresence>
-      {showExitConfirm && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--palette-black)]/75 p-4"
-        >
-          <motion.div
-            initial={{ scale: 0.92, y: 16, opacity: 0 }}
-            animate={{ scale: 1, y: 0, opacity: 1 }}
-            exit={{ scale: 0.92, y: 10, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 340, damping: 28 }}
-            className="w-full max-w-xs rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-5 shadow-[var(--shadow-lg)]"
+    {/* Exit Confirmation. Two decisions, not three: keep going, or save what
+        has been earned and end. The old dialog also offered "Save & Exit",
+        which ran the *same* handler as "Complete & Save Progress" under a
+        different label — two buttons, one behaviour, and no way to tell from
+        the labels which one actually saved. Built on Radix so the dialog traps
+        focus, restores it on close, and announces itself; the hand-rolled
+        overlay it replaces had none of that. */}
+    <Dialog
+      open={showExitConfirm}
+      onOpenChange={(open) => { if (!open) setShowExitConfirm(false); }}
+    >
+      <DialogContent
+        showClose={false}
+        className="max-w-xs border border-[var(--border-subtle)] bg-[var(--surface-1)] p-5 shadow-[var(--shadow-lg)]"
+      >
+        <DialogTitle className="sr-only">End focus session?</DialogTitle>
+        <div className="mb-5 text-center">
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--palette-amber-500)]/15 ring-1 ring-[var(--palette-amber-500)]/25 text-[var(--palette-amber-400)]"><Zap size={26} aria-hidden="true" /></div>
+          <h3 className="text-sm font-semibold text-[var(--palette-zinc-100)]">End focus session?</h3>
+          <p className="mt-1 text-xs text-[var(--palette-zinc-500)]">
+            You've focused for{" "}
+            <span className="font-bold text-[var(--palette-emerald-400)]">
+              {Math.floor(getActiveSeconds() / 60)}m {Math.floor(getActiveSeconds() % 60)}s
+            </span>
+          </p>
+        </div>
+        <div className="space-y-2">
+          <button
+            onClick={() => void handleCompleteEarly()}
+            disabled={isSaving}
+            className="w-full rounded-xl border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/10 px-4 py-3 text-left transition-all hover:bg-[var(--palette-emerald-500)]/18 disabled:opacity-50"
           >
-            <div className="mb-5 text-center">
-              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--palette-amber-500)]/15 ring-1 ring-[var(--palette-amber-500)]/25 text-[var(--palette-amber-400)]"><Zap size={26} aria-hidden="true" /></div>
-              <h3 className="text-sm font-semibold text-[var(--palette-zinc-100)]">End focus session?</h3>
-              <p className="mt-1 text-xs text-[var(--palette-zinc-500)]">
-                You've focused for{" "}
-                <span className="font-bold text-[var(--palette-emerald-400)]">
-                  {Math.floor(getActiveSeconds() / 60)}m {Math.floor(getActiveSeconds() % 60)}s
-                </span>
-              </p>
-            </div>
-            <div className="space-y-2">
-              <button
-                onClick={() => void handleCompleteEarly()}
-                disabled={isSaving}
-                className="w-full rounded-xl border border-[var(--palette-emerald-500)]/30 bg-[var(--palette-emerald-500)]/10 px-4 py-3 text-left transition-all hover:bg-[var(--palette-emerald-500)]/18 disabled:opacity-50"
-              >
-                <p className="text-xs font-bold text-[var(--palette-emerald-400)]"><CheckCircle2 size={13} aria-hidden="true" /> Complete & Save Progress</p>
-                <p className="text-[11px] text-[var(--palette-emerald-400)]/60 mt-0.5">Earn XP and coins for time spent</p>
-              </button>
-              <button
-                onClick={() => setShowExitConfirm(false)}
-                className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--palette-zinc-900)]/60 px-4 py-3 text-left transition-all hover:border-[var(--brand-500)]/40"
-              >
-                <p className="text-xs font-bold text-[var(--palette-zinc-200)]">▶ Continue Session</p>
-                <p className="text-[11px] text-[var(--palette-zinc-600)] mt-0.5">Keep the timer running</p>
-              </button>
-              <button
-                onClick={handleCancelNoSave}
-                disabled={isSaving}
-                className="w-full rounded-xl border border-[var(--palette-amber-500)]/20 bg-[var(--palette-amber-500)]/8 px-4 py-3 text-left transition-all hover:bg-[var(--palette-amber-500)]/15 disabled:opacity-50"
-              >
-                <p className="text-xs font-bold text-[var(--palette-amber-400)]"><CheckCircle2 size={13} aria-hidden="true" /> Save & Exit</p>
-                <p className="text-[11px] text-[var(--palette-amber-400)]/60 mt-0.5">Record every second as an early session</p>
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+            <p className="text-xs font-bold text-[var(--palette-emerald-400)]"><CheckCircle2 size={13} aria-hidden="true" /> Complete & Save Progress</p>
+            <p className="text-[11px] text-[var(--palette-emerald-400)]/60 mt-0.5">Earn XP and coins for the time you have focused</p>
+          </button>
+          <button
+            onClick={() => setShowExitConfirm(false)}
+            className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--palette-zinc-900)]/60 px-4 py-3 text-left transition-all hover:border-[var(--brand-500)]/40"
+          >
+            <p className="text-xs font-bold text-[var(--palette-zinc-200)]">▶ Continue Session</p>
+            <p className="text-[11px] text-[var(--palette-zinc-600)] mt-0.5">Keep the timer running</p>
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
 
     <SessionSummaryCard
       open={showSummary}

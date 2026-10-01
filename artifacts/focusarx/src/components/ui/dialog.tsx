@@ -26,8 +26,11 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 /* ── Content ────────────────────────────────────────────────────────────── */
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+    /** Hide the built-in corner close button. Default true. */
+    showClose?: boolean;
+  }
+>(({ className, children, showClose = true, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
@@ -54,6 +57,7 @@ const DialogContent = React.forwardRef<
       {children}
 
       {/* Close button */}
+      {showClose && (
       <DialogPrimitive.Close
         className={cn(
           "absolute right-4 top-4 z-[var(--z-content)]",
@@ -70,6 +74,7 @@ const DialogContent = React.forwardRef<
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
+      )}
     </DialogPrimitive.Content>
   </DialogPortal>
 ))

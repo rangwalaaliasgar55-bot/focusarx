@@ -301,7 +301,15 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
   useEffect(() => {
     publishFocusState({ mode, status, secondsLeft, totalSeconds });
   }, [mode, status, secondsLeft, totalSeconds]);
-  const totalPlanned = startedPlanned > 0 && status !== "idle" ? startedPlanned : totalSeconds;
+  // Planned length for the *current* phase. `startedPlanned` is captured when a
+  // focus block starts and was never cleared, so it outlived that block: finish
+  // a 90-minute "Deep Work" session, and `advancePhase` moves to a 5-minute
+  // break while the caption still read "90m block" above a 05:00 countdown and a
+  // bar that refilled over five minutes. The captured length is only meaningful
+  // for a running focus block; every other phase uses the hook's own planned
+  // duration, which is exactly the phase that is on screen.
+  const totalPlanned =
+    status === "running" && mode === "focus" && startedPlanned > 0 ? startedPlanned : totalSeconds;
   useEffect(() => () => resetFocusState(), []);
 
   // Title update
@@ -400,11 +408,17 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
       },
     );
     setIsSaving(false);
-    // Clear only the client-side active-session reference. If the network is
-    // down, keep the server row as evidence for the queued completion instead
-    // of deleting it before the retry can arrive.
-    await persistenceRef.current?.onPhaseCompleted();
+    // Reset *before* the phase-complete handshake. `onPhaseCompleted` awaits a
+    // microtask and then re-reads the timer snapshot, and it creates a fresh
+    // server row whenever that snapshot still says "running" (that is how a
+    // new phase gets a row). Called while the early exit was still running, it
+    // therefore created a *running* row for the session that had just been
+    // recorded — orphaned by the reset that followed. The next page load
+    // restored it as a live 23-minute block, and when it finished it recorded
+    // and paid a second time. The desktop path already resets first; this now
+    // matches it.
     reset(false);
+    await persistenceRef.current?.onPhaseCompleted();
     if (res.success) {
       toast(`Saved — ${Math.floor(actualSec / 60)}m recorded!`, "success");
       setSummary({ minutes: Math.floor(actualSec / 60), xp: res.earnedXp ?? 0, coins: res.earnedCoins ?? 0 });
@@ -638,7 +652,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
                   type="button"
                   onClick={() => applyPreset(p.id)}
                   aria-pressed={presetId === p.id}
-                  className={`min-h-[36px] rounded-full border px-3.5 text-xs font-bold ${presetId === p.id ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)]"}`}
+                  className={`min-h-[44px] rounded-full border px-3.5 text-xs font-bold ${presetId === p.id ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)]"}`}
                   aria-label={p.blurb}
                 >
                   {p.label}{p.focusMin ? ` ${p.focusMin}m` : ""}
@@ -653,7 +667,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
                   type="button"
                   onClick={() => chooseTimerTheme(t.id)}
                   aria-pressed={timerTheme === t.id}
-                  className={`min-h-[28px] rounded-full border px-2.5 text-[11px] font-semibold transition-colors ${timerTheme === t.id ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"}`}
+                  className={`min-h-[44px] rounded-full border px-2.5 text-[11px] font-semibold transition-colors ${timerTheme === t.id ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"}`}
                 >
                   {t.label}
                 </button>
