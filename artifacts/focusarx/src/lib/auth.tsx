@@ -40,10 +40,21 @@ type AuthSession = {
   pendingDeletion?: PendingDeletion;
 } | null;
 
+type MfaChallengeResult =
+  | { mfaRequired: true; challenge: string }
+  | { mfaRequired: false };
+
 type AuthContextType = {
   data: AuthSession;
   status: AuthStatus;
-  signIn: (provider: string, opts: Record<string, string>) => Promise<{ ok: boolean; error?: string }>;
+  signIn: (provider: string, opts: Record<string, string>) => Promise<{ ok: boolean; error?: string; mfaChallenge?: string }>;
+  /**
+   * Complete a two-factor sign-in. `challenge` is the token /auth/login
+   * returned alongside `mfaRequired: true`; `code` is a current TOTP or a
+   * single-use backup code. On success the session is established exactly
+   * as a password-only sign-in would be.
+   */
+  verifyMfa: (challenge: string, code: string) => Promise<{ ok: boolean; error?: string }>;
   signOut: () => Promise<void>;
   /** Re-read the session and publish it. Resolves with what the server said. */
   refresh: () => Promise<AuthSession>;
@@ -333,7 +344,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = useCallback(async (
     provider: string,
     opts: Record<string, string>
-  ): Promise<{ ok: boolean; error?: string }> => {
+  ): Promise<{ ok: boolean; error?: string; mfaChallenge?: string }> => {
     try {
       let endpoint = "/api/auth/login";
       if (provider === "guest") endpoint = "/api/auth/guest";
@@ -382,6 +393,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
+      // A two-factor account stops here: the password step succeeded but the
+      // server withheld credentials. The challenge travels back to the caller,
+      // which shows the code step and finishes through verifyMfa().
+      const mfa = data as MfaChallengeResult;
+      if (mfa?.mfaRequired === true && "challenge" in mfa && mfa.challenge) {
+        return { ok: false, mfaChallenge: mfa.challenge, error: undefined };
+      }
+
       // Persist the short-lived access token in localStorage as a fallback
       // for the Authorization header. The httpOnly cookies remain the primary
       // credential (automatic cookie sending via credentials: "include"), but
@@ -415,6 +434,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refresh]);
 
+  /**
+   * Step two of a two-factor sign-in. Exchanges the challenge from signIn()
+   * plus a current code for a real session; on success the same session
+   * verification as a password sign-in runs, so the UI state is identical.
+   */
+  const verifyMfa = useCallback(async (challenge: string, code: string): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      const res = await fetch("/api/auth/login/mfa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challenge, code }),
+        credentials: "include",
+      });
+      let data: unknown = {};
+      try {
+        data = await res.json();
+      } catch {
+        // Non-JSON (proxy error page) — fall through to the generic message.
+      }
+      if (!res.ok) {
+        const fallback = res.status === 429
+          ? "Too many attempts. Please wait a moment and try again."
+          : "That code was not accepted. Check your authenticator and try again.";
+        return { ok: false, error: apiErrorMessage(data, fallback) };
+      }
+      const responseData = data as { token?: string; accessToken?: string };
+      const bearerToken = responseData.accessToken ?? responseData.token;
+      if (bearerToken) setToken(bearerToken);
+      const session = await refresh();
+      if (!session) {
+        return { ok: false, error: "FocusArx confirmed your sign-in but could not load your session. Try again." };
+      }
+      return { ok: true };
+    } catch {
+      return { ok: false, error: "We couldn't reach FocusArx. Check your connection and try again." };
+    }
+  }, [refresh]);
+
   const signOut = useCallback(async () => {
     // Revoke the server-side refresh token + clear httpOnly cookies. A local
     // clear alone used to leave perfectly valid credentials in the browser.
@@ -438,7 +495,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ data, status, signIn, signOut, refresh }}>
+    <AuthContext.Provider value={{ data, status, signIn, verifyMfa, signOut, refresh }}>
       {children}
     </AuthContext.Provider>
   );

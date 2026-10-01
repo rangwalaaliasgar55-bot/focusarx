@@ -1,4 +1,5 @@
-import { pgTable, text, integer, boolean, timestamp, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, timestamp, jsonb, index, uniqueIndex, check } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { usersTable } from "./focusarx";
 
 /**
@@ -25,6 +26,10 @@ export const tokenLedgerTable = pgTable("token_ledger", {
   index("token_ledger_source_idx").on(t.source),
   index("token_ledger_type_idx").on(t.transactionType),
   uniqueIndex("token_ledger_idempotency_unique").on(t.idempotencyKey),
+  // The ledger is the source of truth for every balance the wallet caches;
+  // a negative balance_after row would contradict 0016's wallet check and
+  // mean a spend committed without funds. See migration 0026.
+  check("token_ledger_balance_after_non_negative", sql`${t.balanceAfter} >= 0`),
 ]);
 
 export type TokenLedgerEntry = typeof tokenLedgerTable.$inferSelect;
@@ -123,6 +128,13 @@ export const userPetInventoryTable = pgTable("user_pet_inventory", {
   index("user_pet_inventory_user_idx").on(t.userId),
   index("user_pet_inventory_user_active_idx").on(t.userId, t.isActive),
   uniqueIndex("user_pet_inventory_user_pet_unique").on(t.userId, t.petId),
+  // Pet progression invariants. level is bounded by PET_MAX_LEVEL (20);
+  // bond_xp is the unspent progress within the current level, consumed on
+  // level-up, so it never goes negative. mood enumerates the values the
+  // product writes (derivePetMood's vocabulary). See migration 0026.
+  check("user_pet_inventory_level_range", sql`${t.level} >= 1 AND ${t.level} <= 20`),
+  check("user_pet_inventory_bond_xp_non_negative", sql`${t.bondXp} >= 0`),
+  check("user_pet_inventory_mood_known", sql`${t.mood} IN ('happy', 'excited', 'sleepy')`),
 ]);
 
 export type UserPetInventory = typeof userPetInventoryTable.$inferSelect;

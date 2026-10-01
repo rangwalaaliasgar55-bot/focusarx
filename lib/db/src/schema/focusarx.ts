@@ -31,6 +31,25 @@ export const usersTable = pgTable("users", {
    * at write time.
    */
   deletionRequestedAt: timestamp("deletion_requested_at"),
+  /**
+   * TOTP two-factor authentication (migration 0025).
+   *
+   * `twoFactorEnabled` is the switch the sign-in flow reads. The secret is
+   * AES-256-GCM encrypted at rest (lib/secrets.ts) because a TOTP secret is a
+   * bearer credential — a database dump alone must not yield working codes.
+   *
+   * `twoFactorPendingSecretEnc` holds the enrolment-in-progress secret. The
+   * live/pending split is what makes enrolment two-phase: a factor only
+   * becomes "enabled" after the user proved they can generate valid codes
+   * from it, so a half-finished enrolment can never lock the account.
+   *
+   * `twoFactorBackupCodesHash` is a JSON array of SHA-256 digests (never
+   * plaintexts); each code is consumed by zeroing its entry.
+   */
+  twoFactorEnabled: boolean("two_factor_enabled").default(false).notNull(),
+  twoFactorSecretEnc: text("two_factor_secret_enc"),
+  twoFactorPendingSecretEnc: text("two_factor_pending_secret_enc"),
+  twoFactorBackupCodesHash: text("two_factor_backup_codes_hash"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

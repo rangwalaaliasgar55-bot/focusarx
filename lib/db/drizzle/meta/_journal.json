@@ -176,6 +176,20 @@
       "when": 1790000005000,
       "tag": "0024_ambient_audio_and_profile_icons",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790000006000,
+      "tag": "0025_two_factor_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790000007000,
+      "tag": "0026_ledger_and_pet_checks",
+      "breakpoints": true
     }
   ]
 }

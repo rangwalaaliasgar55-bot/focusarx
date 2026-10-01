@@ -1,5 +1,4 @@
 import { Router, type Response } from "express";
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import { createHash } from "node:crypto";
@@ -12,11 +11,13 @@ import { describeDeletion } from "../lib/accountDeletion";
 import { describeDrift, selectResilient } from "../lib/schemaDrift";
 import { welcomeNewHuman } from "../lib/botEngine";
 import { getServerConfig } from "../lib/config";
-import { authLimiter, forgotPasswordLimiter, resetLinkLimiter, guestLimiter, refreshLimiter } from "../lib/rateLimiter";
+import { authLimiter, forgotPasswordLimiter, resetLinkLimiter, guestLimiter, refreshLimiter, twoFactorLimiter } from "../lib/rateLimiter";
 import { createRefreshFamily, rotateRefreshToken, revokeRefreshToken, revokeAllUserRefreshTokens } from "../lib/refreshTokens";
 import { issueSocketTicket } from "../lib/socketTickets";
 import { sendUnauthorized, sendServiceUnavailable } from "../lib/httpErrors";
 import { isValidTimeZone } from "../lib/timezone";
+import { hashPassword, verifyPassword, rehashPassword } from "../lib/passwordHashing";
+import { verifyTotpCode, matchBackupCode, decryptTotpSecret, MFA_CHALLENGE_TTL_SECONDS } from "../lib/twoFactor";
 
 /**
  * Emails are normalised BEFORE the format check.
@@ -71,21 +72,21 @@ router.use("/auth", (_req, res, next) => {
 });
 
 /**
- * A real bcrypt hash of a throwaway value, compared against whenever the
- * account does not exist. Cost 12, so the comparison takes as long as a
- * genuine one and "no such user" is not observable from the response time.
+ * A real Argon2id hash of a throwaway value, compared against whenever the
+ * account does not exist. Parameters match hashPassword(), so "no such user"
+ * costs the same as a genuine password check and is not observable from the
+ * response time.
  *
- * It is generated on first use rather than written out as a literal, because a
- * cost-12 digest pasted into source is indistinguishable from a leaked password
- * hash to CI's secret scanner — and pasting one buys nothing, since the value
- * is deliberately meaningless. Memoised so the first unknown-email sign-in pays
+ * It is generated on first use rather than written out as a literal, because
+ * a pasted digest is indistinguishable from a leaked password hash to CI's
+ * secret scanner — and pasting one buys nothing, since the value is
+ * deliberately meaningless. Memoised so the first unknown-email sign-in pays
  * the hashing cost once per process, not once per guess.
  */
-const BCRYPT_COST = 12;
 let unknownUserHashPromise: Promise<string> | null = null;
 
 function unknownUserHash(): Promise<string> {
-  unknownUserHashPromise ??= bcrypt.hash(`focusarx-timing-equaliser:${BCRYPT_COST}`, BCRYPT_COST);
+  unknownUserHashPromise ??= hashPassword("focusarx-timing-equaliser:argon2id");
   return unknownUserHashPromise;
 }
 
@@ -110,7 +111,7 @@ function isUniqueViolation(err: unknown): boolean {
  * / ETIMEDOUT / ENOTFOUND. Callers answer 503 for these so clients keep their
  * session instead of treating an infrastructure blip as "signed out".
  */
-function isDependencyFailure(err: unknown): boolean {
+export function isDependencyFailure(err: unknown): boolean {
   const codes = new Set(["ECONNREFUSED", "ECONNRESET", "ETIMEDOUT", "ENOTFOUND", "EHOSTUNREACH", "ENETUNREACH", "57P01", "57P02", "57P03", "08000", "08003", "3D000"]);
   const chain: unknown[] = [err, (err as { cause?: unknown })?.cause, (err as { error?: unknown })?.error];
   for (const link of chain) {
@@ -215,7 +216,7 @@ function makeLegacyToken(userId: string, secret: string): string {
   });
 }
 
-function verifyToken(token: string, secret: string, expectedType: "access" | "refresh" = "access"): { sub: string; type: string } | null {
+function verifyToken(token: string, secret: string, expectedType: "access" | "refresh" | "mfa" = "access"): { sub: string; type: string } | null {
   try {
     const payload = jwt.verify(token, secret, {
       algorithms: ["HS256"],
@@ -401,20 +402,51 @@ router.post("/auth/login", authLimiter, async (req, res) => {
       name: usersTable.name,
       isGuest: usersTable.isGuest,
       hashedPassword: usersTable.hashedPassword,
+      twoFactorEnabled: usersTable.twoFactorEnabled,
+      twoFactorSecretEnc: usersTable.twoFactorSecretEnc,
     }).from(usersTable).where(eq(usersTable.email, email));
     if (!user?.hashedPassword) {
       // Answer at the same speed as a real password check. Without the dummy
       // comparison an unknown address returns in ~1 ms while a wrong password
-      // takes ~250 ms (bcrypt cost 12), which is a textbook account-
+      // takes as long as an Argon2id verification, which is a textbook account-
       // enumeration oracle and, in practice, the reason email-verification
       // abuse starts here. Guests are included: they have no hash either.
-      await bcrypt.compare(password, await unknownUserHash());
+      await verifyPassword(password, await unknownUserHash());
       res.status(401).json({ error: { code: "INVALID_CREDENTIALS", message: "Invalid credentials" } });
       return;
     }
-    const valid = await bcrypt.compare(password, user.hashedPassword);
-    if (!valid) {
+    const verification = await verifyPassword(password, user.hashedPassword);
+    if (!verification.valid) {
       res.status(401).json({ error: { code: "INVALID_CREDENTIALS", message: "Invalid credentials" } });
+      return;
+    }
+    // Opportunistic upgrade: the plaintext is in hand right now and about to
+    // be dropped. A row that still verifies under bcrypt (pre-Argon2id) is
+    // rewritten here, so every account migrates at its owner's next sign-in
+    // and no bulk-rehash of unknown plaintexts is ever needed.
+    if (verification.needsRehash) {
+      try {
+        const upgraded = await rehashPassword(password);
+        await db.update(usersTable).set({ hashedPassword: upgraded }).where(eq(usersTable.id, user.id));
+        logger.info({ userId: user.id }, "password hash upgraded to argon2id on sign-in");
+      } catch (rehashErr) {
+        // The sign-in already succeeded; a failed upgrade must not turn into
+        // a failed login. The row retries on the next sign-in.
+        logger.warn({ err: rehashErr, userId: user.id }, "argon2id rehash failed (login continues)");
+      }
+    }
+    // Two-factor accounts do not get credentials from the password step.
+    // The client receives a short-lived challenge token instead and completes
+    // sign-in at /auth/login/mfa with a current TOTP or backup code — see
+    // that route for why the challenge is not itself a credential.
+    if (user.twoFactorEnabled && user.twoFactorSecretEnc) {
+      const challenge = jwt.sign({ sub: user.id, type: "mfa" }, secret, {
+        algorithm: "HS256",
+        issuer: "focusarx-api",
+        audience: "focusarx-web",
+        expiresIn: MFA_CHALLENGE_TTL_SECONDS,
+      });
+      res.json({ mfaRequired: true, challenge });
       return;
     }
     const { accessToken, legacyToken } = await issueRefreshCredentials(res, user.id, secret, req);
@@ -437,6 +469,114 @@ router.post("/auth/login", authLimiter, async (req, res) => {
   }
 });
 
+// ── Two-factor sign-in (step 2 of 2) ───────────────────────────────────────
+//
+// Completes a sign-in that /auth/login answered with `mfaRequired`. The
+// challenge JWT presented here is a proof that the password step passed, not
+// a credential: `type: "mfa"` fails verifyToken() everywhere an access token
+// is expected, it expires in five minutes, and the only thing it can be
+// exchanged for is a completed sign-in. A stolen challenge buys an attacker
+// nothing without the rotating factor.
+
+const mfaLoginSchema = z.object({
+  challenge: z.string().min(10).max(2048),
+  code: z.string().trim().min(6).max(20),
+});
+
+router.post("/auth/login/mfa", twoFactorLimiter, async (req, res) => {
+  const secret = jwtSecretOrRespond(res);
+  if (!secret) return;
+  const parsed = mfaLoginSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Enter the 6-digit code from your authenticator." } });
+    return;
+  }
+  const payload = verifyToken(parsed.data.challenge, secret, "mfa");
+  if (!payload) {
+    res.status(401).json({ error: { code: "CHALLENGE_EXPIRED", message: "Sign-in session expired — start again." } });
+    return;
+  }
+  try {
+    const [user] = await db.select({
+      id: usersTable.id,
+      email: usersTable.email,
+      name: usersTable.name,
+      isGuest: usersTable.isGuest,
+      twoFactorEnabled: usersTable.twoFactorEnabled,
+      twoFactorSecretEnc: usersTable.twoFactorSecretEnc,
+      twoFactorBackupCodesHash: usersTable.twoFactorBackupCodesHash,
+    }).from(usersTable).where(eq(usersTable.id, payload.sub));
+    // Enabled with a live secret is the only state this route serves; the
+    // 0015-style guard column means the pair cannot disagree on honest data.
+    if (!user?.twoFactorEnabled || !user.twoFactorSecretEnc) {
+      res.status(401).json({ error: { code: "CHALLENGE_EXPIRED", message: "Sign-in session expired — start again." } });
+      return;
+    }
+    let decryptedSecret: string;
+    try {
+      decryptedSecret = decryptTotpSecret(user.twoFactorSecretEnc);
+    } catch (decErr) {
+      // Key lost/rotated: no code can verify, so sign-in cannot complete.
+      // 503 (not 401) tells the client this is a server problem — and backup
+      // codes are digests we can still check, so try those before giving up.
+      logger.warn({ err: decErr, userId: user.id }, "2fa secret decryption failed during sign-in");
+      const hashes = parseBackupHashList(user.twoFactorBackupCodesHash);
+      const idx = matchBackupCode(parsed.data.code, hashes);
+      if (idx < 0) {
+        sendServiceUnavailable(res, "FocusArx cannot verify two-factor codes right now. Please try again shortly.");
+        return;
+      }
+      const remaining = hashes.slice();
+      remaining.splice(idx, 1);
+      await db.update(usersTable)
+        .set({ twoFactorBackupCodesHash: remaining.length > 0 ? JSON.stringify(remaining) : null })
+        .where(eq(usersTable.id, user.id));
+      const { accessToken, legacyToken } = await issueRefreshCredentials(res, user.id, secret, req);
+      res.json({ token: legacyToken, accessToken, user: { id: user.id, email: user.email, name: user.name, isGuest: user.isGuest } });
+      return;
+    }
+    if (verifyTotpCode(decryptedSecret, user.email, parsed.data.code)) {
+      const { accessToken, legacyToken } = await issueRefreshCredentials(res, user.id, secret, req);
+      res.json({ token: legacyToken, accessToken, user: { id: user.id, email: user.email, name: user.name, isGuest: user.isGuest } });
+      return;
+    }
+    // Not a valid TOTP at this instant — a backup code is the recovery path,
+    // consumed on use so a phished one cannot be replayed.
+    const hashes = parseBackupHashList(user.twoFactorBackupCodesHash);
+    const backupIdx = matchBackupCode(parsed.data.code, hashes);
+    if (backupIdx < 0) {
+      res.status(401).json({ error: { code: "INVALID_CODE", message: "That code is not valid." } });
+      return;
+    }
+    const remaining = hashes.slice();
+    remaining.splice(backupIdx, 1);
+    await db.update(usersTable)
+      .set({ twoFactorBackupCodesHash: remaining.length > 0 ? JSON.stringify(remaining) : null })
+      .where(eq(usersTable.id, user.id));
+    const { accessToken, legacyToken } = await issueRefreshCredentials(res, user.id, secret, req);
+    res.json({ token: legacyToken, accessToken, user: { id: user.id, email: user.email, name: user.name, isGuest: user.isGuest } });
+  } catch (err) {
+    logger.error({ err }, "mfa login error");
+    if (isDependencyFailure(err)) {
+      sendServiceUnavailable(res, "FocusArx is temporarily unavailable. Please try again in a moment.");
+      return;
+    }
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal error" } });
+  }
+});
+
+/** Parse the stored backup-code digest list; never throws on bad JSON. */
+function parseBackupHashList(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((v): v is string => typeof v === "string");
+  } catch {
+    return [];
+  }
+}
+
 router.post("/auth/register", authLimiter, async (req, res) => {
   const secret = jwtSecretOrRespond(res);
   if (!secret) return;
@@ -453,7 +593,7 @@ router.post("/auth/register", authLimiter, async (req, res) => {
       res.status(400).json({ error: { code: "EMAIL_EXISTS", message: "Email already registered" } });
       return;
     }
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await hashPassword(password);
     let user: { id: string; email: string; name: string | null } | undefined;
     try {
       [user] = await db.insert(usersTable).values({ email, name: name || null, hashedPassword, isGuest: false }).returning({ id: usersTable.id, email: usersTable.email, name: usersTable.name });
@@ -721,17 +861,17 @@ router.post("/auth/change-password", authLimiter, async (req, res) => {
       res.status(400).json({ error: { code: "NO_PASSWORD", message: "This account does not use a password" } });
       return;
     }
-    const valid = await bcrypt.compare(currentPassword, user.hashedPassword);
-    if (!valid) {
+    const verification = await verifyPassword(currentPassword, user.hashedPassword);
+    if (!verification.valid) {
       res.status(401).json({ error: { code: "INVALID_CREDENTIALS", message: "Current password is incorrect" } });
       return;
     }
-    if (await bcrypt.compare(newPassword, user.hashedPassword)) {
+    if ((await verifyPassword(newPassword, user.hashedPassword)).valid) {
       res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "New password must differ from the current password" } });
       return;
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    const hashedPassword = await hashPassword(newPassword);
     await db.transaction(async (tx) => {
       await tx.update(usersTable).set({ hashedPassword }).where(eq(usersTable.id, userId));
     });
@@ -789,7 +929,9 @@ router.delete("/auth/account", authLimiter, async (req, res) => {
     // nothing — their account is ephemeral by design.
     if (!user.isGuest && user.hashedPassword) {
       const { password } = req.body as { password?: string };
-      if (!password || typeof password !== "string" || !(await bcrypt.compare(password, user.hashedPassword))) {
+      const matches = typeof password === "string"
+        && (await verifyPassword(password, user.hashedPassword)).valid;
+      if (!matches) {
         res.status(401).json({ error: { code: "INVALID_CREDENTIALS", message: "Password confirmation required" } });
         return;
       }
@@ -1016,7 +1158,7 @@ router.post("/auth/reset-password", resetLinkLimiter, async (req, res) => {
 
   try {
     const now = new Date();
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await hashPassword(password);
     const resetToken = await db.transaction(async (tx) => {
       const [row] = await tx.update(passwordResetTokensTable)
         .set({ usedAt: now })

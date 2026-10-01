@@ -103,8 +103,13 @@ describe("account deletion with a grace period", () => {
     fireEvent.click(screen.getByRole("button", { name: /schedule deletion/i }));
 
     await waitFor(() => expect(apiJson).toHaveBeenCalled());
-    const [path, init] = apiJson.mock.calls[0] as [string, { method: string }];
-    expect(path).toBe("/api/auth/account");
+    // The mounted section now also fires a two-factor status probe on mount,
+    // so the deletion call is found by path, not assumed to be the first.
+    const deleteCall = apiJson.mock.calls.find(
+      (call) => (call as unknown[])[0] === "/api/auth/account",
+    ) as unknown[] | undefined;
+    expect(deleteCall).toBeDefined();
+    const init = deleteCall![1] as { method: string };
     expect(init.method).toBe("DELETE");
     expect(auth.signOut).toHaveBeenCalled();
   });

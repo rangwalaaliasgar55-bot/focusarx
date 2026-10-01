@@ -128,6 +128,34 @@ export const guestLimiter = rateLimit({
 });
 
 /**
+ * Two-factor verification and completion.
+ *
+ * Every 2FA endpoint answers "is this 6-digit code valid?" — an oracle worth
+ * throttling harder than sign-in itself, because a code lives for exactly 30
+ * seconds and an attacker who can guess fast enough does not need the secret.
+ * The MFA sign-in completion is also here: its challenge JWT already caps the
+ * guesses per password step, and this limiter caps the guesses per code.
+ * Unlike `authLimiter`, successful attempts DO count — each code is worth one
+ * entry, and burning the budget is exactly the signal.
+ */
+export const twoFactorLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: isDev ? 100 : 12,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  store: store(15 * 60 * 1000, "two-factor"),
+  handler: (_req, res) => {
+    res.status(429).json({
+      error: {
+        code: "RATE_LIMITED",
+        message: "Too many verification attempts. Wait a few minutes and try again.",
+        retryAfterSeconds: retryAfterSeconds(res),
+      },
+    });
+  },
+});
+
+/**
  * Token refresh.
  *
  * Also previously unlimited — an attacker holding one stolen refresh token

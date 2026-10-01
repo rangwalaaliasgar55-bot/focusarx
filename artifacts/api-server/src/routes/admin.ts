@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import bcrypt from "bcryptjs";
+import { hashPassword } from "../lib/passwordHashing";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
 import { db, pool, usersTable, focusSessionsTable, studyStreaksTable, activeSessionsTable, productivityLogsTable, userMissionProgressTable, loginRewardsTable, freezeTokensTable, battlePassProgressTable, notificationsTable, premiumSubscriptionsTable, userWalletsTable, socialPostsTable, followsTable, platformMetaTable } from "@workspace/db";
@@ -644,7 +644,7 @@ router.post("/admin/users/:id/reset-password", adminLimiter, async (req, res) =>
       .from(usersTable).where(eq(usersTable.id, id));
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
     if (user.isGuest) { res.status(400).json({ error: "Guest accounts have no password" }); return; }
-    const hashed = await bcrypt.hash(password, 12);
+    const hashed = await hashPassword(password);
     await db.update(usersTable).set({ hashedPassword: hashed }).where(eq(usersTable.id, id));
     // Invalidate any outstanding self-service reset tokens.
     await db.execute(sql`update password_reset_tokens set used_at = now() where user_id = ${id} and used_at is null`);

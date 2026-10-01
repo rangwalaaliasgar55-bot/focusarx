@@ -506,6 +506,20 @@ CREATE TABLE IF NOT EXISTS "password_reset_tokens" (
 	CONSTRAINT "password_reset_tokens_token_unique" UNIQUE("token")
 );
 
+CREATE TABLE IF NOT EXISTS "payment_checkout_intents" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"provider" text NOT NULL,
+	"provider_order_id" text NOT NULL,
+	"interval" text NOT NULL,
+	"amount_minor" integer NOT NULL,
+	"currency" text NOT NULL,
+	"status" text DEFAULT 'pending' NOT NULL,
+	"provider_payment_id" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"completed_at" timestamp
+);
+
 CREATE TABLE IF NOT EXISTS "post_comments" (
 	"id" text PRIMARY KEY NOT NULL,
 	"post_id" text NOT NULL,
@@ -803,6 +817,7 @@ CREATE TABLE IF NOT EXISTS "user_profile_extras" (
 	"is_private" boolean DEFAULT false NOT NULL,
 	"custom_status" text,
 	"status_emoji" text,
+	"profile_icon" text,
 	"creator_tier" text DEFAULT 'learner' NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "user_profile_extras_user_id_unique" UNIQUE("user_id")
@@ -844,10 +859,23 @@ CREATE TABLE IF NOT EXISTS "users" (
 	"referred_by_user_id" text,
 	"referral_applied_at" timestamp,
 	"deletion_requested_at" timestamp,
+	"two_factor_enabled" boolean DEFAULT false NOT NULL,
+	"two_factor_secret_enc" text,
+	"two_factor_pending_secret_enc" text,
+	"two_factor_backup_codes_hash" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "users_email_unique" UNIQUE("email"),
 	CONSTRAINT "users_guest_key_unique" UNIQUE("guest_key"),
 	CONSTRAINT "users_referral_code_unique" UNIQUE("referral_code")
+);
+
+CREATE TABLE IF NOT EXISTS "voice_capture_batches" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"idempotency_key" text NOT NULL,
+	"transcript" text NOT NULL,
+	"result" jsonb NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "wrapped_snapshots" (
@@ -1187,6 +1215,30 @@ CREATE TABLE IF NOT EXISTS "ai_ideas" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS "ambient_track_listens" (
+	"id" text PRIMARY KEY NOT NULL,
+	"track_id" text NOT NULL,
+	"user_id" text,
+	"listened_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "ambient_tracks" (
+	"id" text PRIMARY KEY NOT NULL,
+	"label" text NOT NULL,
+	"emoji" text DEFAULT '🎵' NOT NULL,
+	"audio_url" text NOT NULL,
+	"credit" text DEFAULT '' NOT NULL,
+	"source_url" text DEFAULT '' NOT NULL,
+	"source_license" text DEFAULT '' NOT NULL,
+	"looping" boolean DEFAULT true NOT NULL,
+	"status" text DEFAULT 'draft' NOT NULL,
+	"created_by_id" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	"published_at" timestamp,
+	"archived_at" timestamp
+);
+
 CREATE TABLE IF NOT EXISTS "bot_pending_replies" (
 	"id" text PRIMARY KEY NOT NULL,
 	"post_id" text NOT NULL,
@@ -1345,7 +1397,8 @@ CREATE TABLE IF NOT EXISTS "token_ledger" (
 	"admin_reason" text,
 	"metadata" jsonb,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "token_ledger_idempotency_key_unique" UNIQUE("idempotency_key")
+	CONSTRAINT "token_ledger_idempotency_key_unique" UNIQUE("idempotency_key"),
+	CONSTRAINT "token_ledger_balance_after_non_negative" CHECK ("token_ledger"."balance_after" >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS "user_pet_inventory" (
@@ -1361,7 +1414,10 @@ CREATE TABLE IF NOT EXISTS "user_pet_inventory" (
 	"accessories" jsonb DEFAULT '[]'::jsonb,
 	"color_variant" text DEFAULT 'default',
 	"acquired_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "user_pet_inventory_level_range" CHECK ("user_pet_inventory"."level" >= 1 AND "user_pet_inventory"."level" <= 20),
+	CONSTRAINT "user_pet_inventory_bond_xp_non_negative" CHECK ("user_pet_inventory"."bond_xp" >= 0),
+	CONSTRAINT "user_pet_inventory_mood_known" CHECK ("user_pet_inventory"."mood" IN ('happy', 'excited', 'sleepy'))
 );
 
 CREATE TABLE IF NOT EXISTS "integration_connections" (
@@ -1609,6 +1665,11 @@ DO $$ BEGIN
   END IF;
 END $$;
 DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."payment_checkout_intents"'::regclass AND conname = 'payment_checkout_intents_user_id_users_id_fk') THEN
+    ALTER TABLE "payment_checkout_intents" ADD CONSTRAINT "payment_checkout_intents_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."post_comments"'::regclass AND conname = 'post_comments_post_id_social_posts_id_fk') THEN
     ALTER TABLE "post_comments" ADD CONSTRAINT "post_comments_post_id_social_posts_id_fk" FOREIGN KEY ("post_id") REFERENCES "public"."social_posts"("id") ON DELETE cascade ON UPDATE no action;
   END IF;
@@ -1779,6 +1840,11 @@ DO $$ BEGIN
   END IF;
 END $$;
 DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."voice_capture_batches"'::regclass AND conname = 'voice_capture_batches_user_id_users_id_fk') THEN
+    ALTER TABLE "voice_capture_batches" ADD CONSTRAINT "voice_capture_batches_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."wrapped_snapshots"'::regclass AND conname = 'wrapped_snapshots_user_id_users_id_fk') THEN
     ALTER TABLE "wrapped_snapshots" ADD CONSTRAINT "wrapped_snapshots_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
   END IF;
@@ -1909,6 +1975,21 @@ DO $$ BEGIN
   END IF;
 END $$;
 DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."ambient_track_listens"'::regclass AND conname = 'ambient_track_listens_track_id_ambient_tracks_id_fk') THEN
+    ALTER TABLE "ambient_track_listens" ADD CONSTRAINT "ambient_track_listens_track_id_ambient_tracks_id_fk" FOREIGN KEY ("track_id") REFERENCES "public"."ambient_tracks"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."ambient_track_listens"'::regclass AND conname = 'ambient_track_listens_user_id_users_id_fk') THEN
+    ALTER TABLE "ambient_track_listens" ADD CONSTRAINT "ambient_track_listens_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."ambient_tracks"'::regclass AND conname = 'ambient_tracks_created_by_id_users_id_fk') THEN
+    ALTER TABLE "ambient_tracks" ADD CONSTRAINT "ambient_tracks_created_by_id_users_id_fk" FOREIGN KEY ("created_by_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;
+DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"public"."bot_pending_replies"'::regclass AND conname = 'bot_pending_replies_post_id_social_posts_id_fk') THEN
     ALTER TABLE "bot_pending_replies" ADD CONSTRAINT "bot_pending_replies_post_id_social_posts_id_fk" FOREIGN KEY ("post_id") REFERENCES "public"."social_posts"("id") ON DELETE cascade ON UPDATE no action;
   END IF;
@@ -2030,6 +2111,9 @@ CREATE INDEX IF NOT EXISTS "habit_completions_habit_idx" ON "habit_completions" 
 CREATE INDEX IF NOT EXISTS "habit_completions_user_date_idx" ON "habit_completions" USING btree ("user_id","date");
 CREATE INDEX IF NOT EXISTS "habits_user_idx" ON "habits" USING btree ("user_id");
 CREATE INDEX IF NOT EXISTS "notifications_user_id_idx" ON "notifications" USING btree ("user_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "payment_checkout_intents_provider_order_uidx" ON "payment_checkout_intents" USING btree ("provider","provider_order_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "payment_checkout_intents_provider_payment_uidx" ON "payment_checkout_intents" USING btree ("provider","provider_payment_id");
+CREATE INDEX IF NOT EXISTS "payment_checkout_intents_user_created_idx" ON "payment_checkout_intents" USING btree ("user_id","created_at");
 CREATE INDEX IF NOT EXISTS "post_comments_post_idx" ON "post_comments" USING btree ("post_id");
 CREATE INDEX IF NOT EXISTS "post_reactions_post_idx" ON "post_reactions" USING btree ("post_id");
 CREATE INDEX IF NOT EXISTS "post_saves_post_user_idx" ON "post_saves" USING btree ("post_id","user_id");
@@ -2055,6 +2139,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS "user_inventory_user_item_unique" ON "user_inv
 CREATE INDEX IF NOT EXISTS "mission_progress_user_period_idx" ON "user_mission_progress" USING btree ("user_id","period_start");
 CREATE INDEX IF NOT EXISTS "user_wallets_weekly_xp_idx" ON "user_wallets" USING btree ("weekly_xp");
 CREATE INDEX IF NOT EXISTS "user_wallets_total_xp_idx" ON "user_wallets" USING btree ("total_xp");
+CREATE UNIQUE INDEX IF NOT EXISTS "voice_capture_batches_user_key_uidx" ON "voice_capture_batches" USING btree ("user_id","idempotency_key");
+CREATE INDEX IF NOT EXISTS "voice_capture_batches_user_created_idx" ON "voice_capture_batches" USING btree ("user_id","created_at");
 CREATE INDEX IF NOT EXISTS "wrapped_user_period_idx" ON "wrapped_snapshots" USING btree ("user_id","period");
 CREATE INDEX IF NOT EXISTS "leaderboard_snapshots_period_category_idx" ON "leaderboard_snapshots" USING btree ("period","category");
 CREATE INDEX IF NOT EXISTS "shared_goals_group_idx" ON "shared_goals" USING btree ("group_id");
@@ -2084,6 +2170,10 @@ CREATE INDEX IF NOT EXISTS "ai_call_log_created_idx" ON "ai_call_log" USING btre
 CREATE INDEX IF NOT EXISTS "ai_call_log_purpose_idx" ON "ai_call_log" USING btree ("purpose","created_at");
 CREATE INDEX IF NOT EXISTS "ai_call_log_user_purpose_idx" ON "ai_call_log" USING btree ("user_id","purpose","created_at");
 CREATE INDEX IF NOT EXISTS "ai_ideas_status_idx" ON "ai_ideas" USING btree ("status","created_at");
+CREATE INDEX IF NOT EXISTS "ambient_track_listens_track_date_idx" ON "ambient_track_listens" USING btree ("track_id","listened_at");
+CREATE INDEX IF NOT EXISTS "ambient_track_listens_user_date_idx" ON "ambient_track_listens" USING btree ("user_id","listened_at");
+CREATE INDEX IF NOT EXISTS "ambient_tracks_status_published_idx" ON "ambient_tracks" USING btree ("status","published_at");
+CREATE INDEX IF NOT EXISTS "ambient_tracks_created_by_idx" ON "ambient_tracks" USING btree ("created_by_id");
 CREATE INDEX IF NOT EXISTS "bot_pending_replies_due_idx" ON "bot_pending_replies" USING btree ("status","due_at");
 CREATE INDEX IF NOT EXISTS "bot_pending_replies_post_idx" ON "bot_pending_replies" USING btree ("post_id");
 CREATE INDEX IF NOT EXISTS "asset_catalog_type_idx" ON "asset_catalog" USING btree ("type");
