@@ -2,6 +2,45 @@
 
 All notable changes to FocusArx. Dates are UTC.
 
+## [2026-10-01] — quarterly dependency refresh + audit to zero
+
+Workspace-wide refresh of every runtime, build and dev dependency to the newest
+release inside the existing major/semver range, plus audit-driven security pins
+that bring `pnpm audit` from 23 reported advisories (3 low / 12 moderate /
+8 high) to **zero**, in both the full tree and `--prod`.
+
+### Dependency refresh (`pnpm -r update`, ~250 packages)
+
+- **Runtime bumps** include `@react-three/fiber` 9.6 → 9.8, `@react-three/drei`
+  10.7.7 → 10.7.9, `@sentry/node`/`@sentry/react` 10.73 → 10.75, `helmet` 8.2 →
+  8.3, `express-rate-limit` 8.6 → 8.7, `socket.io`/`socket.io-client` 4.8.3 →
+  4.8.4, `nodemailer` 10.0.6 → 10.0.13, `@upstash/redis` 1.38 → 1.39, and the
+  matching Radix / TanStack / Tailwind catalog ranges.
+- **`three` 0.184 → 0.186** (with `@types/three` 0.186) — an explicit minor bump
+  because `^0.184.0` cannot float across 0.x minors.
+- **Deliberately skipped breaking majors** (kept for a follow-up): `zod` 4,
+  `vite` 8, `vitest` 5, `recharts` 3, `pino` 10, `framer-motion` 13,
+  `typescript` 7. The repo stays on the ranges the maintainers pinned in
+  `pnpm-workspace.yaml`.
+
+### Audit-driven security pins (`pnpm-workspace.yaml` overrides)
+
+| Package | Was | Now pinned |
+| --- | --- | --- |
+| `undici` | 7.x < 7.29.1, 8.x < 8.10.2 | `^7.29.1` / `^8.10.2` (DoS, TLS validation bypass, cache poisoning) |
+| `brace-expansion` | 1.x < 1.1.21, 5.x < 5.0.12 | `^1.1.21` / `^5.0.12` (DoS via uncontrolled recursion) |
+| `ip-address` | ≤ 10.7.0 | `^10.7.1` (ReDoS in `Address6` parse diagnostics) |
+| `js-yaml` | 4.x < 4.3.2 | `^4.3.2` (`maxTotalMergeKeys` CPU DoS) |
+| `fast-uri` | 3.x < 3.1.8 | `^3.1.8` |
+
+All five are transitive (via `orval`, `jsdom`, `eslint`/`minimatch`,
+`express-rate-limit`), so the overrides are the only way to reach patched
+versions before the direct dependencies cut releases. **Verification:**
+`pnpm audit` and `pnpm audit --prod` both report "No known vulnerabilities
+found"; typecheck, the 47 script tests, the full api-server and focusarx suites
+and the production build all stay green on the refreshed tree.
+
+
 ## [2026-09-30] — security CVE patch, mobile welcome gate, and a green mobile E2E contract
 
 Work toward getting the branch's CI fully green so PR #98 can merge. Three
