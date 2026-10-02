@@ -119,11 +119,21 @@ export function TimerFaceSegments({ secondsLeft, mode, isRunning, progress, tota
   const lit = totalMinutes - elapsed;
 
   return (
-    <div className="relative mx-auto flex flex-col items-center" style={{ width: 300, height: 300 }}>
-      <svg width={300} height={300} className="absolute inset-0" aria-hidden="true">
+    // Fluid square: the face fills its column, capped at 300px. The dial is
+    // drawn in a 300-unit viewBox and scaled by the SVG, so a 193px face and a
+    // 300px one get identical geometry. Previously the SVG carried hardcoded
+    // `width={300} height={300}` while the box was `min(100%, 300px)`, so the
+    // dial overflowed the smaller faces and the centred text was pushed off by a
+    // hardcoded `mt-[86px]` that assumed a 300px box.
+    <div className="relative mx-auto flex aspect-square w-full flex-col items-center justify-center" style={{ maxWidth: 300 }}>
+      <svg viewBox="0 0 300 300" className="absolute inset-0 h-full w-full" aria-hidden="true">
         {Array.from({ length: totalMinutes }, (_, i) => {
           const angle = (i / totalMinutes) * Math.PI * 2 - Math.PI / 2;
-          const r = 118;
+          // The marks sit on a circle that must clear the centred readout. The
+          // readout is a 60%-wide column, so the inner free radius is ~92 units
+          // on a 300 viewBox; 118 put the marks straight through the digits at
+          // the smaller face sizes, where the type is proportionally larger.
+          const r = 132;
           const x = 150 + r * Math.cos(angle);
           const y = 150 + r * Math.sin(angle);
           const on = i < lit;
@@ -142,8 +152,8 @@ export function TimerFaceSegments({ secondsLeft, mode, isRunning, progress, tota
         })}
       </svg>
 
-      <div className="relative z-[var(--z-content)] mt-[86px] flex flex-col items-center text-center">
-        <span className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: accent }}>
+      <div className="relative z-[var(--z-content)] flex w-[58%] flex-col items-center text-center">
+        <span className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: accent }}>
           {label}
         </span>
         <button
@@ -151,15 +161,15 @@ export function TimerFaceSegments({ secondsLeft, mode, isRunning, progress, tota
           onClick={onEditClick}
           disabled={!onEditClick || isRunning}
           aria-label={`${spoken}.${onEditClick ? " Edit duration." : ""} Finishes at ${endsAt}.`}
-          className="font-display text-[3.75rem] font-semibold leading-none tracking-[-0.05em] tabular-nums text-[var(--foreground)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--surface)] disabled:cursor-default"
+          className="font-display text-[clamp(2.25rem,7vw,3.75rem)] font-semibold leading-none tracking-[-0.05em] tabular-nums text-[var(--foreground)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--surface)] disabled:cursor-default"
           style={{ fontFeatureSettings: '"tnum" 1' }}
         >
           <RollingClock value={`${minutes}:${seconds}`} />
         </button>
-        <span className="mt-2 text-xs font-medium text-[var(--foreground-subtle)]">
-          {lit} of {totalMinutes} minutes left
+        <span className="mt-1.5 text-[11px] font-medium text-[var(--foreground-subtle)]">
+          {lit} of {totalMinutes} min left
         </span>
-        <span className="mt-1 text-[11px] text-[var(--foreground-subtle)]">
+        <span className="mt-0.5 text-[11px] text-[var(--foreground-subtle)]">
           {isRunning ? `ends ${endsAt}` : "Ready"}
           {onEditClick && !isRunning ? (
             <span className="ml-2 inline-flex items-center gap-1">
@@ -195,14 +205,14 @@ export function TimerFaceBars({ secondsLeft, mode, isRunning, progress, totalSec
   const label = sessionType ? sessionType.replace(/_/g, " ") : mode === "focus" ? "Focus" : mode === "break" ? "Break" : "Long break";
 
   return (
-    <div className="relative mx-auto flex flex-col items-center" style={{ width: 300, height: 300 }}>
+    <div className="relative mx-auto flex aspect-square w-full flex-col items-center justify-center" style={{ maxWidth: 300 }}>
       <div className="mt-1 text-center">
         <span className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: accent }}>
           {label}
         </span>
       </div>
 
-      <div className="mt-3 flex h-[150px] items-end justify-center gap-1.5" aria-hidden="true">
+      <div className="mt-3 flex h-[50%] max-h-[150px] min-h-[90px] w-full items-end justify-center gap-1.5" aria-hidden="true">
         {Array.from({ length: bars }, (_, i) => {
           const done = i < index;
           const current = i === index;
@@ -225,7 +235,7 @@ export function TimerFaceBars({ secondsLeft, mode, isRunning, progress, totalSec
         onClick={onEditClick}
         disabled={!onEditClick || isRunning}
         aria-label={`${spoken}.${onEditClick ? " Edit duration." : ""} Finishes at ${endsAt}.`}
-        className="mt-4 font-display text-[2.75rem] font-semibold leading-none tracking-[-0.04em] tabular-nums text-[var(--foreground)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--surface)] disabled:cursor-default"
+        className="mt-4 font-display text-[clamp(1.75rem,7vw,2.75rem)] font-semibold leading-none tracking-[-0.04em] tabular-nums text-[var(--foreground)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--surface)] disabled:cursor-default"
         style={{ fontFeatureSettings: '"tnum" 1' }}
       >
         <RollingClock value={`${minutes}:${seconds}`} />
@@ -271,7 +281,7 @@ export function TimerFaceDots({ secondsLeft, mode, isRunning, progress, totalSec
   const minutesPerBlock = Math.round(blockSeconds / 60);
 
   return (
-    <div className="relative mx-auto flex flex-col items-center" style={{ width: 300, height: 300 }}>
+    <div className="relative mx-auto flex aspect-square w-full flex-col items-center justify-center" style={{ maxWidth: 300 }}>
       <div className="mt-1 text-center">
         <span className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: accent }}>
           {label}
@@ -313,7 +323,7 @@ export function TimerFaceDots({ secondsLeft, mode, isRunning, progress, totalSec
         onClick={onEditClick}
         disabled={!onEditClick || isRunning}
         aria-label={`${spoken}.${onEditClick ? " Edit duration." : ""} Finishes at ${endsAt}.`}
-        className="mt-5 font-display text-[3rem] font-semibold leading-none tracking-[-0.04em] tabular-nums text-[var(--foreground)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--surface)] disabled:cursor-default"
+        className="mt-5 font-display text-[clamp(1.9rem,7vw,3rem)] font-semibold leading-none tracking-[-0.04em] tabular-nums text-[var(--foreground)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--surface)] disabled:cursor-default"
         style={{ fontFeatureSettings: '"tnum" 1' }}
       >
         <RollingClock value={`${minutes}:${seconds}`} />
@@ -365,7 +375,7 @@ export function TimerFaceRounds({ secondsLeft, mode, isRunning, progress, totalS
   const CIRC = 2 * Math.PI * R;
 
   return (
-    <div className="relative mx-auto flex flex-col items-center" style={{ width: 300, height: 300 }}>
+    <div className="relative mx-auto flex aspect-square w-full flex-col items-center justify-center" style={{ maxWidth: 300 }}>
       <div className="flex items-center gap-1.5" aria-hidden="true">
         {Array.from({ length: rounds }, (_, i) => (
           <span
@@ -379,8 +389,8 @@ export function TimerFaceRounds({ secondsLeft, mode, isRunning, progress, totalS
         {label} · round {index + 1} of {rounds}
       </span>
 
-      <div className="relative mt-2" style={{ width: 148, height: 148 }}>
-        <svg width={148} height={148} className="-rotate-90" aria-hidden="true">
+      <div className="relative mt-2 aspect-square w-[62%]" style={{ maxWidth: 148 }}>
+        <svg viewBox="0 0 148 148" className="h-full w-full -rotate-90" aria-hidden="true">
           <circle cx={74} cy={74} r={R} fill="none" stroke={accentSoft} strokeWidth={7} />
           <circle
             cx={74}
@@ -400,7 +410,7 @@ export function TimerFaceRounds({ secondsLeft, mode, isRunning, progress, totalS
           onClick={onEditClick}
           disabled={!onEditClick || isRunning}
           aria-label={`${spoken}.${onEditClick ? " Edit duration." : ""} Finishes at ${endsAt}.`}
-          className="absolute inset-0 grid place-items-center font-display text-[2rem] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--foreground)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] disabled:cursor-default"
+          className="absolute inset-0 grid place-items-center font-display text-[clamp(1.35rem,7vw,2rem)] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--foreground)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] disabled:cursor-default"
           style={{ fontFeatureSettings: '"tnum" 1' }}
         >
           <RollingClock value={`${minutes}:${seconds}`} />

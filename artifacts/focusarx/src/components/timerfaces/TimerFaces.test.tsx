@@ -72,12 +72,12 @@ describe("segments face", () => {
     // A 25-minute block is 25 marks. The inverted total (~15,000,000s) asked
     // for ~250,000 of them and locked the tab up.
     expect(container.querySelectorAll("svg circle")).toHaveLength(25);
-    expect(screen.getByText("25 of 25 minutes left")).toBeTruthy();
+    expect(screen.getByText("25 of 25 min left")).toBeTruthy();
   });
 
   it("counts minutes down as the block runs", () => {
     render(<TimerFaceSegments {...face(600)} />);
-    expect(screen.getByText("10 of 25 minutes left")).toBeTruthy();
+    expect(screen.getByText("10 of 25 min left")).toBeTruthy();
   });
 });
 

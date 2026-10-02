@@ -194,6 +194,29 @@ export function TimerDisplay({
     wasRunning.current = isRunning;
   }, [isRunning, reduced]);
 
+  // The face is fluid, so the digits are sized from its measured width. A
+  // ResizeObserver publishes it as `--face-w`; the clock's font-size is a
+  // `calc()` off that variable, so the number stays ~30% of the ring at every
+  // size without a re-render. Measuring in an effect (rather than reading
+  // `getBoundingClientRect` during render) keeps the render pure, and the
+  // observer only fires when the width actually changes.
+  const faceRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = faceRef.current;
+    if (!el) return;
+    const apply = (w: number) => {
+      el.style.setProperty("--face-w", `${Math.round(w)}px`);
+    };
+    apply(el.getBoundingClientRect().width);
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([entry]) => {
+      const w = entry.contentRect.width;
+      if (w > 0) apply(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   // Wall-clock finish label, read from the shared 1 Hz clock. `now + secondsLeft`
   // is invariant while the clock runs, so the label is stable rather than
   // counting down — which is exactly the point: the user wants the fixed
@@ -272,9 +295,17 @@ export function TimerDisplay({
   }
 
   return (
+    // Fluid face, sized in plain CSS. The `cqw`/`container-type` route was
+    // tried and reverted: `contain: size` zeroes the contained element's
+    // intrinsic size, and whether it lands on the face or a wrapper the ring
+    // collapsed to 0 wide (the dial disappeared entirely). A `clamp()` in `vw`
+    // against the page viewport does the same job with none of that, because the
+    // face is already capped at 300px and the page gutter is what actually
+    // varies.
     <motion.div
-      className="relative grid aspect-square w-full place-items-center"
-      style={{ maxWidth: SIZE, maxHeight: SIZE }}
+      ref={faceRef}
+      className="relative mx-auto grid aspect-square place-items-center"
+      style={{ width: "min(100%, 300px)", padding: "6%" }}
       initial={false}
       animate={{ scale: breathe ? 1.025 : 1 }}
       transition={{ duration: 0.25, ease: EASE }}
@@ -511,8 +542,19 @@ export function TimerDisplay({
             ]
               .filter(Boolean)
               .join(" ")}
-            className="rounded-md font-display text-[4.25rem] font-semibold leading-none tracking-[-0.055em] text-[var(--foreground)] tabular-nums outline-none transition-opacity disabled:cursor-default enabled:hover:opacity-80 focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--surface)]"
+            className="rounded-md font-display font-semibold leading-none tracking-[-0.055em] text-[var(--foreground)] tabular-nums outline-none transition-opacity disabled:cursor-default enabled:hover:opacity-80 focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--surface)]"
             style={{
+              // The digits are sized to the ring they sit in, not to the viewport.
+              // The face is fluid — it fills its column and is capped at 300px —
+              // so a fixed 4.25rem was tuned for a 300px ring and overflowed a
+              // 193px one, filling the circle and pushing the mode label and
+              // "Ready" out of it. `container-type` was the obvious fix and is
+              // wrong here: it applies `contain: size`, which collapses the
+              // measured element to zero width. The face measures itself into a
+              // CSS variable and the number reads it, so the proportion holds at
+              // every size: ~30% of the ring, the ratio the original 300px
+              // design had (68/300).
+              fontSize: `clamp(2.5rem, calc(var(--face-w, 300px) * 0.3), 4.25rem)`,
               fontFeatureSettings: '"tnum" 1, "ss01" 1',
               textShadow: zen ? undefined : `0 0 34px color-mix(in srgb, ${glowColor} 26%, transparent)`,
               ...(skinned && skin.metallicDigits
