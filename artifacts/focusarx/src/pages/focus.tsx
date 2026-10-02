@@ -406,6 +406,13 @@ function MotivationalLine() {
  * The arena's pet also used to be hard-coded to level 1 regardless of the
  * companion the user actually raised; it reads the active pet like the
  * companion widget does.
+ *
+ * The bus reports a pause and an abandon the same way (`active:false`), so the
+ * arena is told which one it is. Zeroing progress whenever the block was not
+ * running also used to make the arena's health bars jump back to full the
+ * instant the user hit pause, and made a completed block look like a 0% loss:
+ * progress is now kept for every non-idle phase, and only cleared when the
+ * timer is genuinely idle.
  */
 function SessionCompanions() {
   const live = useFocusSessionState();
@@ -416,8 +423,9 @@ function SessionCompanions() {
       <Suspense fallback={<HeavyWidgetFallback />}>
         <MonsterBattleArena
           isActive={live.active}
+          isPaused={live.status === "paused"}
           sessionDuration={durationSec}
-          sessionProgress={live.active ? live.progress : 0}
+          sessionProgress={live.status === "idle" ? 0 : live.progress}
           petLevel={activePet?.level ?? 1}
         />
       </Suspense>
