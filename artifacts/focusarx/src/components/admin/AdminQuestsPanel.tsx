@@ -73,7 +73,7 @@ export function AdminQuestsPanel({ authHeaders }: AdminPanelProps) {
   return (
     <MotionTab>
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <SectionHeader title="Quest Builder" sub="Create and manage daily and weekly quests for users." />
+        <SectionHeader title="Quest Builder" sub="Create and manage daily and weekly quests for users." className="mb-0" />
         <div className="flex items-center gap-2">
           <button onClick={load} className="rounded-lg border border-[var(--palette-zinc-700)] px-3 py-1.5 text-xs text-[var(--palette-zinc-400)] hover:text-[var(--palette-zinc-200)] transition">
             <RefreshCw size={12} className="inline mr-1" />Refresh

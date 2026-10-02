@@ -76,7 +76,10 @@ export function AdminBattlePassPanel({ bpStats }: { bpStats: BattlePassStats }) 
                 {bpStats.tierDistribution.map(d => {
                   const maxC = Math.max(1, ...bpStats.tierDistribution.map(x => x.count));
                   return (
-                    <div key={d.tier} className="flex flex-1 flex-col items-center gap-1">
+                    // `h-full` + `justify-end` make the column's height definite so the
+                    // tier bar's percentage resolves; without it every bar fell back to
+                    // its `minHeight` floor and the ladder read as a flat line.
+                    <div key={d.tier} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1">
                       <div className="w-full rounded-t bg-[var(--palette-violet-500)]/60 hover:bg-[var(--palette-violet-400)]/80 transition-colors"
                         style={{ height: `${Math.round((d.count / maxC) * 100)}%`, minHeight: "2px" }}
                         title={`Tier ${d.tier}: ${d.count} users`}

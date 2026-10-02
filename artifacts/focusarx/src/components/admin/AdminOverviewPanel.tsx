@@ -83,7 +83,10 @@ export function AdminOverviewPanel({ stats, data, users, cmsOverview, maxSession
             {chart.map((d, index) => {
               const ratio = d.sessions > 0 ? Math.max(0.04, d.sessions / maxSessions) : 0;
               return (
-                <div key={`${d.date || d.day}-${index}`} className="flex min-w-0 flex-1 flex-col items-center gap-1.5" title={`${d.sessions} sessions · ${d.minutes}m on ${d.day}`}>
+                // `h-full` + `justify-end` give the column a definite height. Without
+                // it the bar's `calc(N% - 1.25rem)` resolves against an indefinite
+                // parent and collapses to 0 — the whole chart rendered flat.
+                <div key={`${d.date || d.day}-${index}`} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5" title={`${d.sessions} sessions · ${d.minutes}m on ${d.day}`}>
                   <span className="text-[11px] font-medium tabular-nums text-[var(--foreground-subtle)]">
                     {d.sessions > 0 ? d.sessions : ""}
                   </span>
@@ -144,9 +147,12 @@ export function AdminOverviewPanel({ stats, data, users, cmsOverview, maxSession
         <div className="divide-y divide-[var(--border-subtle)]">
           {users.slice(0, 5).map((u) => (
             <div key={u.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5">
-              <div className="min-w-0">
-                <span className="truncate text-sm font-medium text-[var(--foreground)]">{displayName(u)}</span>
-                <span className="ml-2 text-xs text-[var(--foreground-subtle)]">{maskEmail(u.email)}</span>
+              {/* `truncate` only clips on a block-level box. As a bare inline span
+                  the name rendered at its full width and shoved the masked email
+                  out of the row, so the name is a shrinkable flex item instead. */}
+              <div className="flex min-w-0 items-baseline gap-2">
+                <span className="min-w-0 truncate text-sm font-medium text-[var(--foreground)]">{displayName(u)}</span>
+                <span className="shrink-0 text-xs text-[var(--foreground-subtle)]">{maskEmail(u.email)}</span>
               </div>
               <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs text-[var(--foreground-muted)]">
                 <span className="tabular-nums">{u.sessionCount} sessions</span>

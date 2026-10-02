@@ -152,7 +152,7 @@ export function AdminBreakFreePanel({ authHeaders, onManageUser }: AdminPanelPro
   return (
     <MotionTab>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <SectionHeader title="Break Free" sub="Manage every member's no-fap journey: streaks, relapses, mood check-ins and the public pledge wall." />
+        <SectionHeader title="Break Free" sub="Manage every member's no-fap journey: streaks, relapses, mood check-ins and the public pledge wall." className="mb-0" />
         <button onClick={() => { setLoading(true); void load(); }} className="rounded-lg border border-[var(--palette-zinc-700)] px-3 py-1.5 text-xs text-[var(--palette-zinc-400)] hover:text-[var(--palette-zinc-200)] transition">
           <RefreshCw size={12} className={`inline mr-1 ${loading ? "animate-spin" : ""}`} />Refresh
         </button>

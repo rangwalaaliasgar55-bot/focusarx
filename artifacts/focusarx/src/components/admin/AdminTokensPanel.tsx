@@ -88,17 +88,31 @@ export function AdminTokensPanel({ authHeaders }: { authHeaders: () => Record<st
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-3 rounded-xl border border-[var(--palette-zinc-800)] bg-[var(--palette-zinc-900)]/40 p-5">
+        {/* Matches the grant card in AdminCoinsPanel / AdminPremiumPanel /
+            AdminNotifyPanel: `/80` border and the 16px field rhythm. */}
+        <div className="space-y-4 rounded-xl border border-[var(--palette-zinc-800)]/80 bg-[var(--palette-zinc-900)]/40 p-5">
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--palette-zinc-400)]">Grant / Remove Tokens (audit)</p>
-          <input className="admin-input font-mono" placeholder="User ID" value={grantForm.userId} onChange={(e) => setGrantForm(f => ({ ...f, userId: e.target.value }))} />
-          <div className="grid grid-cols-2 gap-2">
-            <input className="admin-input" type="number" placeholder="Amount" value={grantForm.amount} onChange={(e) => setGrantForm(f => ({ ...f, amount: e.target.value }))} />
-            <select className="admin-input" value={grantForm.type} onChange={(e) => setGrantForm(f => ({ ...f, type: e.target.value as "grant" | "remove" }))}>
-              <option value="grant">Grant</option>
-              <option value="remove">Remove</option>
-            </select>
+          <div>
+            <label htmlFor="admintokenspanel-user-id" className="mb-1 block text-xs text-[var(--palette-zinc-500)]">User ID</label>
+            <input id="admintokenspanel-user-id" className="admin-input font-mono" placeholder="paste user UUID here…" value={grantForm.userId} onChange={(e) => setGrantForm(f => ({ ...f, userId: e.target.value }))} />
           </div>
-          <input className="admin-input" placeholder="Reason (min 5 chars, audited)" value={grantForm.reason} onChange={(e) => setGrantForm(f => ({ ...f, reason: e.target.value }))} />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label htmlFor="admintokenspanel-amount" className="mb-1 block text-xs text-[var(--palette-zinc-500)]">Amount</label>
+              <input id="admintokenspanel-amount" className="admin-input" type="number" min="0" placeholder="500" value={grantForm.amount} onChange={(e) => setGrantForm(f => ({ ...f, amount: e.target.value }))} />
+            </div>
+            <div>
+              <label htmlFor="admintokenspanel-type" className="mb-1 block text-xs text-[var(--palette-zinc-500)]">Action</label>
+              <select id="admintokenspanel-type" className="admin-input" value={grantForm.type} onChange={(e) => setGrantForm(f => ({ ...f, type: e.target.value as "grant" | "remove" }))}>
+                <option value="grant">Grant</option>
+                <option value="remove">Remove</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label htmlFor="admintokenspanel-reason" className="mb-1 block text-xs text-[var(--palette-zinc-500)]">Reason (min 5 chars, audited)</label>
+            <input id="admintokenspanel-reason" className="admin-input" placeholder="e.g. Support compensation" value={grantForm.reason} onChange={(e) => setGrantForm(f => ({ ...f, reason: e.target.value }))} />
+          </div>
           <button onClick={() => void grantTokens()} disabled={grantLoading || !grantForm.userId || !grantForm.amount || grantForm.reason.length < 5} className="w-full rounded-lg bg-[var(--palette-amber-700)] hover:bg-[var(--palette-amber-800)] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50 transition">
             🪙 {grantForm.type === "remove" ? "Remove" : "Grant"} Tokens
           </button>

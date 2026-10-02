@@ -194,7 +194,7 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged, onMana
   return (
     <MotionTab>
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <SectionHeader title="User Management" sub={`${users.length} registered accounts`} />
+        <SectionHeader title="User Management" sub={`${users.length} registered accounts`} className="mb-0" />
         <div className="flex items-center gap-2">
           {(stats?.guestCount ?? data.guestCount ?? 0) > 0 && (
             <button
@@ -238,8 +238,11 @@ export function AdminUserPanel({ data, stats, authHeaders, onDataChanged, onMana
         </div>
       )}
 
+      {/* The widest table in the console (8 columns, plus a three-button action
+          cell). `w-full` alone let it crush to ~666px on a 375px phone instead
+          of scrolling; `min-w` makes the overflow-x-auto below actually engage. */}
       <div className="overflow-x-auto rounded-xl border border-[var(--palette-zinc-800)]/80">
-        <table className="w-full text-left text-sm">
+        <table className="w-full min-w-[56rem] text-left text-sm">
           <thead className="bg-[var(--palette-zinc-900)]/80 text-xs uppercase tracking-wider text-[var(--palette-zinc-500)]">
             <tr>
               <th className="w-10 px-3 py-3 font-medium">

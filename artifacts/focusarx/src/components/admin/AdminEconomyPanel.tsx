@@ -46,6 +46,7 @@ export function AdminEconomyPanel({ authHeaders }: AdminPanelProps) {
         <SectionHeader
           title="Economy"
           sub="Circulating supply, coin flow and ledger health. Every mint/burn writes to coin_transactions (lib/coinLedger)."
+          className="mb-0"
         />
         <button onClick={() => void load()} className="rounded-lg border border-[var(--palette-zinc-700)] px-3 py-1.5 text-xs text-[var(--palette-zinc-400)] hover:text-[var(--palette-zinc-200)] transition">
           <RefreshCw size={12} className={cn("inline mr-1", loading && "animate-spin")} />Refresh
@@ -78,7 +79,10 @@ export function AdminEconomyPanel({ authHeaders }: AdminPanelProps) {
               <h3 className="mb-3 text-sm font-semibold text-[var(--palette-zinc-200)]">14-day coin flow (IST days)</h3>
               <div className="flex h-40 items-end gap-1">
                 {e.daily.map((d) => (
-                  <div key={d.day} className="flex flex-1 flex-col items-center gap-1" title={`${d.day} — minted ${d.mints.toLocaleString()}, burned ${d.burns.toLocaleString()}`}>
+                  // `h-full` + `justify-end` give the column a definite height, so the
+                  // mint/burn bars' percentage heights resolve. Without it they
+                  // collapsed to 0 and the 14-day chart rendered as an empty box.
+                  <div key={d.day} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1" title={`${d.day} — minted ${d.mints.toLocaleString()}, burned ${d.burns.toLocaleString()}`}>
                     <div className="flex w-full flex-1 items-end justify-center gap-px">
                       <div className="w-1/2 rounded-t-sm bg-[var(--palette-emerald-500)]/70" style={{ height: `${Math.max(3, (d.mints / maxFlow) * 100)}%` }} />
                       <div className="w-1/2 rounded-t-sm bg-[var(--palette-rose-500)]/70" style={{ height: `${Math.max(3, (d.burns / maxFlow) * 100)}%` }} />

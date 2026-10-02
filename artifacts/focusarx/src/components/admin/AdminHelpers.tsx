@@ -123,9 +123,16 @@ export function StatCard({ label, value, accent, sub }: { label: string; value: 
 
 // ─── Section Header ─────────────────────────────────────────────────────────
 
-export function SectionHeader({ title, sub }: { title: string; sub?: string }) {
+/**
+ * `className` exists for the panels that sit this header inside an
+ * `items-center` flex row beside an action button. The `mb-6` block margin is
+ * part of the flex item's margin box, so the row centres the header's *margin
+ * box* and the heading rides ~12px above the button. Those call sites pass
+ * `mb-0` and let the row's own `gap` space the header from what follows.
+ */
+export function SectionHeader({ title, sub, className = "mb-6" }: { title: string; sub?: string; className?: string }) {
   return (
-    <header className="mb-6">
+    <header className={className}>
       <h1 className="text-balance text-2xl font-semibold tracking-[-0.03em] text-[var(--foreground)] sm:text-[1.75rem]">{title}</h1>
       {sub && <p className="mt-1.5 max-w-3xl text-sm leading-6 text-[var(--foreground-muted)]">{sub}</p>}
     </header>

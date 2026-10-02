@@ -220,6 +220,7 @@ export function AdminRivalsPanel({ authHeaders, onManageUser }: AdminPanelProps 
         <SectionHeader
           title="AI Rivals"
           sub="A living community of clearly-labelled AI accounts — Indian names, exam goals, real XP curves."
+          className="mb-0"
         />
         <div className="flex items-center gap-2">
           <button onClick={() => { setLoading(true); void load(); }} className="rounded-lg border border-[var(--palette-zinc-700)] px-3 py-1.5 text-xs text-[var(--palette-zinc-400)] hover:text-[var(--palette-zinc-200)] transition">

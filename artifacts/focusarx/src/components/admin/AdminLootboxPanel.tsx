@@ -50,7 +50,7 @@ export function AdminLootboxPanel({ authHeaders }: AdminPanelProps) {
   return (
     <MotionTab>
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <SectionHeader title="Loot Box CMS" sub="Edit box types, costs, and availability." />
+        <SectionHeader title="Loot Box CMS" sub="Edit box types, costs, and availability." className="mb-0" />
         <div className="flex gap-2 flex-wrap">
           <button onClick={seedBoxes} className="rounded-lg bg-[var(--palette-emerald-800)] hover:bg-[var(--palette-emerald-700)] px-3 py-1.5 text-xs text-[var(--palette-white)] font-medium flex items-center gap-1">
             <Plus size={12} /> Seed 50 Boxes
