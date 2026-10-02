@@ -445,7 +445,7 @@ function SessionCompanions() {
             name={activePet.name}
             mood={live.active ? "focused" : "happy"}
             size={200}
-            className="max-w-[220px]"
+            className="w-full max-w-[280px]"
           />
           <p className="text-[11px] font-medium text-[var(--foreground-subtle)]">
             {activePet.name} · level {activePet.level}
