@@ -567,10 +567,20 @@ p, li { text-wrap: pretty; }
 @media (prefers-reduced-motion: reduce) { .toast-progress { animation: none; } }
 
 /* Buttons inherit the type system instead of the browser's; each component
-   decides its own size. */
+   decides its own size.
+
+   `font: inherit` is the shorthand, and it resets **font-size** to the
+   inherited value too — so it silently defeated every `text-[…]` size utility
+   on a button. Measured: the timer digits carry `text-[4.25rem]` and were
+   rendering at 15px, because `font: inherit` outranked the utility in the
+   cascade. The longhands inherit the family, weight and line-height (which is
+   what "inherit the type system" actually means) and leave font-size alone, so
+   a component's own size wins. */
 button, a, [role="button"] { touch-action: manipulation; }
 button {
-  font: inherit;
+  font-family: inherit;
+  font-weight: inherit;
+  line-height: inherit;
   color: inherit;
   background: none;
   border: none;
@@ -2017,12 +2027,30 @@ html.light {
   --palette-purple-950: color-mix(in srgb, var(--brand-600) 12%, var(--neutral-0));
 }
 
-/* Admin controls retain touch-sized targets even in dense operational views. */
-.admin-shell button,
+/* Admin controls retain touch-sized targets even in dense operational views.
+   Switches are the exception: they draw a fixed `h-6 w-11` pill with an absolutely
+   positioned knob sized in `rem`, so forcing `min-height` on them stretched the
+   track to 44px tall while the knob stayed 20px at the top — a square blob with
+   dead space under it. The touch target is preserved by the pill's own 44px width
+   plus the `p-2` hit padding added below. */
+.admin-shell button:not([role="switch"]),
 .admin-shell [role="button"],
 .admin-shell input:not([type="checkbox"]):not([type="radio"]),
 .admin-shell select {
   min-height: var(--control-md);
+}
+
+/* Restore a 44px touch target for switches without touching their painted size:
+   the overlay is transparent and absolutely positioned, so the pill still draws
+   at `h-6 w-11` while the tappable area reaches the control height. */
+.admin-shell button[role="switch"]::after {
+  content: "";
+  position: absolute;
+  inset: 50% 0 0 50%;
+  width: 100%;
+  min-width: var(--control-md);
+  height: var(--control-md);
+  transform: translate(-50%, -50%);
 }
 
 .admin-shell textarea {
