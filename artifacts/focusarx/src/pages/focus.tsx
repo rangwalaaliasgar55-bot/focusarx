@@ -5,6 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { apiJson } from "@/lib/api";
 import { useFocusSessionState } from "@/lib/focusSessionBus";
 import { useActivePet } from "@/hooks/useActivePet";
+import { PetStage2D } from "@/components/pets/PetStage2D";
+import { petSpeciesEmoji } from "@/lib/petSpecies";
 import { useAuth } from "@/lib/auth";
 import { SessionRecoveryProvider } from "@/components/SessionRecoveryContext";
 import Timer from "@/components/Timer";
@@ -413,6 +415,15 @@ function MotivationalLine() {
  * instant the user hit pause, and made a completed block look like a 0% loss:
  * progress is now kept for every non-idle phase, and only cleared when the
  * timer is genuinely idle.
+ *
+ * The companion itself belongs here too. It was only ever rendered inside the
+ * desktop `Timer` component's right-hand column, so on this page — the one the
+ * navigation actually links to — a user with a fully levelled pet saw *no pet
+ * at all*: no canvas, no sprite, not even the glyph. The arena below is a
+ * battle scene, not a companion, and it hides itself when there is nothing to
+ * fight. `PetStage2D` takes the catalog's `thumbnailUrl`, so a released pet
+ * shows its animated artwork (the GIF) and falls back to the species glyph,
+ * which is what a catalog row with no artwork carries.
  */
 function SessionCompanions() {
   const live = useFocusSessionState();
@@ -420,6 +431,27 @@ function SessionCompanions() {
   const { data: activePet } = useActivePet();
   return (
     <div className="mt-6 w-full max-w-2xl space-y-4">
+      {activePet && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+          className="flex flex-col items-center gap-2"
+        >
+          <PetStage2D
+            emoji={petSpeciesEmoji(activePet.slug, activePet.category)}
+            imageUrl={activePet.thumbnailUrl}
+            species={activePet.slug}
+            name={activePet.name}
+            mood={live.active ? "focused" : "happy"}
+            size={200}
+            className="max-w-[220px]"
+          />
+          <p className="text-[11px] font-medium text-[var(--foreground-subtle)]">
+            {activePet.name} · level {activePet.level}
+          </p>
+        </motion.div>
+      )}
       <Suspense fallback={<HeavyWidgetFallback />}>
         <MonsterBattleArena
           isActive={live.active}
