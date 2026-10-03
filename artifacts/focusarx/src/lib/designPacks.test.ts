@@ -145,6 +145,18 @@ describe("the cached assignment", () => {
     expect(corrupted.getAppearanceFields()).toEqual(DEFAULT_APPEARANCE);
   });
 
+  it("applies a write that changes only the newest field", async () => {
+    // The store's change-detector used to compare a hand-written list of the
+    // four original ids, so changing *only* the frame (or any field added after
+    // that list) took the "nothing changed" early return: the server row was
+    // written and the interface never moved. Every field is compared now; this
+    // is the test that fails if that list comes back.
+    const { getAppearanceFields, setAppearanceState, __resetAppearanceStateForTests } = await import("./appearance");
+    __resetAppearanceStateForTests();
+    setAppearanceState({ fields: { ...DEFAULT_APPEARANCE, shell: "tabs" } });
+    expect(getAppearanceFields().shell).toBe("tabs");
+  });
+
   it("coerces a write, so a stale value cannot enter the store and spread", async () => {
     const { getAppearanceFields, setAppearanceState, __resetAppearanceStateForTests } = await import("./appearance");
     __resetAppearanceStateForTests();

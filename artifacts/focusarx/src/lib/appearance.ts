@@ -86,11 +86,13 @@ function emit(): void {
 export function setAppearanceState(next: Partial<AppearanceState> & { fields?: AppearanceFields }): void {
   const fields = next.fields ? coerceAppearance(next.fields) : state.fields;
   const merged: AppearanceState = { ...state, ...next, fields };
+  // Every field, through the registry — never a hand-written list. The list here
+  // used to name the four ids that existed when it was written, which meant that
+  // changing *only* a later field took the early return below and was silently
+  // dropped: the write went to the server, the screen did not move.
+  const sameFields = APPEARANCE_FIELDS.every((field) => merged.fields[field] === state.fields[field]);
   if (
-    merged.fields.timerFace === state.fields.timerFace &&
-    merged.fields.petDesign === state.fields.petDesign &&
-    merged.fields.battleDesign === state.fields.battleDesign &&
-    merged.fields.layout === state.fields.layout &&
+    sameFields &&
     merged.locked === state.locked &&
     merged.source === state.source &&
     merged.isDefault === state.isDefault &&
