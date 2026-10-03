@@ -154,7 +154,11 @@ describe("the active-pet showcase", () => {
     // jsdom has no WebGL, so the page takes the 2D path; that path is now the
     // stage, identified by its companion greeting.
     await waitFor(() => expect(screen.getByRole("button", { name: "Say hi to Clever Fox" })).toBeTruthy());
-    expect(screen.getByText("sleepy")).toBeTruthy();
+    // The chip words the server's mood (see `PetStage2D`): three different
+    // server values have to produce three different chips, which is what makes
+    // this a test of "not hardcoded" rather than of one string.
+    expect(screen.getByText("waiting for a session")).toBeTruthy();
+    expect(screen.queryByText("sleepy")).toBeNull();
   });
 
   it("shows the server-derived mood, not a hardcoded one", async () => {
@@ -162,7 +166,7 @@ describe("the active-pet showcase", () => {
 
     renderPage();
 
-    await waitFor(() => expect(screen.getByText("excited")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("excited you showed up")).toBeTruthy());
   });
 
   it("falls back to a neutral mood when the pet lookup fails", async () => {
@@ -171,6 +175,6 @@ describe("the active-pet showcase", () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Say hi to Clever Fox" })).toBeTruthy());
-    expect(screen.getByText("happy")).toBeTruthy();
+    expect(screen.getByText("content and curious")).toBeTruthy();
   });
 });
