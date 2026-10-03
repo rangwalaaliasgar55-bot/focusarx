@@ -13,6 +13,7 @@ import {
   BATTLE_DESIGNS,
   DEFAULT_APPEARANCE,
   LAYOUTS,
+  SHELLS,
   PET_DESIGNS,
   TIMER_FACE_IDS,
   TIMER_FACE_LABELS,
@@ -41,6 +42,7 @@ function catalogPayload() {
     petDesigns: PET_DESIGNS,
     battleDesigns: BATTLE_DESIGNS,
     layouts: LAYOUTS,
+    shells: SHELLS,
   };
 }
 
@@ -60,6 +62,7 @@ function appearancePayload(row: Awaited<ReturnType<typeof readAppearance>> | nul
     petDesign: row?.petDesign ?? DEFAULT_APPEARANCE.petDesign,
     battleDesign: row?.battleDesign ?? DEFAULT_APPEARANCE.battleDesign,
     layout: row?.layout ?? DEFAULT_APPEARANCE.layout,
+    shell: row?.shell ?? DEFAULT_APPEARANCE.shell,
   };
   return {
     appearance: effective,

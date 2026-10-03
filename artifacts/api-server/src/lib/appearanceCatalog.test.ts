@@ -5,6 +5,7 @@ import {
   DEFAULT_APPEARANCE,
   LAYOUTS,
   PET_DESIGNS,
+  SHELLS,
   TIMER_FACE_IDS,
   TIMER_FACE_LABELS,
   isKnownId,
@@ -49,10 +50,11 @@ describe("catalog parity", () => {
     expect(TIMER_FACE_IDS).toEqual(clientIds("TIMER_FACE_IDS"));
   });
 
-  it("has the same pet, battle and layout ids as the client", () => {
+  it("has the same pet, battle, layout and shell ids as the client", () => {
     expect(PET_DESIGNS.map((d) => d.id)).toEqual(clientIds("PET_DESIGN_IDS"));
     expect(BATTLE_DESIGNS.map((d) => d.id)).toEqual(clientIds("BATTLE_DESIGN_IDS"));
     expect(LAYOUTS.map((l) => l.id)).toEqual(clientIds("LAYOUT_IDS"));
+    expect(SHELLS.map((sh) => sh.id)).toEqual(clientIds("SHELL_IDS"));
   });
 
   it("has the same timer faces as the client's timer registry", () => {
@@ -68,6 +70,7 @@ describe("catalog parity", () => {
     expect(checkIds("user_appearance_pet_design_known").sort()).toEqual(PET_DESIGNS.map((d) => d.id).sort());
     expect(checkIds("user_appearance_battle_design_known").sort()).toEqual(BATTLE_DESIGNS.map((d) => d.id).sort());
     expect(checkIds("user_appearance_layout_known").sort()).toEqual(LAYOUTS.map((l) => l.id).sort());
+    expect(checkIds("user_appearance_shell_known").sort()).toEqual(SHELLS.map((sh) => sh.id).sort());
   });
 
   it("labels every id, and defaults to ids that exist", () => {
@@ -95,6 +98,9 @@ describe("sanitizeAppearancePatch", () => {
     }
     for (const layout of LAYOUTS) {
       expect(sanitizeAppearancePatch({ layout: layout.id }).patch).toEqual({ layout: layout.id });
+    }
+    for (const shell of SHELLS) {
+      expect(sanitizeAppearancePatch({ shell: shell.id }).patch).toEqual({ shell: shell.id });
     }
   });
 

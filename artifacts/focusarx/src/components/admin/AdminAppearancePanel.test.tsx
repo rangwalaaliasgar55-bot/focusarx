@@ -36,8 +36,8 @@ const USER = {
   source: "user",
   updatedBy: null,
   updatedAt: null,
-  appearance: { timerFace: "analog", petDesign: "wild3d", battleDesign: "retro", layout: "studio" },
-  labels: { timerFace: "Analog clock", petDesign: "Wild 3D", battleDesign: "Retro", layout: "Studio" },
+  appearance: { timerFace: "analog", petDesign: "wild3d", battleDesign: "retro", layout: "studio", shell: "tabs" },
+  labels: { timerFace: "Analog clock", petDesign: "Wild 3D", battleDesign: "Retro", layout: "Studio", shell: "Bottom tabs" },
 };
 
 const BATTLE = {
@@ -69,7 +69,7 @@ function listResponse() {
       total: 1,
       page: 1,
       limit: 50,
-      distribution: { timerFace: { analog: 1 }, petDesign: {}, battleDesign: { retro: 1 }, layout: { studio: 1 } },
+      distribution: { timerFace: { analog: 1 }, petDesign: {}, battleDesign: { retro: 1 }, layout: { studio: 1 }, shell: { tabs: 1 } },
       battleUsage: [{ design: "retro", battles: 1, wins: 1 }],
     }),
   } as unknown as Response;
@@ -105,6 +105,9 @@ describe("the design-packs console", () => {
     expect(screen.getByLabelText("Timer face for Ada")).toHaveProperty("value", "analog");
     expect(screen.getByLabelText("Layout for Ada")).toHaveProperty("value", "studio");
     expect(screen.getByLabelText("Companion art for Ada")).toHaveProperty("value", "wild3d");
+    // The frame is part of the assignment too: the console changes the whole
+    // interface, not just the picture on the timer.
+    expect(screen.getByLabelText("App frame for Ada")).toHaveProperty("value", "tabs");
 
     // The battle log, named by cup: "which cup is anyone past" is unanswerable
     // from the assignment table alone. Read the whole row, because the rival and
@@ -123,11 +126,13 @@ describe("the design-packs console", () => {
     renderPanel();
     await screen.findByText("ada@example.com");
 
-    // Change two fields, then enable the pin and save: the request must carry
-    // all four ids *and* `locked: true`, or the account can overwrite the
-    // assignment the admin just made.
+    // Change three fields, then enable the pin and save: the request must carry
+    // every id *and* `locked: true`, or the account can overwrite the
+    // assignment the admin just made. The frame is included on purpose — it is
+    // the newest field and the easiest to forget in the save payload.
     fireEvent.change(screen.getByLabelText("Battle board for Ada"), { target: { value: "arena" } });
     fireEvent.change(screen.getByLabelText("Layout for Ada"), { target: { value: "compact" } });
+    fireEvent.change(screen.getByLabelText("App frame for Ada"), { target: { value: "topbar" } });
     fireEvent.click(screen.getByRole("button", { name: /^Pin$/ }));
     fireEvent.click(screen.getByRole("button", { name: /^Save$/ }));
 
@@ -141,6 +146,7 @@ describe("the design-packs console", () => {
       petDesign: "wild3d",
       battleDesign: "arena",
       layout: "compact",
+      shell: "topbar",
       locked: true,
     });
   });

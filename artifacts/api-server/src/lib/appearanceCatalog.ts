@@ -33,11 +33,17 @@ export type TimerFaceId =
   | "hourglass"
   | "companion"
   | "garden"
-  | "analog";
+  | "analog"
+  | "wave"
+  | "candle"
+  | "seven";
 
 export type PetDesignId = "classic" | "wild3d" | "sprite";
 export type BattleDesignId = "duel" | "arena" | "retro";
 export type LayoutId = "quiet" | "studio" | "compact";
+
+/** The app frame: rail, top bar, or bottom tabs. Mirrors the client's SHELLS. */
+export type ShellId = "sidebar" | "topbar" | "tabs";
 
 /** Order is the picker's order: ring faces, then layouts, house before ported. */
 export const TIMER_FACE_IDS: TimerFaceId[] = [
@@ -55,7 +61,24 @@ export const TIMER_FACE_IDS: TimerFaceId[] = [
   "companion",
   "garden",
   "analog",
+  "wave",
+  "candle",
+  "seven",
 ];
+
+export const SHELL_IDS: ShellId[] = ["sidebar", "topbar", "tabs"];
+
+export const SHELLS: Array<DesignOption<ShellId>> = [
+  { id: "sidebar", label: "Sidebar", blurb: "Destinations in a rail on the left, the page header across the top, tabs on phones." },
+  { id: "topbar", label: "Top bar", blurb: "No rail: a horizontal row of destinations under the header, and the full width for content." },
+  { id: "tabs", label: "Bottom tabs", blurb: "One row of tabs along the bottom at every width, and nothing beside the content." },
+];
+
+export const SHELL_LABELS: Record<ShellId, string> = {
+  sidebar: "Sidebar",
+  topbar: "Top bar",
+  tabs: "Bottom tabs",
+};
 
 export const TIMER_FACE_LABELS: Record<TimerFaceId, string> = {
   classic: "Classic",
@@ -72,6 +95,9 @@ export const TIMER_FACE_LABELS: Record<TimerFaceId, string> = {
   companion: "Companion trail",
   garden: "Garden",
   analog: "Analog clock",
+  wave: "Wave",
+  candle: "Candle",
+  seven: "Seven-segment",
 };
 
 export interface DesignOption<T extends string> {
@@ -121,9 +147,10 @@ export const DEFAULT_APPEARANCE = {
   petDesign: "classic" as PetDesignId,
   battleDesign: "duel" as BattleDesignId,
   layout: "quiet" as LayoutId,
+  shell: "sidebar" as ShellId,
 };
 
-export const APPEARANCE_FIELDS = ["timerFace", "petDesign", "battleDesign", "layout"] as const;
+export const APPEARANCE_FIELDS = ["timerFace", "petDesign", "battleDesign", "layout", "shell"] as const;
 export type AppearanceField = (typeof APPEARANCE_FIELDS)[number];
 
 export interface AppearanceFields {
@@ -131,6 +158,7 @@ export interface AppearanceFields {
   petDesign: PetDesignId;
   battleDesign: BattleDesignId;
   layout: LayoutId;
+  shell: ShellId;
 }
 
 const IDS: Record<AppearanceField, readonly string[]> = {
@@ -138,6 +166,7 @@ const IDS: Record<AppearanceField, readonly string[]> = {
   petDesign: PET_DESIGNS.map((d) => d.id),
   battleDesign: BATTLE_DESIGNS.map((d) => d.id),
   layout: LAYOUTS.map((l) => l.id),
+  shell: SHELL_IDS,
 };
 
 export function isAppearanceField(value: string): value is AppearanceField {

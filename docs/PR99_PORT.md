@@ -28,8 +28,21 @@ Both face files were read in full; every face in them exists here.
 
 | Upload source | Faces | Here |
 | --- | --- | --- |
-| `focusarx-frontend-and-pet-redesign/src/components/timer/Faces.tsx` | Classic, Neon, Zen, Flip, Analog, Hourglass, Orbit, Segment | `analog`, `hourglass`, `orbit` in `components/timerfaces/TimerFacesStudio.tsx`; `segments` (id pluralised to match this app's registry) in `components/timerfaces/TimerFaces.tsx`; `classic`, `neon`, `zen`, `flip` kept this app's own renderers in `components/TimerDisplay.tsx`, whose blurbs were rewritten from the uploads' notes |
-| `redesign-focusarx-frontend-and-pets/src/components/faces.tsx` | Aurora, Flip, Orbit, Hourglass, Trail, Segment, Garden | `aurora`, `orbit`, `hourglass`, `companion` (the uploads' "Trail"), `garden` — all in `components/timerfaces/TimerFacesStudio.tsx` |
+| `focusarx-frontend-and-pet-redesign/src/components/timer/Faces.tsx` | Classic, Neon, Zen, Flip, Analog, Hourglass, Orbit, Segment | `analog`, `hourglass`, `orbit` in `components/timerfaces/TimerFacesStudio.tsx`; **Segment** ported as `seven` in the same file (its a–g geometry, the twenty-four block bar and the mode/percentage footer are the uploads'); `classic`, `neon`, `zen`, `flip` kept this app's own renderers in `components/TimerDisplay.tsx`, whose blurbs were rewritten from the uploads' notes |
+| `redesign-focusarx-frontend-and-pets/src/components/faces.tsx` | Aurora, Flip, Orbit, Hourglass, Trail, Segment, Garden | `aurora`, `orbit`, `hourglass`, `companion` (the uploads' "Trail"), `garden` — all in `components/timerfaces/TimerFacesStudio.tsx`; `Segment` again as `seven` |
+
+The uploads' `Segment` is **not** this app's `segments`. Theirs is an LED
+readout — four seven-segment digits over a draining block bar — and this app's
+is a sixty-segment dial that was already here under that id. Both are faces worth
+having, so the upload's display was ported under the id `seven` rather than
+replacing a face users had already chosen. An earlier revision of this document
+said the upload's `Segment` was the dial; that was wrong, and `seven` is the
+correction.
+
+Two further faces exist that the uploads do not have: `wave` (a tide that sinks)
+and `candle` (a candle burning down). They are written here in the uploads'
+visual idiom, out of the two pictures those designs keep returning to — the
+Water cup's tide and the Lantern cup's flame.
 
 The uploads' per-face one-liners ("Clean progress ring", "Falling sand",
 "Mechanical split-flap cards", "Your pet walks to the finish flag" → Companion
@@ -63,15 +76,26 @@ registers are asserted against each other in `lib/timerTheme.test.ts` and
 
 ## Layouts and the shell
 
-The uploads each hard-code **one** frame (a sidebar, a topbar, a mobile tab
-bar) inside `Shell.tsx` / `Layout.tsx`; none of them ships a layout registry or
-a layout setting. So "a new layout the admin can change for every user" has no
-upload counterpart to copy, and was built as a pack of three workspace
-arrangements — `quiet` (the existing page), `studio` (two-column, companion
-beside the timer) and `compact` (rail and motivation folded away) — selectable
-per account and assignable per user from the console. Where the uploads' shells
-did contribute is the visual language: panel/chip/segmented-control treatment,
-the stat row on the focus page, and the nav's active-pill behaviour.
+The uploads each hard-code **one** frame — a sidebar, a topbar, a mobile tab bar
+— inside `Shell.tsx` / `Layout.tsx`; none of them ships a frame registry or a
+frame setting. Two things were built out of that:
+
+* **The `layout` pack** — three workspace *arrangements*: `quiet` (the existing
+  page), `studio` (two-column, companion beside the timer) and `compact` (rail
+  and motivation folded away). Selectable per account, assignable per user from
+  the console.
+* **The `shell` pack** — the three frames the uploads actually contain, made
+  into a choice: `sidebar` (this app's own frame, and the default),
+  `topbar` (the uploads' desktop frame: no rail, a horizontal strip of
+  destinations under the header, **More** opening the full list) and `tabs`
+  (their phone frame at every width). `components/AppShell.tsx` branches on the
+  id and `src/index.css` carries the layout rules; both are asserted per id by
+  `src/lib/shellFrames.test.ts`, because a frame with no rule behind it looks
+  like a product with fewer doors rather than like a bug.
+
+Where the uploads' shells also contributed is the visual language: panel/chip/
+segmented-control treatment, the stat row on the focus page, and the nav's
+active-pill behaviour.
 
 ## What was **not** ported, and why
 
@@ -90,4 +114,6 @@ the stat row on the focus page, and the nav's active-pill behaviour.
 * `lib/arenaLadder.test.ts` — the six cups, the two gates, and the reasons printed for each.
 * `appearanceCatalog.test.ts` — the four id lists (database CHECKs, API catalog, client registry, timer registry) asserted against each other.
 * `routes/appearance.integration.test.ts` — the pins, the 409 and the battle log, against a real database.
-* `components/admin/AdminAppearancePanel.test.tsx` — the console's assignment write (including the pin) and its battle list, cup included.
+* `components/admin/AdminAppearancePanel.test.tsx` — the console's assignment write (including the pin and the frame) and its battle list, cup included.
+* `lib/shellFrames.test.ts` — every frame id has a branch or a stylesheet rule, the frame is published to the DOM, it is read from the assignment rather than hard-coded, and it is documented.
+* `lib/designPacks.test.ts` — the coercion at the edges: a stale id falls back per field, a poisoned cache degrades to defaults, and every shipped id survives a round trip.

@@ -132,18 +132,22 @@ describe.runIf(hasDb)("design packs (live app + real database)", () => {
     const catalog = initial.json.catalog as {
       timerFaces: { id: string; label: string }[];
       layouts: { id: string; label: string }[];
+      shells: { id: string; label: string }[];
       petDesigns: { id: string; label: string }[];
       battleDesigns: { id: string; label: string }[];
     };
     expect(catalog.timerFaces.map((f) => f.id)).toContain("analog");
-    expect(catalog.timerFaces).toHaveLength(14);
+    expect(catalog.timerFaces).toHaveLength(17);
     expect(catalog.layouts.map((l) => l.id)).toEqual(["quiet", "studio", "compact"]);
+    // The frame pack travels with the catalog too, so the settings and console
+    // pickers have options to render without hard-coding their own list.
+    expect(catalog.shells.map((sh) => sh.id)).toEqual(["sidebar", "topbar", "tabs"]);
     expect(catalog.battleDesigns.map((d) => d.id)).toEqual(["duel", "arena", "retro"]);
 
     const saved = await call("/api/appearance", {
       method: "PUT",
       jar: user.jar,
-      body: { timerFace: "analog", petDesign: "wild3d", battleDesign: "retro", layout: "studio" },
+      body: { timerFace: "analog", petDesign: "wild3d", battleDesign: "retro", layout: "studio", shell: "topbar" },
     });
     expect(saved.status).toBe(200);
     expect(saved.json.source).toBe("user");
@@ -152,6 +156,7 @@ describe.runIf(hasDb)("design packs (live app + real database)", () => {
       petDesign: "wild3d",
       battleDesign: "retro",
       layout: "studio",
+      shell: "topbar",
     });
 
     // Read it back: the write has to reach the database, not just the response.
@@ -185,16 +190,18 @@ describe.runIf(hasDb)("design packs (live app + real database)", () => {
     const pinned = await call(`/api/admin/appearance/${user.id}`, {
       method: "PUT",
       jar: admin.jar,
-      body: { timerFace: "neon", petDesign: "sprite", battleDesign: "arena", layout: "compact", locked: true },
+      body: { timerFace: "neon", petDesign: "sprite", battleDesign: "arena", layout: "compact", shell: "tabs", locked: true },
     });
     expect(pinned.status).toBe(200);
     const pinnedUser = pinned.json.user as { locked: boolean; source: string };
     expect(pinnedUser.locked).toBe(true);
     expect(pinnedUser.source).toBe("admin");
     // Labels travel with the write so the console never prints a raw id.
-    const labels = pinned.json.labels as { timerFace: string; layout: string };
+    const labels = pinned.json.labels as { timerFace: string; layout: string; shell: string };
     expect(labels.timerFace).toBe("Neon");
     expect(labels.layout).toBe("Compact");
+    // The newest field is the one most likely to be left out of a label map.
+    expect(labels.shell).toBe("Bottom tabs");
 
     // The pin is what the account renders ...
     const asUser = await call("/api/appearance", { jar: user.jar });
@@ -205,6 +212,7 @@ describe.runIf(hasDb)("design packs (live app + real database)", () => {
       petDesign: "sprite",
       battleDesign: "arena",
       layout: "compact",
+      shell: "tabs",
     });
 
     // ... and the account cannot write over it. 409 with a code, so the settings

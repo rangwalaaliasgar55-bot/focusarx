@@ -18,6 +18,7 @@ import {
   DEFAULT_APPEARANCE,
   LAYOUT_IDS,
   PET_DESIGN_IDS,
+  SHELL_IDS,
   TIMER_FACE_IDS,
   coerceAppearance,
   designLabel,
@@ -26,12 +27,13 @@ import {
 const CACHE_KEY = "focusarx:appearance:v1";
 
 describe("coerceAppearance", () => {
-  it("keeps every known id and always answers with the full four-field shape", () => {
+  it("keeps every known id and always answers with the full shape", () => {
     const chosen = {
       timerFace: "analog",
       petDesign: "wild3d",
       battleDesign: "retro",
       layout: "compact",
+      shell: "topbar",
     } as const;
     expect(coerceAppearance(chosen)).toEqual(chosen);
 
@@ -52,12 +54,14 @@ describe("coerceAppearance", () => {
       petDesign: "wild3d",
       battleDesign: "arena",
       layout: "studio",
+      shell: "drawer", // a frame that was considered and never shipped
     });
     expect(coerced).toEqual({
       timerFace: DEFAULT_APPEARANCE.timerFace,
       petDesign: "wild3d",
       battleDesign: "arena",
       layout: "studio",
+      shell: DEFAULT_APPEARANCE.shell,
     });
   });
 
@@ -71,6 +75,7 @@ describe("coerceAppearance", () => {
         petDesign: null,
         battleDesign: ["retro"],
         layout: { id: "studio" },
+        shell: 3,
       }),
     ).toEqual(DEFAULT_APPEARANCE);
 
@@ -89,6 +94,7 @@ describe("coerceAppearance", () => {
     expect(PET_DESIGN_IDS.every((id) => coerceAppearance({ petDesign: id }).petDesign === id)).toBe(true);
     expect(BATTLE_DESIGN_IDS.every((id) => coerceAppearance({ battleDesign: id }).battleDesign === id)).toBe(true);
     expect(LAYOUT_IDS.every((id) => coerceAppearance({ layout: id }).layout === id)).toBe(true);
+    expect(SHELL_IDS.every((id) => coerceAppearance({ shell: id }).shell === id)).toBe(true);
   });
 });
 
@@ -116,7 +122,7 @@ describe("the cached assignment", () => {
   it("paints the account's own design before the server answers", async () => {
     localStorage.setItem(
       CACHE_KEY,
-      JSON.stringify({ timerFace: "garden", petDesign: "sprite", battleDesign: "retro", layout: "studio" }),
+      JSON.stringify({ timerFace: "garden", petDesign: "sprite", battleDesign: "retro", layout: "studio", shell: "tabs" }),
     );
     const { getAppearanceFields } = await import("./appearance");
     expect(getAppearanceFields()).toEqual({
@@ -124,6 +130,7 @@ describe("the cached assignment", () => {
       petDesign: "sprite",
       battleDesign: "retro",
       layout: "studio",
+      shell: "tabs",
     });
   });
 

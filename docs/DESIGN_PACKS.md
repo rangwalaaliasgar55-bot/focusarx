@@ -1,20 +1,41 @@
 # Design packs — what each one is, who owns the choice, and where it renders
 
-A **design pack** is a cosmetic choice about how FocusArx looks. There are four,
+A **design pack** is a cosmetic choice about how FocusArx looks. There are five,
 one per surface:
 
 | Field | Values | What it changes |
 | --- | --- | --- |
-| `timerFace` | 14 faces — `classic`, `neon`, `zen`, `flip`, `segments`, `bars`, `dots`, `rounds`, `analog`, `aurora`, `orbit`, `hourglass`, `companion`, `garden` | Which face the countdown draws. See [TIMER_LAYOUTS.md](./TIMER_LAYOUTS.md) for every face and its rules. |
+| `timerFace` | 17 faces — `classic`, `neon`, `zen`, `flip`, `segments`, `bars`, `dots`, `rounds`, `analog`, `aurora`, `orbit`, `hourglass`, `companion`, `garden`, `wave`, `candle`, `seven` | Which face the countdown draws. See [TIMER_LAYOUTS.md](./TIMER_LAYOUTS.md) for every face and its rules. |
 | `petDesign` | `classic`, `wild3d`, `sprite` | The companion's art: the posed rig, an animal built from the species' own parameters, or flat artwork with **no 3D at all**. |
 | `battleDesign` | `duel`, `arena`, `retro` | The battle board. `duel` is the turn-based arena page, `arena` is the focus session itself (minutes are damage), `retro` is the same fight in a monospaced two-tone reading. |
 | `layout` | `quiet`, `studio`, `compact` | The workspace arrangement: one column, two columns (companion beside the timer), or the smallest footprint (no rail, no motivational line). |
+| `shell` | `sidebar`, `topbar`, `tabs` | The **frame the whole interface is built in**: the rail this app shipped with, the uploads' horizontal top-bar frame, or their phone frame (tab bar at every width). |
 
 A pack changes what is **drawn**, never what is **true**. The countdown, the
 pet's level, the battle maths and the rewards are identical in every pack, which
 is why `battleDesign` and `layout` can be swapped mid-session without touching a
 result — and why the admin console can move a whole cohort onto one board for an
 experiment without changing anyone's data.
+
+## The app frame — the pack that moves everything
+
+The other four packs change one surface each. `shell` changes the *frame they sit
+in*, which is why it is the pack an admin reaches for when the answer to "change
+the design" is "the whole interface":
+
+| Frame | What it does | Where it came from |
+| --- | --- | --- |
+| **Sidebar** | The default: destinations in a rail on the left, the header across the top, tabs on phones. | This app before the port. |
+| **Top bar** | Removes the rail and puts a horizontal, scrollable strip of destinations under the header, with **More** opening the full list in the sheet the phone frame already used. Phones are unchanged. | The uploads' desktop frame — each of the five ZIPs hard-codes a frame like this in its layout component. |
+| **Bottom tabs** | No rail at any width: the tab bar *is* the navigation, on phones and desktops alike (the base stylesheet hides that bar above 1024px; the frame's rule overrides it). | The uploads' phone frame, promoted to a choice. |
+
+Two rules keep it honest. First, the frame only decides **where** navigation
+lives, never **what** is navigable: every frame renders the same `NAV_GROUPS`
+through the same filter, so a feature flag or an admin-only entry behaves
+identically in all three (`src/lib/shellFrames.test.ts` asserts the branches and
+the stylesheet rules exist for every id). Second, an active focus session still
+suppresses the tabs, in every frame — a design choice must never add a
+distraction mid-block.
 
 ## The ids are a contract in four places
 

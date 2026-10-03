@@ -24,6 +24,7 @@ import {
   Menu,
   MessageCircle,
   Moon,
+  MoreHorizontal,
   Crown,
   PawPrint,
   Search,
@@ -71,6 +72,7 @@ import { QuickLaunchOrb } from "@/components/QuickLaunchOrb";
 import { NetworkStatusBanner } from "@/components/mobile/NetworkStatusBanner";
 
 import { isActiveRoute } from "@/lib/navActive";
+import { useAppearanceFields } from "@/lib/appearance";
 
 /**
  * The two shell overlays are the biggest things the entry chunk was paying for.
@@ -215,6 +217,28 @@ const NAV_FLAG_MAP: Record<string, string> = {
   "/social": FEATURE_FLAG_KEYS.social,
 };
 
+/**
+ * The destinations a given account may actually see in a group.
+ *
+ * Shared by the rail (`Navigation`) and the top-bar frame's strip so the two
+ * frames cannot disagree about who gets what: the admin entry is per-role and
+ * the flag map removes a link when its feature is off. Extracted rather than
+ * duplicated because a second copy is how a gated destination reappears in the
+ * frame nobody re-checked.
+ */
+function visibleEntries(
+  group: NavGroup,
+  user: Parameters<typeof isAdminUser>[0],
+  isOn: (flag: string) => boolean,
+): NavEntry[] {
+  return group.entries
+    .filter((entry) => !entry.admin || isAdminUser(user))
+    .filter((entry) => {
+      const flag = NAV_FLAG_MAP[entry.href];
+      return flag ? isOn(flag) : true;
+    });
+}
+
 function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const [location] = useLocation();
   const { data: user } = useAuth();
@@ -225,11 +249,7 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="flex-1 space-y-5 overflow-y-auto px-2.5 py-4" aria-label="Primary navigation">
       {NAV_GROUPS.map((group) => {
-        const entries = group.entries.filter((entry) => !entry.admin || isAdminUser(user?.user))
-          .filter((entry) => {
-            const flag = NAV_FLAG_MAP[entry.href];
-            return flag ? isOn(flag) : true;
-          });
+        const entries = visibleEntries(group, user?.user, isOn);
         if (!entries.length) return null;
         return (
           <section key={group.label} aria-labelledby={`nav-${group.label.toLowerCase()}`}>
@@ -415,6 +435,61 @@ function Topbar({ onMenu, onOpenGuide }: { onMenu: () => void; onOpenGuide: () =
   );
 }
 
+/**
+ * The top-bar frame's navigation: one horizontal, scrollable row of
+ * destinations under the header, plus a "More" control that opens the sheet the
+ * phone frame already uses for the full list.
+ *
+ * This exists because the frame is a design choice, not a CSS flag: the rail
+ * carries four labelled groups, and a frame with no rail has to carry the same
+ * destinations somewhere or the pack would quietly ship a product with fewer
+ * doors. Everything after the first three groups stays behind More — a strip
+ * that lists sixteen links is a strip nobody reads.
+ */
+function ShellStrip({ onMore }: { onMore: () => void }) {
+  const [location] = useLocation();
+  const { data: user } = useAuth();
+  const { isPremium } = usePremium();
+  const { data: missionCount = 0 } = useClaimableMissionCount();
+  const { isOn } = useFeatureFlags();
+  const entries = NAV_GROUPS.slice(0, 3).flatMap((group) => visibleEntries(group, user?.user, isOn));
+
+  return (
+    <nav className="app-nav-strip items-center gap-1 overflow-x-auto px-3 py-2" aria-label="Primary navigation">
+      {entries.map((entry) => {
+        const Icon = entry.icon;
+        const active = isActiveRoute(location, entry.href);
+        return (
+          <Link
+            key={entry.href}
+            href={entry.href}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-[var(--radius-sm)] px-3 text-sm font-medium text-[var(--foreground-muted)] hover:bg-[var(--surface-1)] hover:text-[var(--foreground)]",
+              active && "bg-[var(--surface-2)] text-[var(--foreground)]",
+            )}
+          >
+            <Icon size={16} aria-hidden="true" />
+            <span className="whitespace-nowrap">{entry.label}</span>
+            {entry.badge === "missions" && <CountBadge count={missionCount} />}
+            {entry.premium && !isPremium && (
+              <Crown size={12} className="shrink-0 text-[var(--palette-amber-400)]" aria-label="Premium" />
+            )}
+          </Link>
+        );
+      })}
+      <button
+        type="button"
+        onClick={onMore}
+        className="flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-[var(--radius-sm)] px-3 text-sm font-medium text-[var(--foreground-muted)] hover:bg-[var(--surface-1)] hover:text-[var(--foreground)]"
+      >
+        <MoreHorizontal size={16} aria-hidden="true" />
+        <span>More</span>
+      </button>
+    </nav>
+  );
+}
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { status } = useAuth();
@@ -458,11 +533,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isFocusPage = isActiveRoute(location, "/");
   const hideBottomNav = isFocusPage && isFocusActive;
 
+  // Which frame the interface is built in — a per-account design an admin can
+  // pin, so this is read, never hard-coded. `sidebar` is the frame this app
+  // shipped with and the default, so an account that never picks sees no change.
+  const shell = useAppearanceFields().shell;
+  const showRail = shell === "sidebar";
+  const showStrip = shell === "topbar";
+
   if (NO_SHELL.some((path) => isActiveRoute(location, path))) return <>{children}</>;
   if (location === "/" && status !== "authenticated") return <>{children}</>;
 
   return (
-    <div className="app-frame">
+    <div className="app-frame" data-shell={shell}>
       <NetworkStatusBanner />
       {/*
         Keyboard and screen-reader users otherwise have to tab through the
@@ -474,6 +556,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         Skip to content
       </a>
 
+      {showRail && (
       <aside className="app-sidebar hidden md:flex" aria-label="Application sidebar">
         <div className="flex h-[var(--topbar-height)] shrink-0 items-center border-b border-[var(--border-subtle)] px-4">
           <Brand />
@@ -497,9 +580,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </aside>
+      )}
 
       <div className="app-workspace">
         <Topbar onMenu={() => setMobileOpen(true)} onOpenGuide={() => setGuideOpen(true)} />
+        {/* The top-bar frame's own navigation, and only that frame's: the rail
+            frame has it in the rail and the tab frame has it at the bottom. */}
+        {showStrip && <ShellStrip onMore={() => setMoreOpen(true)} />}
         <main id="main-content" className="app-main" tabIndex={-1}>{children}</main>
       </div>
 
@@ -525,6 +612,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </Sheet>
 
       {/* New mobile bottom nav: Home · Timer · Plan · Stats · Profile */}
+      {/* The tab frame is the phone frame at every width, so its bar is never
+          hidden for being on a desktop (see the CSS) — but an active focus
+          session still suppresses it, in every frame, which is the rule this
+          already had. */}
       <MobileBottomNav hidden={hideBottomNav} onMoreClick={() => setMoreOpen(true)} />
       <MobileMoreMenu open={moreOpen} onClose={() => setMoreOpen(false)} />
       {/* Floating feature launcher — follows the bottom nav's visibility so

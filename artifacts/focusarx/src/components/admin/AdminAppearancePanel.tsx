@@ -17,6 +17,7 @@ import {
   BATTLE_DESIGNS,
   LAYOUTS,
   PET_DESIGNS,
+  SHELLS,
   TIMER_FACE_LABELS,
   type AppearanceField,
 } from "@/lib/designPacks";
@@ -57,8 +58,8 @@ interface AppearanceRow {
   source: "user" | "admin" | "default";
   updatedBy: string | null;
   updatedAt: string | null;
-  appearance: { timerFace: string; petDesign: string; battleDesign: string; layout: string };
-  labels: { timerFace: string; petDesign: string; battleDesign: string; layout: string };
+  appearance: { timerFace: string; petDesign: string; battleDesign: string; layout: string; shell: string };
+  labels: { timerFace: string; petDesign: string; battleDesign: string; layout: string; shell: string };
 }
 
 interface Distribution {
@@ -99,6 +100,7 @@ interface Draft {
   petDesign: string;
   battleDesign: string;
   layout: string;
+  shell: string;
   locked: boolean;
 }
 
@@ -121,11 +123,12 @@ export function AdminAppearancePanel({ authHeaders }: AdminPanelProps) {
   const [loading, setLoading] = useState(true);
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
-  const [bulk, setBulk] = useState<{ timerFace: string; petDesign: string; battleDesign: string; layout: string; locked: boolean }>({
+  const [bulk, setBulk] = useState<{ timerFace: string; petDesign: string; battleDesign: string; layout: string; shell: string; locked: boolean }>({
     timerFace: "classic",
     petDesign: "wild3d",
     battleDesign: "duel",
     layout: "quiet",
+    shell: "sidebar",
     locked: false,
   });
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -186,6 +189,7 @@ export function AdminAppearancePanel({ authHeaders }: AdminPanelProps) {
             petDesign: draft.petDesign,
             battleDesign: draft.battleDesign,
             layout: draft.layout,
+            shell: draft.shell,
             locked: draft.locked,
           }),
         });
@@ -283,7 +287,7 @@ export function AdminAppearancePanel({ authHeaders }: AdminPanelProps) {
     <MotionTab>
       <SectionHeader
         title="Design packs"
-        sub="Which timer face, companion art, battle board and workspace layout each account renders — and who chose it."
+        sub="Which timer face, companion art, battle board, workspace layout and app frame each account renders — and who chose it."
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-4">
@@ -353,6 +357,13 @@ export function AdminAppearancePanel({ authHeaders }: AdminPanelProps) {
               </option>
             ))}
           </select>
+          <select className={selectCls} value={bulk.shell} onChange={(e) => setBulk((b) => ({ ...b, shell: e.target.value }))} aria-label="App frame">
+            {SHELLS.map((sh) => (
+              <option key={sh.id} value={sh.id}>
+                {sh.label}
+              </option>
+            ))}
+          </select>
           <label className="flex items-center gap-2 rounded-lg border border-[var(--palette-zinc-700)] px-2 py-1.5 text-[11px] text-[var(--palette-zinc-300)]">
             <input type="checkbox" checked={bulk.locked} onChange={(e) => setBulk((b) => ({ ...b, locked: e.target.checked }))} />
             Pin (lock)
@@ -385,6 +396,7 @@ export function AdminAppearancePanel({ authHeaders }: AdminPanelProps) {
                 <th className="pb-2 pr-3">Companion</th>
                 <th className="pb-2 pr-3">Battle board</th>
                 <th className="pb-2 pr-3">Layout</th>
+                <th className="pb-2 pr-3">App frame</th>
                 <th className="pb-2 pr-3">Source</th>
                 <th className="pb-2">Actions</th>
               </tr>
@@ -397,6 +409,7 @@ export function AdminAppearancePanel({ authHeaders }: AdminPanelProps) {
                   draft.petDesign !== row.appearance.petDesign ||
                   draft.battleDesign !== row.appearance.battleDesign ||
                   draft.layout !== row.appearance.layout ||
+                  draft.shell !== row.appearance.shell ||
                   draft.locked !== row.locked;
                 const set = (field: AppearanceField, value: string) =>
                   setDrafts((prev) => ({ ...prev, [row.userId]: { ...(prev[row.userId] ?? toDraft(row)), [field]: value } }));
@@ -438,6 +451,15 @@ export function AdminAppearancePanel({ authHeaders }: AdminPanelProps) {
                         {LAYOUTS.map((d) => (
                           <option key={d.id} value={d.id}>
                             {d.label}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="py-2 pr-3">
+                      <select className={selectCls} value={draft.shell} onChange={(e) => set("shell", e.target.value)} aria-label={`App frame for ${row.name ?? row.userId}`}>
+                        {SHELLS.map((sh) => (
+                          <option key={sh.id} value={sh.id}>
+                            {sh.label}
                           </option>
                         ))}
                       </select>
@@ -552,12 +574,13 @@ export function AdminAppearancePanel({ authHeaders }: AdminPanelProps) {
   );
 }
 
-function describeBulk(bulk: { timerFace: string; petDesign: string; battleDesign: string; layout: string }): string {
+function describeBulk(bulk: { timerFace: string; petDesign: string; battleDesign: string; layout: string; shell: string }): string {
   const face = TIMER_FACE_LABELS[bulk.timerFace as keyof typeof TIMER_FACE_LABELS] ?? bulk.timerFace;
   const pet = PET_DESIGNS.find((d) => d.id === bulk.petDesign)?.label ?? bulk.petDesign;
   const battle = BATTLE_DESIGNS.find((d) => d.id === bulk.battleDesign)?.label ?? bulk.battleDesign;
   const layout = LAYOUTS.find((d) => d.id === bulk.layout)?.label ?? bulk.layout;
-  return `${face} · ${pet} · ${battle} · ${layout}`;
+  const shell = SHELLS.find((sh) => sh.id === bulk.shell)?.label ?? bulk.shell;
+  return `${face} · ${pet} · ${battle} · ${layout} · ${shell}`;
 }
 
 export default AdminAppearancePanel;
