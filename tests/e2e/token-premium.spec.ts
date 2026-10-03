@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { authenticate } from "./session";
 
 /** Browser UI contracts. Ledger atomicity is tested against PostgreSQL, not here. */
 test.beforeEach(async ({ context }) => {
@@ -94,13 +95,17 @@ test.describe("Premium economy UI", () => {
     expect(xml).not.toContain("<loc>https://www.focusarx.site/premium</loc>");
   });
 
-  test("reduced-motion visitors can reach the public focus timer without page errors", async ({ page }) => {
+  test("reduced-motion visitors reach the focus timer without page errors", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await page.emulateMedia({ reducedMotion: "reduce" });
+    // The timer requires a session now (see `auth-gate.spec.ts`). This test is
+    // about the animating ring and its live region under `prefers-reduced-
+    // motion`, so it signs in first rather than measuring the login redirect.
+    await authenticate(page);
     await page.goto("/focus?duration=25");
     // Match the recovery budget used by timer-persistence.spec.ts: an absent
-    // API can take several seconds to settle into the guest timer.
+    // API can take several seconds to settle into the timer.
     await expect(page.getByText("25:00").first()).toBeVisible({ timeout: 10_000 });
     expect(errors).toEqual([]);
   });
