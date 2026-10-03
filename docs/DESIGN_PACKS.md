@@ -74,3 +74,25 @@ touches another account. `lib/petBattle.ts` is the engine — pure, seeded and
 bounded — and the server only stores the *result* (`pet_battles`), which is what
 the admin console reads to answer "which board is actually being played, and is
 anyone winning". No currency, XP or inventory is derived from that table.
+
+## The arena ladder
+
+The arena's six cups are the uploads' own (`ARENA` in their `lib/pets.ts`),
+names and blurbs verbatim: Meadow, Lantern, Tidewall, Stormgate, Skyfall,
+Mythic. Ported to `src/lib/arenaLadder.ts` and rendered on `/arena`, they are
+gated twice — the previous cup must be won **and** the companion must be at the
+cup's level — and the page says which of the two gates is holding a cup back
+("Clear Cup 1 first" and "Needs level 9" are different pieces of advice).
+
+Two deliberate departures from the uploads, both because the app around the
+ladder is not the uploaded demo:
+
+| Uploads | Here |
+| --- | --- |
+| Fixed foe species ids (`magikarp`, `hoot`…) that this catalog does not have | A cup sets the **level and difficulty band**; the opponent comes from the live pet catalog |
+| "Arena energy" earned from focus minutes, coins and XP paid per cup | No arena economy. A second currency invented for a ladder would be the tail wagging the dog |
+
+Progress is not a column of its own: `pet_battles.stage` records which cup a
+fight was (null for a pick-up fight), and the ladder reads wins back out of that
+same log — the record the admin console reads, so the two views cannot drift.
+That is also what the console's "Recent battles" list prints, cup name included.

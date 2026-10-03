@@ -12,6 +12,7 @@ import {
 } from "./AdminHelpers";
 import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { cupLabel } from "@/lib/arenaLadder";
 import {
   BATTLE_DESIGNS,
   LAYOUTS,
@@ -88,6 +89,8 @@ interface BattleLogRow {
   design: string;
   result: string;
   rounds: number;
+  /** Arena cup, or null for a pick-up fight. */
+  stage: number | null;
   createdAt: string;
 }
 
@@ -530,6 +533,11 @@ export function AdminAppearancePanel({ authHeaders }: AdminPanelProps) {
                   <span className="min-w-0 truncate">
                     <span className="font-semibold text-[var(--palette-zinc-200)]">{b.petName ?? b.petSlug}</span> Lv {b.petLevel} vs{" "}
                     {b.rivalName} Lv {b.rivalLevel}
+                    {/* Which cup, not just that a fight happened — the ladder's
+                        progress is exactly what the assignment table cannot show. */}
+                    {cupLabel(b.stage) && (
+                      <span className="text-[var(--palette-zinc-500)]"> · {cupLabel(b.stage)}</span>
+                    )}
                   </span>
                   <span className={b.result === "win" ? "text-[var(--palette-emerald-400)]" : "text-[var(--palette-rose-400)]"}>
                     {b.result} · {b.rounds}r · {BATTLE_DESIGNS.find((d) => d.id === b.design)?.label ?? b.design}

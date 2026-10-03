@@ -10,6 +10,7 @@ import {
   isKnownId,
   sanitizeAppearancePatch,
   sanitizeBattleReport,
+  MAX_ARENA_CUP,
 } from "./appearanceCatalog";
 
 /**
@@ -141,7 +142,9 @@ describe("sanitizeBattleReport", () => {
   it("accepts a report the arena actually sends", () => {
     const { report, error } = sanitizeBattleReport(good);
     expect(error).toBeNull();
-    expect(report).toEqual({ ...good });
+    // `stage` is always present on the parsed report — null when the fight was
+    // not a cup — so a consumer never has to tell "absent" from "no cup".
+    expect(report).toEqual({ ...good, stage: null });
   });
 
   it("defaults the optional edges rather than rejecting them", () => {
@@ -173,6 +176,26 @@ describe("sanitizeBattleReport", () => {
   it("truncates a long name instead of failing the insert", () => {
     const { report } = sanitizeBattleReport({ ...good, petName: "x".repeat(200) });
     expect(report?.petName).toHaveLength(60);
+  });
+
+  it("carries the arena cup, including the last one, and null for a pick-up fight", () => {
+    // The stage is the one field that is optional *and* nullable: a pick-up
+    // fight is not a cup, and a row written before the ladder existed has none.
+    expect(sanitizeBattleReport({ ...good, stage: 3 }).report?.stage).toBe(3);
+    expect(sanitizeBattleReport({ ...good, stage: MAX_ARENA_CUP }).report?.stage).toBe(MAX_ARENA_CUP);
+    expect(sanitizeBattleReport({ ...good, stage: null }).report?.stage).toBeNull();
+    expect(sanitizeBattleReport(good).report?.stage).toBeNull();
+    // A form-encoded caller sends the digit as a string; that is still cup 4.
+    expect(sanitizeBattleReport({ ...good, stage: "4" }).report?.stage).toBe(4);
+  });
+
+  it("refuses a cup outside the ladder instead of rounding it into one", () => {
+    // `rounds` and the levels clamp — a cosmetic number is not worth a 500. A
+    // cup is different: 2.5 or 7 would be stored as a stage the client cannot
+    // look up, or rejected by the column's CHECK as a 500.
+    for (const bad of [0, -1, MAX_ARENA_CUP + 1, 2.5, "three", "", [], {}]) {
+      expect(sanitizeBattleReport({ ...good, stage: bad }).error, `stage ${JSON.stringify(bad)}`).toBe("stage");
+    }
   });
 
   it("rejects bodies that are not objects", () => {

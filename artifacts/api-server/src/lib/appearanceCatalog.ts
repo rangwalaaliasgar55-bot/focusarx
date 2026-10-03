@@ -195,11 +195,20 @@ export interface BattleReport {
   rivalLevel: number;
   difficulty: BattleDifficulty;
   design: BattleDesignId;
+  /** Arena cup, 1–6, or null for a pick-up fight. Mirrors `MAX_ARENA_CUP`. */
+  stage: number | null;
   result: BattleResult;
   rounds: number;
   damageDealt: number;
   damageTaken: number;
 }
+
+/**
+ * Cups in the arena ladder (see the client's `lib/arenaLadder.ts`). The database
+ * column's CHECK allows exactly this range, so the route refuses anything else
+ * rather than letting Postgres turn a bad payload into a 500.
+ */
+export const MAX_ARENA_CUP = 6;
 
 const SLUG_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 
@@ -256,6 +265,25 @@ export function sanitizeBattleReport(input: unknown): { report: BattleReport | n
   const design = body.design ?? DEFAULT_APPEARANCE.battleDesign;
   if (!isKnownId("battleDesign", design)) return { report: null, error: "design" };
 
+  // `stage` is optional and may be null: a pick-up fight is not a cup. Anything
+  // else must be a whole number inside the ladder — the column's CHECK would
+  // reject it anyway, and a rejected insert surfaces as a 500.
+  let stage: number | null = null;
+  if (body.stage !== undefined && body.stage !== null) {
+    // Strict on purpose — unlike a level, a stage has no sensible clamp. The
+    // round-trip through JSON can hand this a number, and a form-encoded caller
+    // a digit string; a fraction or an out-of-ladder number is a bad payload and
+    // is named as one, not silently rounded into a different cup.
+    const raw =
+      typeof body.stage === "number"
+        ? body.stage
+        : typeof body.stage === "string" && /^\d+$/.test(body.stage.trim())
+          ? Number(body.stage.trim())
+          : NaN;
+    if (!Number.isInteger(raw) || raw < 1 || raw > MAX_ARENA_CUP) return { report: null, error: "stage" };
+    stage = raw;
+  }
+
   const result = body.result;
   if (result !== "win" && result !== "loss" && result !== "flee") {
     return { report: null, error: "result" };
@@ -271,6 +299,7 @@ export function sanitizeBattleReport(input: unknown): { report: BattleReport | n
       rivalLevel: Math.max(1, rivalLevel),
       difficulty,
       design: design as BattleDesignId,
+      stage,
       result,
       rounds: count(body.rounds ?? 0, 999) ?? 0,
       damageDealt: count(body.damageDealt ?? 0, 1_000_000) ?? 0,

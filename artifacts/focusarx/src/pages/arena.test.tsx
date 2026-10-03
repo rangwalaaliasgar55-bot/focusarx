@@ -207,6 +207,55 @@ describe("arena page", () => {
     expect(moveButton(FREE_MOVE).textContent).toContain("free");
   });
 
+  it("shows the six-cup ladder, with only the first cup open for a level-5 pet", () => {
+    // The ladder comes from the uploads (names and blurbs verbatim) and is
+    // gated twice over: the previous cup must be won *and* the companion must be
+    // at the cup's level. Nothing about that gating is visible in the DOM unless
+    // the page renders it, so this asserts the reasons, not just the count.
+    renderArena();
+    const ladder = document.querySelector("[data-cup-ladder]");
+    expect(ladder, "the ladder is not on the page").toBeTruthy();
+
+    const cups = Array.from(ladder!.querySelectorAll("button"));
+    expect(cups.map((c) => c.textContent)).toEqual(
+      expect.arrayContaining([expect.stringContaining("Meadow Cup"), expect.stringContaining("Mythic Cup")]),
+    );
+    const first = screen.getByRole("button", { name: /^Meadow Cup/ }) as HTMLButtonElement;
+    expect(first.disabled).toBe(false);
+    // Cup 2 needs level 6 as well as cup 1 — both unmet here, and the page says
+    // which gate comes first.
+    const second = screen.getByRole("button", { name: /^Lantern Cup/ }) as HTMLButtonElement;
+    expect(second.disabled).toBe(true);
+    expect(second.textContent).toContain("Clear Cup 1 first");
+    // The last cup is also out of reach on level alone.
+    const last = screen.getByRole("button", { name: /^Mythic Cup/ }) as HTMLButtonElement;
+    expect(last.disabled).toBe(true);
+    expect(last.textContent).toContain("Lv 20");
+  });
+
+  it("makes a cup set the stakes, and lets the free-fight board have the controls back", () => {
+    renderArena();
+    fireEvent.click(screen.getByRole("button", { name: /^Meadow Cup/ }));
+
+    // The cup, not the difficulty radios, decides the opponent's level.
+    expect(screen.getByText(/Cup 1 · Meadow Cup/)).toBeTruthy();
+    const fight = screen.getByRole("button", { name: /Fight for the Meadow Cup/ });
+    expect(fight.textContent).toContain("Lv 3");
+    for (const radio of screen.getAllByRole("radio")) {
+      expect((radio as HTMLButtonElement).disabled, "a cup should lock the difficulty picker").toBe(true);
+    }
+    // The board carries the cup's scene colour, which is the visible half of
+    // choosing a cup.
+    expect(document.querySelector('[data-cup="1"]')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /Leave the cup/ }));
+    expect(screen.queryByText(/Cup 1 · Meadow Cup/)).toBeNull();
+    expect(screen.queryByText(/Fight for the Meadow Cup/)).toBeNull();
+    for (const radio of screen.getAllByRole("radio")) {
+      expect((radio as HTMLButtonElement).disabled).toBe(false);
+    }
+  });
+
   it("keeps the fight's numbers in the compact layout", async () => {
     // The layout pack may drop the scene; it must never drop a bar, and the
     // result must not depend on which board is on screen.
