@@ -447,6 +447,13 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
     keywords: "focus pets, study companion, pet collection, gamified pets, 3D pets",
     noindex: true,
   },
+  arena: {
+    canonical: "/arena",
+    title: "Arena | Turn-Based Pet Battles | FocusArx",
+    description: "Take your focus companion into the arena: turn-based battles with energy, guard and type matchups. Fight wild rivals on your own board design.",
+    keywords: "pet battles, focus pet arena, turn based battle, study companion game",
+    noindex: true,
+  },
   battlePass: {
     canonical: "/battle-pass",
     title: "Battle Pass | 30 Tiers • Free + Premium Tracks | FocusArx",

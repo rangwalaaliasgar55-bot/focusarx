@@ -38,12 +38,15 @@ describe("timerTheme persistence", () => {
   });
 
   it("ships exactly the documented faces", () => {
-    // Order is the picker's order and is part of the UX: the three ring faces
-    // first, then the layouts that change what the face means. Adding a face
-    // here is a deliberate edit — the list is asserted so a face cannot be
-    // introduced without its blurb being written (the loop below).
+    // Order is the picker's order and is part of the UX: the ring faces first,
+    // then the layouts that change what the face means — the four the house
+    // shipped, then the five ported from the PR #99 design uploads. Adding a
+    // face here is a deliberate edit (this list, the doc and the two lists
+    // below move together), which is the point: a face cannot land without its
+    // blurb and its renderer.
     expect(TIMER_THEMES.map((t) => t.id)).toEqual([
       "classic", "neon", "zen", "flip", "segments", "bars", "dots", "rounds",
+      "aurora", "orbit", "hourglass", "companion", "garden",
     ]);
     for (const t of TIMER_THEMES) {
       expect(t.label.length).toBeGreaterThan(0);
@@ -59,20 +62,25 @@ describe("timerTheme persistence", () => {
     // A registered face with no component renders as nothing (the picker still
     // offers it), which is how a design lands half-shipped. `TimerDisplay` is
     // the only place layouts are delegated, so its source is the source of
-    // truth: every layout id must appear in its LAYOUT_FACES set.
+    // truth: every layout id must appear in its LAYOUT_FACES set, and every one
+    // of those must have a component — the house layouts in `TimerFaces.tsx`,
+    // the ported design-pack faces in `TimerFacesStudio.tsx`.
     const display = readFileSync(path.join(__dirname, "../components/TimerDisplay.tsx"), "utf8");
     const setLine = display.slice(display.indexOf("const LAYOUT_FACES"));
     const declared = setLine.slice(0, setLine.indexOf("]")).match(/"[a-z]+"/g)?.map((q) => q.replace(/"/g, "")) ?? [];
     const registered = TIMER_THEMES.map((t) => t.id);
-    const layouts = ["segments", "bars", "dots", "rounds"];
+    const layouts = ["segments", "bars", "dots", "rounds", "aurora", "orbit", "hourglass", "companion", "garden"];
     expect(declared.sort()).toEqual(layouts.slice().sort());
     for (const layout of layouts) {
       expect(registered, `${layout} is a layout but is not in the registry`).toContain(layout);
     }
-    const faces = readFileSync(path.join(__dirname, "../components/timerfaces/TimerFaces.tsx"), "utf8");
+    const faceSources = [
+      readFileSync(path.join(__dirname, "../components/timerfaces/TimerFaces.tsx"), "utf8"),
+      readFileSync(path.join(__dirname, "../components/timerfaces/TimerFacesStudio.tsx"), "utf8"),
+    ].join("\n");
     for (const layout of layouts) {
       const component = `TimerFace${layout[0]!.toUpperCase()}${layout.slice(1)}`;
-      expect(faces, `${component} is registered but not implemented`).toContain(`export function ${component}`);
+      expect(faceSources, `${component} is registered but not implemented`).toContain(`export function ${component}`);
     }
   });
 

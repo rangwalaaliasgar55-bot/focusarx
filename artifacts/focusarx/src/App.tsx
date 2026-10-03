@@ -80,6 +80,7 @@ const GoalsPage = lazyWithRetry(() => import("@/pages/goals"));
 const StudyRoomsPage = lazyWithRetry(() => import("@/pages/study-rooms"));
 const ReferralPage = lazyWithRetry(() => import("@/pages/referral"));
 const PetsPage = lazyWithRetry(() => import("@/pages/pets"));
+const ArenaPage = lazyWithRetry(() => import("@/pages/arena"));
 const CityPage = lazyWithRetry(() => import("@/pages/city"));
 const MarketplacePage = lazyWithRetry(() => import("@/pages/marketplace"));
 const DreamsPage = lazyWithRetry(() => import("@/pages/dreams"));
@@ -386,6 +387,7 @@ function RoutedContent() {
 
               {/* New V12 pages */}
               <Route path="/pets"><ErrorBoundary><ProtectedRoute component={PetsPage} /></ErrorBoundary></Route>
+              <Route path="/arena"><ErrorBoundary><ProtectedRoute component={ArenaPage} /></ErrorBoundary></Route>
               <Route path="/city"><ErrorBoundary><ProtectedRoute component={CityPage} /></ErrorBoundary></Route>
               <Route path="/marketplace"><ErrorBoundary><ProtectedRoute component={MarketplacePage} /></ErrorBoundary></Route>
               <Route path="/dreams"><ErrorBoundary><ProtectedRoute component={DreamsPage} /></ErrorBoundary></Route>

@@ -20,6 +20,8 @@ import { FOCUS_DEEP_LINK_EVENT } from "@/lib/focusDeepLink";
 import FlowTimer from "./FlowTimer";
 import { SESSION_PRESETS, getPresetById, getSessionPreset, setSessionPreset } from "@/lib/sessionPresets";
 import { TIMER_THEMES, getStoredTimerTheme, setStoredTimerTheme, type TimerTheme } from "@/lib/timerTheme";
+import { useAppearance, useAppearanceState, useUpdateAppearance } from "@/lib/appearance";
+import { Lock } from "lucide-react";
 import { isDocumentPipSupported, openMiniTimer, writePipSnapshot } from "@/lib/miniTimer";
 import { trackSiteEvent } from "@/lib/site-analytics";
 import { trackSessionStart, trackSessionComplete } from "@/lib/analytics";
@@ -110,13 +112,38 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
   const persistenceRef = useRef<ReturnType<typeof useSessionPersistence> | null>(null);
 
   const [showSessionTypePicker, setShowSessionTypePicker] = useState(false);
-  // Cosmetic timer-face design (Classic / Neon / Zen). Persisted locally; the
-  // choice is written in the click handler, not an effect, so nothing races.
-  const [timerTheme, setTimerThemeState] = useState<TimerTheme>(() => getStoredTimerTheme());
+  // Cosmetic timer-face design (Classic / Neon / Zen / …). Three sources, in
+  // precedence order, and the order is the whole trick:
+  //
+  //   1. a per-account assignment (an admin pin, or the user's own server-side
+  //      choice) — the design packs live on the account so the console can see
+  //      and set them;
+  //   2. the local copy in `localStorage`, which lets a guest (and an offline
+  //      cold start) keep their face;
+  //   3. the registry default.
+  //
+  // `appearance.timerFace` is the account value; while the request is in flight
+  // it still holds the cached/local value, so the face never flickers back to
+  // Classic on load.
+  const appearance = useAppearanceState();
+  // Hydrates the store from the account (deduped with every other caller).
+  useAppearance();
+  const localTheme = useState<TimerTheme>(() => getStoredTimerTheme())[0];
+  const timerTheme: TimerTheme = appearance.synced || appearance.source !== "default"
+    ? appearance.fields.timerFace
+    : localTheme;
+  const [pendingTheme, setPendingTheme] = useState<TimerTheme | null>(null);
+  const shownTheme = pendingTheme ?? timerTheme;
+  const updateAppearance = useUpdateAppearance();
   const chooseTimerTheme = useCallback((t: TimerTheme) => {
-    setTimerThemeState(t);
+    setPendingTheme(t);
     setStoredTimerTheme(t);
-  }, []);
+    // Fire and forget: the response applies the authoritative value (which is
+    // the same id), and a 409 flips the appearance store into "managed by an
+    // admin", which the picker renders. The choice is written in the click
+    // handler, not an effect, so nothing races.
+    void updateAppearance({ timerFace: t }).finally(() => setPendingTheme(null));
+  }, [updateAppearance]);
   const [sessionType, setSessionType] = useState<SessionType>("deep_work");
   const [showLockPicker, setShowLockPicker] = useState(false);
   const [lockMode, setLockMode] = useState<LockMode>("none");
@@ -947,7 +974,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
               sessionType={sessionType}
               activeSecondsEarned={activeSeconds}
               tier={membershipTier}
-              theme={timerTheme}
+              theme={shownTheme}
               justCompleted={justCompleted}
             />
           </div>
@@ -985,7 +1012,7 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                 Face
               </span>
               {TIMER_THEMES.map((t) => {
-                const active = timerTheme === t.id;
+                const active = shownTheme === t.id;
                 return (
                   <button
                     key={t.id}
@@ -1002,8 +1029,16 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
                   </button>
                 );
               })}
-              <p key={timerTheme} className="mt-1.5 w-full text-center text-[11px] leading-snug text-[var(--foreground-subtle)]">
-                {TIMER_THEMES.find((t) => t.id === timerTheme)?.blurb}
+              {appearance.locked && (
+                <span
+                  className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--foreground-subtle)]"
+                  title="An admin pinned this design for your account"
+                >
+                  <Lock size={11} aria-hidden="true" /> Managed by an admin
+                </span>
+              )}
+              <p key={shownTheme} className="mt-1.5 w-full text-center text-[11px] leading-snug text-[var(--foreground-subtle)]">
+                {TIMER_THEMES.find((t) => t.id === shownTheme)?.blurb}
               </p>
             </div>
           )}

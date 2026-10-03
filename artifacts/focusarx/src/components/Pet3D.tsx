@@ -14,6 +14,10 @@ import { Component, Suspense, useMemo, useRef, type RefObject, type ReactNode } 
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { is3DCapable } from "@/lib/webglCapability";
+import { petBodyParams, type PetBodyParams } from "@/lib/petBodyParams";
+import { ProceduralWildPet, mapMoodToAnim } from "@/components/pets/ProceduralWildPet";
+import { useAppearanceFields } from "@/lib/appearance";
+import type { PetDesignId } from "@/lib/designPacks";
 import { installThreeConsoleFilter, onWebGLContextLost } from "@/lib/threeConsole";
 
 installThreeConsoleFilter();
@@ -831,14 +835,38 @@ function StageFlourishes({ stage }: { stage: number }) {
 
 // ── scene ───────────────────────────────────────────────────────────────────
 
-function PetScene({ petType, mood, stage, accessories }: {
+/**
+ * Which model to build for a species.
+ *
+ * The six hand-built rigs are still the best-looking option for the six species
+ * they were written for, so they stay. Everything else — the rest of the
+ * catalog, and every future release — is built by `ProceduralWildPet` from the
+ * species' body parameters, which is what stops a capybara from arriving as a
+ * recoloured owl.
+ *
+ * The `wild3d` design pack flips this: it asks for the parametric body for
+ * *every* species, which is the point of the pack (a user who picks it wants
+ * the animals, not the six classics). `sprite` never reaches here at all — the
+ * caller renders 2D instead, and `Pet3D` is not mounted.
+ */
+export function modelKindFor(petType: string, design: PetDesignId): "rig" | "wild" {
+  if (design === "wild3d") return "wild";
+  return MODELS[petType] ? "rig" : "wild";
+}
+
+function PetScene({ petType, mood, stage, accessories, design }: {
   petType: string;
   mood: string;
   stage: number;
   accessories: Array<{ itemId: string; slot: string }>;
+  design: PetDesignId;
 }) {
   const stageClamped = Math.min(3, Math.max(0, Math.floor(stage)));
-  const model = MODELS[petType] ?? MODELS.owl;
+  const kind = modelKindFor(petType, design);
+  const wildParams = useMemo<PetBodyParams>(() => petBodyParams(petType), [petType]);
+  const model: (p: ModelProps) => ReactNode = kind === "wild"
+    ? () => <ProceduralWildPet params={wildParams} anim={mapMoodToAnim(mood)} look />
+    : MODELS[petType] ?? MODELS.owl;
 
   // Gentle orbiting camera so the pet is never fully static. Runs through the
   // frame callback's own state — mutating hook results is what the compiler
@@ -875,9 +903,17 @@ export type Pet3DProps = {
   accessories?: Array<{ itemId: string; slot: string }>;
   /** Called once if the WebGL context crashes at runtime (parent should fall back to 2D). */
   onCrash?: () => void;
+  /**
+   * Companion art pack. Defaults to the account's assignment (see
+   * `lib/appearance.ts`), which is what makes the admin console's per-user
+   * choice visible without every call site passing it down.
+   */
+  design?: PetDesignId;
 };
 
-export function Pet3D({ petType, mood = "happy", evolutionStage = 0, accessories = [], onCrash }: Pet3DProps) {
+export function Pet3D({ petType, mood = "happy", evolutionStage = 0, accessories = [], onCrash, design }: Pet3DProps) {
+  const { petDesign: assignedDesign } = useAppearanceFields();
+  const resolvedDesign = design ?? assignedDesign;
   const scene = useMemo(
     () => (
       <PetScene
@@ -885,9 +921,10 @@ export function Pet3D({ petType, mood = "happy", evolutionStage = 0, accessories
         mood={mood}
         stage={evolutionStage}
         accessories={accessories}
+        design={resolvedDesign}
       />
     ),
-    [petType, mood, evolutionStage, accessories]
+    [petType, mood, evolutionStage, accessories, resolvedDesign]
   );
 
   return (

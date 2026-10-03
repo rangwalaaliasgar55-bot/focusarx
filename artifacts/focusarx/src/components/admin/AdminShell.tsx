@@ -15,6 +15,7 @@ import {
   Lock,
   Mail,
   Menu,
+  Palette,
   Search,
   Terminal,
   Settings,
@@ -72,6 +73,7 @@ const ADMIN_SECTIONS: {
   { id: "gemini", label: "Gemini", icon: Sparkles, group: "Operations" },
   { id: "sql", label: "SQL editor", icon: Database, group: "Operations" },
   { id: "site", label: "Site settings", icon: Settings, group: "Operations" },
+  { id: "design", label: "Design packs", icon: Palette, group: "Content", hint: "Timer faces, companion art, battle boards and layout per account" },
 ];
 
 const GROUPS = ["Platform", "Content", "Operations"] as const;

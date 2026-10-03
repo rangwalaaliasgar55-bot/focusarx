@@ -36,6 +36,7 @@ export const ROUTE_CHUNKS: Record<string, () => Promise<unknown>> = {
   "/ai-insights": () => import("@/pages/ai-insights"),
   "/ai-policy": () => import("@/pages/ai-policy"),
   "/analytics": () => import("@/pages/analytics"),
+  "/arena": () => import("@/pages/arena"),
   "/auth/callback": () => import("@/pages/auth-callback"),
   "/battle-pass": () => import("@/pages/battle-pass"),
   "/blog": () => import("@/pages/blog"),

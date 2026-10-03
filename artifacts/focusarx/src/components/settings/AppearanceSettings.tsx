@@ -18,6 +18,7 @@ import {
 import { SCENE_PRESETS, useScenePreset, type ScenePresetId } from "@/lib/scenePreset";
 import { getToken } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { DesignPackSettings } from "@/components/settings/DesignPackSettings";
 
 const THEME_ORDER: Theme[] = ["dark", "light", "midnight-gold", "aurora", "crimson"];
 
@@ -42,7 +43,10 @@ function ThemeAndColorSettings() {
       <CardContent className="space-y-6">
         <div className="flex flex-col gap-2">
           <Label className="text-sm font-medium">Theme</Label>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          {/* A named group, not a bare div: the design-pack faces print their own
+              labels ("Aurora" is both a colour theme and a timer face), so the
+              theme cards need a scope a reader — and a test — can point at. */}
+          <div role="group" aria-label="Colour theme" className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
             {THEME_ORDER.map((t) => {
               const meta = THEME_META[t];
               const active = theme === t;
@@ -299,6 +303,7 @@ export function AppearanceSettings() {
   return (
     <>
       <ThemeAndColorSettings />
+      <DesignPackSettings />
       <EffectsSettings />
     </>
   );

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
-import { CheckCircle, Crown, Heart, PawPrint, Search, Sparkles, TrendingUp, Trophy, X } from "lucide-react";
+import { CheckCircle, Crown, Heart, PawPrint, Search, Sparkles, Swords, TrendingUp, Trophy, X } from "lucide-react";
+import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { getToken } from "@/lib/auth";
@@ -283,7 +284,14 @@ export default function PetsPage() {
             <h1 className="mt-3 text-3xl font-bold">Your Focus Companions</h1>
             <p className="mt-1 text-sm text-[var(--foreground-muted)]">Collect, bond level 1-20, unlock animations and rewards. Premium unlocks exclusive pets.</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/arena"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-1)] px-3 text-xs font-bold text-[var(--foreground)] transition-colors hover:border-[var(--brand-400)]/60"
+            >
+              <Swords size={14} className="text-[var(--brand-400)]" aria-hidden="true" />
+              Battle arena
+            </Link>
             <select value={showQuality} onChange={(e) => setShowQuality(e.target.value as "low" | "med" | "high" | "auto")} className="rounded-xl border border-[var(--forge-border)] bg-[var(--surface-1)] px-3 py-2 text-xs">
               <option value="auto">Auto quality</option>
               <option value="low">Low (mobile)</option>

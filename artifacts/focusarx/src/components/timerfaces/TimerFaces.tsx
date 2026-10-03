@@ -69,7 +69,7 @@ export function sessionTotal(
   return Math.max(1, Math.round(secondsLeft / Math.max(remaining, 0.0001)));
 }
 
-function useFaceLabels(secondsLeft: number) {
+export function useFaceLabels(secondsLeft: number) {
   const minutes = Math.floor(Math.max(0, secondsLeft) / 60);
   const seconds = Math.max(0, secondsLeft) % 60;
   const spoken = [
@@ -82,7 +82,7 @@ function useFaceLabels(secondsLeft: number) {
   return { spoken: `${spoken} remaining`, endsAt };
 }
 
-function EditHint({ onClick, running, label }: { onClick?: () => void; running: boolean; label: string }) {
+export function EditHint({ onClick, running, label }: { onClick?: () => void; running: boolean; label: string }) {
   return (
     <button
       type="button"
