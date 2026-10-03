@@ -46,7 +46,7 @@ describe("timerTheme persistence", () => {
     // blurb and its renderer.
     expect(TIMER_THEMES.map((t) => t.id)).toEqual([
       "classic", "neon", "zen", "flip", "segments", "bars", "dots", "rounds",
-      "aurora", "orbit", "hourglass", "companion", "garden",
+      "aurora", "orbit", "hourglass", "companion", "garden", "analog",
     ]);
     for (const t of TIMER_THEMES) {
       expect(t.label.length).toBeGreaterThan(0);
@@ -69,7 +69,7 @@ describe("timerTheme persistence", () => {
     const setLine = display.slice(display.indexOf("const LAYOUT_FACES"));
     const declared = setLine.slice(0, setLine.indexOf("]")).match(/"[a-z]+"/g)?.map((q) => q.replace(/"/g, "")) ?? [];
     const registered = TIMER_THEMES.map((t) => t.id);
-    const layouts = ["segments", "bars", "dots", "rounds", "aurora", "orbit", "hourglass", "companion", "garden"];
+    const layouts = ["segments", "bars", "dots", "rounds", "analog", "aurora", "orbit", "hourglass", "companion", "garden"];
     expect(declared.sort()).toEqual(layouts.slice().sort());
     for (const layout of layouts) {
       expect(registered, `${layout} is a layout but is not in the registry`).toContain(layout);

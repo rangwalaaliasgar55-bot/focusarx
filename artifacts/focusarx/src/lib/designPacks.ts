@@ -31,6 +31,7 @@ export const TIMER_FACE_IDS = [
   "hourglass",
   "companion",
   "garden",
+  "analog",
 ] as const;
 export type TimerFaceId = (typeof TIMER_FACE_IDS)[number];
 
@@ -147,6 +148,7 @@ export const TIMER_FACE_LABELS: Record<TimerFaceId, string> = {
   hourglass: "Hourglass",
   companion: "Companion trail",
   garden: "Garden",
+  analog: "Analog clock",
 };
 
 export interface AppearanceFields {

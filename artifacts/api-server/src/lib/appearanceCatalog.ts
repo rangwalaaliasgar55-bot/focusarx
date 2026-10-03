@@ -32,7 +32,8 @@ export type TimerFaceId =
   | "orbit"
   | "hourglass"
   | "companion"
-  | "garden";
+  | "garden"
+  | "analog";
 
 export type PetDesignId = "classic" | "wild3d" | "sprite";
 export type BattleDesignId = "duel" | "arena" | "retro";
@@ -53,6 +54,7 @@ export const TIMER_FACE_IDS: TimerFaceId[] = [
   "hourglass",
   "companion",
   "garden",
+  "analog",
 ];
 
 export const TIMER_FACE_LABELS: Record<TimerFaceId, string> = {
@@ -69,6 +71,7 @@ export const TIMER_FACE_LABELS: Record<TimerFaceId, string> = {
   hourglass: "Hourglass",
   companion: "Companion trail",
   garden: "Garden",
+  analog: "Analog clock",
 };
 
 export interface DesignOption<T extends string> {
