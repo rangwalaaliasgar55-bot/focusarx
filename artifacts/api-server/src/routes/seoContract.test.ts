@@ -577,7 +577,14 @@ describe("sitemap lastmod: real review dates, mirrored from the prerender manife
       expect(guides.get("/guides"), "an index of guides has no review date of its own").toBeUndefined();
 
       const core = entriesOf(await (await fetch(`${base}/sitemap-core.xml`)).text());
-      expect(core.get("/focus"), "app page, dated with the app").toBe("2026-09-04");
+      // `/focus` is the app entry and the timer requires a session, so it is
+      // not advertised to crawlers any more — see `sitemap.ts`. The page is
+      // still prerendered and still indexable; it just is not a destination a
+      // sitemap entry promises a visitor on the other side of the click.
+      expect(
+        core.get("/focus"),
+        "a login-walled app page must not be listed in the sitemap",
+      ).toBeUndefined();
       expect(core.get("/about"), "editorial standards copy").toBe("2026-09-11");
       for (const undated of ["/", "/signup", "/login", "/pricing", "/study-rooms", "/leaderboard"]) {
         expect(core.get(undated), `${undated} has no dated review`).toBeUndefined();
