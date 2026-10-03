@@ -195,7 +195,8 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
     restoreFromSnapshot,
     getActiveSeconds,
   } = usePomodoro({
-    // Guest-local snapshot: first sessions survive refresh/close with no account.
+    // Local snapshot: a session survives refresh/close (and a dropped
+    // connection) without waiting on the server.
     persistKey: "focusarx-guest-timer",
     onSessionComplete: recordMobileSession,
   });

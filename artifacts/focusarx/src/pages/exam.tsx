@@ -329,7 +329,7 @@ function ExamHubGuides() {
           Pomodoro timer for each exam
         </h2>
         <p className="text-sm text-[var(--foreground-muted)] mb-6 max-w-2xl">
-          The same timer, tuned to the interval each paper actually rewards — no signup needed to start one.
+          The same timer, tuned to the interval each paper actually rewards — free to start with a free account.
         </p>
         <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {guides.filter((g: ExamGuide) => FUNNEL_ANGLES[g.slug]).map((g: ExamGuide) => (

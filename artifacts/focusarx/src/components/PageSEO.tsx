@@ -469,8 +469,13 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
   },
   focus: {
     canonical: "/focus",
-    title: "FocusArx focus timer: start a session free",
-    description: "The FocusArx focus app: a free online timer with tasks, streaks and session scoring.",
+    // Must match `scripts/prerender-data.mjs` for /focus verbatim: the
+    // prerendered document and the hydrated page are compared by
+    // `scripts/seo-validate.mjs`, and a drift between them means the SERP
+    // snippet changes the moment the app boots.
+    title: "FocusArx focus timer: sign in and start",
+    description:
+      "The FocusArx focus app: a free online timer with tasks, streaks and session scoring. A free account is what makes a session count.",
     keywords: "focus timer, deep work, pomodoro",
     // Indexable: /focus is in sitemap-core.xml, the prerender manifest and
     // robots Allow. A noindex here would deindex a sitemap-listed page.

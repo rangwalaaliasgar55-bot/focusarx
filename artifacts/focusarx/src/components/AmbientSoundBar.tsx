@@ -6,7 +6,10 @@
  *
  * Renders as a compact pill on mobile / compact bar on desktop;
  * expands into a sleek mixer with scenes, layers with per-layer volume,
- * released direct-audio recordings, EQ, and master volume.
+ * released direct-audio recordings, EQ, master volume — and, below them, the
+ * four-fader layer mixer ported from the uploaded interface build
+ * (`lib/audioLayers.ts`), which can hold rain, brown noise, ocean and wind open
+ * at once.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -21,6 +24,16 @@ import {
   MAX_LAYERS,
   type SoundId,
 } from "@/lib/ambientEngine";
+import {
+  LAYERS,
+  completionChimeEnabled,
+  getVolumes as getLayerVolumes,
+  setCompletionChime,
+  setLayer,
+  shareEngineContext,
+  stopAll as stopLayerNodes,
+  subscribeAudio,
+} from "@/lib/audioLayers";
 import { useAmbientEngine } from "@/hooks/useAmbientEngine";
 import { safeGetJson, safeSetJson } from "@/lib/safeStorage";
 import AudioVisualizer from "./AudioVisualizer";
@@ -56,6 +69,24 @@ interface Props {
 
 export default function AmbientSoundBar({ variant = "pill", className = "" }: Props) {
   const state = useAmbientEngine();
+  /**
+   * The uploaded layer mixer shares this app's AudioContext (see
+   * `lib/audioLayers`): pointing it at the engine once is what keeps the page
+   * to a single context instead of two.
+   */
+  const [layerVolumes, setLayerVolumes] = useState(() => getLayerVolumes());
+  useEffect(() => {
+    // Lazy state already holds the current levels; this only listens, so a
+    // fader moved anywhere else in the app stays in step here.
+    shareEngineContext(ambientEngine);
+    return subscribeAudio(() => setLayerVolumes(getLayerVolumes()));
+  }, []);
+  const layerTotal = LAYERS.reduce((sum, l) => sum + (layerVolumes[l.id] ?? 0), 0);
+  const [chimeOn, setChimeOn] = useState(() => completionChimeEnabled());
+  const stopLayers = useCallback(() => {
+    stopLayerNodes();
+    setLayerVolumes(getLayerVolumes());
+  }, []);
   const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -381,6 +412,70 @@ export default function AmbientSoundBar({ variant = "pill", className = "" }: Pr
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Layer mixer — the four faders from the uploaded interface build
+          (`lib/audioLayers`, a straight port). It sits beside the scene mixer
+          on purpose: scenes are the engine's curated soundscapes, these four
+          are always-on sliders the user rides live, including rain + brown
+          noise + ocean together, which the scene model does not do. */}
+      <div className="border-t border-[var(--border-subtle)] px-3.5 py-3">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-subtle)]">
+            <SlidersHorizontal size={11} /> Layer mixer
+          </p>
+          {layerTotal > 0 && (
+            <button
+              type="button"
+              onClick={() => stopLayers()}
+              className="rounded px-1.5 py-0.5 text-[11px] font-semibold text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"
+            >
+              Stop layers
+            </button>
+          )}
+        </div>
+        <ul className="space-y-2">
+          {LAYERS.map((layer) => {
+            const value = layerVolumes[layer.id] ?? 0;
+            return (
+              <li key={layer.id}>
+                <label className="flex items-center gap-2.5">
+                  <span className="w-[86px] shrink-0 truncate text-[11.5px] font-medium text-[var(--foreground-muted)]" title={layer.hint}>
+                    {layer.label}
+                  </span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={value}
+                    aria-label={`${layer.label} level`}
+                    onChange={(e) => setLayer(layer.id, parseFloat(e.target.value))}
+                    className="fx-range h-1.5 flex-1"
+                    style={{ ["--fx-range-fill" as string]: "var(--brand-400)", ["--fx-range-pct" as string]: `${value * 100}%` }}
+                  />
+                  <span className="w-8 text-right text-[11px] font-bold tabular-nums text-[var(--foreground-subtle)]">
+                    {Math.round(value * 100)}%
+                  </span>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+        {/* The chime is the mixer's one one-shot rather than a layer, so it
+            gets a switch instead of a fader. */}
+        <label className="mt-2.5 flex items-center gap-2 text-[11.5px] text-[var(--foreground-muted)]">
+          <input
+            type="checkbox"
+            checked={chimeOn}
+            onChange={(e) => {
+              setChimeOn(e.target.checked);
+              setCompletionChime(e.target.checked);
+            }}
+            className="h-3.5 w-3.5 accent-[var(--brand-500)]"
+          />
+          Chime when a session ends
+        </label>
       </div>
 
       {/* Master Volume Footer */}

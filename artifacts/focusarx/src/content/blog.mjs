@@ -121,8 +121,8 @@ export const BLOG_POSTS = [
       "Free online Pomodoro timer — 25/5 sprints in your browser, custom 10–180 min, session history and streaks. No signup to start, free forever.",
     date: "2026-09-18",
     readMin: 4,
-    h1: "Free Pomodoro timer online — 25/5, no signup",
-    lead: "Start a 25/5 Pomodoro timer in one click. Custom intervals, streaks, and a focus score — no account needed to begin, free forever.",
+    h1: "Free Pomodoro timer online — 25/5, sign in and go",
+    lead: "Start a 25/5 Pomodoro timer in one click. Custom intervals, streaks, and a focus score — free forever, and a free account is the only thing it asks for.",
     sections: [
       {
         h: "Why this timer beats a phone clock",
@@ -138,7 +138,7 @@ export const BLOG_POSTS = [
       },
     ],
     faq: [
-      ["Is it really free without signup?", "Yes. The timer starts without an account. An account only saves history across devices."],
+      ["Is it really free?", "Yes. The timer and every core tool are free; the only thing the timer asks for is a free account, so the session it just ran is saved to your history rather than lost."],
       ["Can I use 50-minute blocks?", "Yes. Custom intervals 10–180 min cover 50/10 and 90/15 deep-work blocks."],
     ],
     related: [
@@ -151,7 +151,7 @@ export const BLOG_POSTS = [
     slug: "study-timer-for-exam-prep",
     title: "Study Timer for Exams — JEE, NEET, UPSC | FocusArx",
     description:
-      "Study timer for JEE, NEET, UPSC and board exams — subject-tagged blocks, revision plan and live rooms. Free, no signup to start.",
+      "Study timer for JEE, NEET, UPSC and board exams — subject-tagged blocks, revision plan and live rooms. Free to start with a free account.",
     date: "2026-09-18",
     readMin: 5,
     h1: "Study timer for exam prep",

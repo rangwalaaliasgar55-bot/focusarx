@@ -39,7 +39,7 @@ export const MINUTE_TIMER_PAGES = {
     kind: "tool",
     title: "5 Minute Timer — Free Micro-Break Countdown | FocusArx",
     description:
-      "A free 5 minute timer for micro-breaks, task transitions and the two-minute rule. One click to start, no signup, keeps running offline and saves your streak.",
+      "A free 5 minute timer for micro-breaks, task transitions and the two-minute rule. Sign in once, then one click to start — offline-ready and streak-saving.",
     h1: "5 minute timer for micro-breaks and quick starts",
     lead:
       "Five minutes is the shortest block worth naming. Use it to close a transition cleanly, to do the thing you have been avoiding, or to make a break end on purpose instead of whenever you notice the time.",
@@ -87,7 +87,7 @@ export const MINUTE_TIMER_PAGES = {
       },
     ],
     faq: [
-      ["Is the 5 minute timer free?", "Yes, and there is no signup step. Start it in the browser; create a free account only if you want the session, your streak and the focus score saved across devices."],
+      ["Is the 5 minute timer free?", "Yes. It is free, and a free account is the only thing it asks for — that is what saves the session, your streak and the focus score across devices."],
       ["Does it work offline?", "FocusArx is installable as a PWA, so once the page has loaded the countdown keeps running without a connection. History syncs when you are back online."],
       ["Can I use it as a break timer between Pomodoros?", "That is the most common use. A five-minute break between 25-minute intervals is the standard rhythm; keep the break screen-free where you can, because scrolling does not restore attention the way movement does."],
       ["Will it make a sound when it ends?", "Yes — an end chime, with optional coach audio and ambient sound during the block. Everything runs in the browser; no download."],
@@ -107,7 +107,7 @@ export const MINUTE_TIMER_PAGES = {
     kind: "tool",
     title: "10 Minute Timer to Start When You Can't | FocusArx",
     description:
-      "A free 10 minute timer that makes starting cheap. Use it for the ten-minute rule, warm-ups and small admin sprints — browser-based, no signup, streak-saved.",
+      "A free 10 minute timer that makes starting cheap. Use it for the ten-minute rule, warm-ups and small admin sprints — browser-based, free, streak-saved.",
     h1: "10 minute timer for the hardest part: starting",
     lead:
       "Procrastination is rarely about the work; it is about opening the file. Ten minutes is long enough to get past the first resistance and short enough that agreeing to it costs nothing.",
@@ -175,7 +175,7 @@ export const MINUTE_TIMER_PAGES = {
     kind: "tool",
     title: "15 Minute Timer for Revision Sprints (Free) | FocusArx",
     description:
-      "A free 15 minute timer for active-recall sprints: flashcards, past-paper questions and formula drills. Browser-based, no signup, saves to your streak.",
+      "A free 15 minute timer for active-recall sprints: flashcards, past-paper questions and formula drills. Browser-based, free, saves to your streak.",
     h1: "15 minute timer for active recall sprints",
     lead:
       "Fifteen minutes is the natural size of a retrieval burst — long enough for a real set of questions, short enough to repeat four times in an evening without the session collapsing into rereading.",
@@ -359,7 +359,7 @@ export const MINUTE_TIMER_PAGES = {
       },
     ],
     faq: [
-      ["Is the 45 minute timer free?", "Yes, with no signup required. Sessions, streaks and the focus score are free too; Focus Tokens unlock Premium extras."],
+      ["Is the 45 minute timer free?", "Yes. Sessions, streaks and the focus score are free; Focus Tokens unlock Premium extras."],
       ["Does it suit board exams as well as entrance exams?", "Yes. CBSE papers are three hours, so practising in forty-five-minute sections with short breaks maps closely onto the real paper's structure and pacing."],
       ["How long should the break be?", "About ten minutes, away from the screen. After two or three blocks take a longer break — the aim is repeated quality, not maximum hours."],
       ["Can I study with other people at the same time?", "Live study rooms run the same countdown for everyone in the room, camera optional and off by default. It is useful for mock timing because everybody starts together."],
@@ -427,7 +427,7 @@ export const MINUTE_TIMER_PAGES = {
       },
     ],
     faq: [
-      ["Is the 90 minute timer free?", "Yes, with no signup required. The focus score, session log and streaks are free too; Focus Tokens only unlock Premium extras."],
+      ["Is the 90 minute timer free?", "Yes. The focus score, session log and streaks are free; Focus Tokens only unlock Premium extras."],
       ["How many 90 minute blocks can I realistically do in a day?", "Two to three, with real breaks between them. Beyond that the blocks stop being deep work and start being time served — the log's focus score will tell you which one you were doing."],
       ["Can I use this for a full mock exam?", "For the paper itself you want three uninterrupted hours; use this block for one full section or for the paper's first half under timed conditions, then review immediately while the misses are fresh."],
       ["Is 90 minutes better than the Pomodoro technique?", "It is a different tool, not an upgrade: 25/5 suits new material and high-friction starts, ninety minutes suits performance-scale tasks where the setup cost dominates. Most serious weeks need both."],

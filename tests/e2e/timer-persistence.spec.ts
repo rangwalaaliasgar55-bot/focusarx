@@ -1,11 +1,13 @@
 import { expect, test } from "@playwright/test";
+import { authenticate } from "./session";
 
 /**
  * Timer survival contract (Phase 5.5 e2e).
  *
  * The two retention killers: (1) timer dies when the tab hides / the page
- * reloads, (2) streaks reset wrongly. These specs cover the timer half for
- * guests (the Instagram funnel) against the static preview server:
+ * reloads, (2) streaks reset wrongly. These specs cover the timer half against
+ * the static preview server. The timer requires a session now — a guest is sent
+ * to /login, which `auth-gate.spec.ts` asserts — so the beforeEach seeds one:
  *
  *  - deep links arm the idle timer (?duration= + ?task=)
  *  - a started guest session survives a full reload with wall-clock remaining
@@ -20,7 +22,7 @@ function isMobileWidth(width: number | undefined) {
   return (width ?? 1280) < 768;
 }
 
-test.beforeEach(async ({ context }) => {
+test.beforeEach(async ({ context, page }) => {
   // Pre-record a cookie-consent choice so the consent banner never shows. It
   // otherwise appears after the first interaction (or a 12s fallback) and can
   // cover the start button on narrow viewports.
@@ -31,6 +33,9 @@ test.beforeEach(async ({ context }) => {
       /* private mode — the banner simply stays hidden for this view */
     }
   });
+  // Signed in for every test in this file: /focus, and /go/ig which forwards to
+  // it, both require a session.
+  await authenticate(page);
 });
 
 test.describe("focus deep links", () => {

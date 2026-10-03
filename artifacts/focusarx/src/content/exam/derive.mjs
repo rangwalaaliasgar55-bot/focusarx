@@ -173,7 +173,7 @@ export function funnelHeading(slug) {
 export function funnelDescription(slug) {
   const funnel = FUNNEL_ANGLES[slug] ?? {};
   const promise = `Free Pomodoro timer for ${funnelLabel(slug)}.`;
-  const closer = "No account needed to start.";
+  const closer = "Free with a free account.";
 
   // The angle's first sentence is the specific thing worth putting in a SERP
   // snippet — but only when it survives intact. Seven of them do not, and

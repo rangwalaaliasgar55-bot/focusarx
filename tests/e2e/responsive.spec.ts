@@ -10,13 +10,18 @@ import { expect, test, type Page } from "@playwright/test";
  *  - touch targets under 44px, which are unhittable for a thumb
  *  - content hidden behind the fixed bottom nav or the iOS home indicator
  *
- * Only public routes are covered. Authenticated pages would need a real session
- * fixture, and a logged-out redirect would make every failure ambiguous.
+ * Public routes are swept below; the signed-in timer is swept in the second
+ * describe, because a logged-out visit to it now lands on /login and a failure
+ * measured there would be ambiguous for exactly the reason this note used to
+ * give.
  */
 
 const PUBLIC_ROUTES = [
   "/",
-  "/focus",
+  // "/focus" left this list when the timer started requiring a session: as a
+  // guest it now redirects to /login, and an overflow measured on the login
+  // page would say nothing about the timer. It is covered below instead, signed
+  // in, and its gate is asserted in `auth-gate.spec.ts`.
   "/go/ig",
   "/blog",
   "/changelog",
@@ -117,6 +122,25 @@ test.describe("no horizontal overflow", () => {
       ).toBeLessThanOrEqual(clientWidth + 1);
     });
   }
+});
+
+test.describe("no horizontal overflow, signed in", () => {
+  // The timer moved behind the session, so the guest sweep above can no longer
+  // measure it. Same contract, one authenticated route.
+  test("/focus fits the viewport width", async ({ page }) => {
+    await authenticate(page);
+    await gotoRoute(page, "/focus");
+
+    const { scrollWidth, clientWidth } = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+
+    expect(
+      scrollWidth,
+      `/focus scrolls horizontally: content is ${scrollWidth}px in a ${clientWidth}px viewport`,
+    ).toBeLessThanOrEqual(clientWidth + 1);
+  });
 });
 
 test.describe("mobile layout", () => {

@@ -8,6 +8,7 @@ import { useActivePet } from "@/hooks/useActivePet";
 import { PetStage2D } from "@/components/pets/PetStage2D";
 import { petSpeciesEmoji } from "@/lib/petSpecies";
 import { useAppearanceFields } from "@/lib/appearance";
+import { playChime } from "@/lib/audioLayers";
 import { useAuth } from "@/lib/auth";
 import { SessionRecoveryProvider } from "@/components/SessionRecoveryContext";
 import Timer from "@/components/Timer";
@@ -652,7 +653,7 @@ function FirstRunHint({ onDismiss }: { onDismiss: () => void }) {
           <ol className="mt-1.5 space-y-1 text-xs leading-relaxed text-[var(--foreground-muted)]">
             <li><span className="font-semibold text-[var(--foreground)]">1.</span> Pick a length — 25 minutes is the usual starting point.</li>
             <li><span className="font-semibold text-[var(--foreground)]">2.</span> Press start, then put the phone face-down. That is the whole trick.</li>
-            <li><span className="font-semibold text-[var(--foreground)]">3.</span> When the block ends, you will see exactly what it earned. No account needed to try it — signing up later keeps the history.</li>
+            <li><span className="font-semibold text-[var(--foreground)]">3.</span> When the block ends, you will see exactly what it earned — and it stays in your history, because the session is tied to your free account.</li>
           </ol>
         </div>
         <button
@@ -701,6 +702,11 @@ export default function FocusHomePage() {
   const handleSessionComplete = () => {
     trackSessionCompleted();
     feedback.recordSession();
+    // The uploaded build's completion chime (four rising notes, see
+    // `lib/audioLayers`); it is the one sound the mixer does not own, so it has
+    // its own switch in the ambient panel and is on by default, as it was in
+    // the build it came from.
+    playChime();
   };
 
   // Deep-link entry (?duration=&task= from /go/ig and shared links).
@@ -727,15 +733,15 @@ export default function FocusHomePage() {
   return (
     <SessionRecoveryProvider>
       <div className="flex flex-col min-h-[100dvh] focus-chamber relative" data-layout={layout}>
-        {/* The screen a shared link and an Instagram bio both land on had no
-            heading of any kind — the first thing a visitor saw was a greeting
-            ("Good morning, there") and a ring. Screen readers announced a page
-            with no title, and the funnel's one indexable element was missing.
-            Visually hidden on purpose: this page is the timer, and a headline
-            above it would push the ring below the fold on a phone. The
-            prerendered document keeps its own visible H1 for crawlers. */}
+        {/* The timer had no heading of any kind — the first thing a visitor saw
+            was a greeting ("Good morning, there") and a ring, and screen
+            readers announced a page with no title. Visually hidden on purpose:
+            this page is the timer, and a headline above it would push the ring
+            below the fold on a phone. It names the gate because that is now the
+            first thing this screen asks of anyone — see /login. The prerendered
+            document keeps its own visible H1 for crawlers. */}
         <h1 className="sr-only">
-          FocusArx focus timer — start a session free, no account needed
+          FocusArx focus timer — sign in and start a session
         </h1>
         <SceneBackdrop />
         <FocusChamberHeader />
