@@ -22,10 +22,20 @@ import type { Page } from "@playwright/test";
 
 const ORIGIN = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:4173";
 
+/**
+ * Deliberately free of the strings any spec looks for on screen.
+ *
+ * It used to be called "E2E User", and `timer-persistence.spec.ts` asks the
+ * page for `getByText("E2E")` to confirm a deep-linked task name arrived — at
+ * which point Playwright's first match was this name in the header's hidden
+ * account menu, and the assertion failed on a correct page. A fixture's name is
+ * part of the DOM; it has to stay out of the way of the assertions that read
+ * the DOM.
+ */
 export const SESSION_USER = {
   id: "e2e-session-user",
-  email: "e2e@example.invalid",
-  name: "E2E User",
+  email: "fixture@example.invalid",
+  name: "Timer Fixture",
   role: "user",
   onboardingCompleted: true,
 } as const;
