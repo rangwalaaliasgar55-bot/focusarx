@@ -572,7 +572,7 @@ export default function ArenaPage() {
                     </div>
                   ))}
                   <p className="pt-1">
-                    Changed from <Link href="/settings" className="font-semibold underline">settings</Link>, or pinned for your account by an admin.
+                    Changed from <Link href="/profile?tab=custom" className="font-semibold underline">settings</Link>, or pinned for your account by an admin.
                   </p>
                 </CardContent>
               </Card>
