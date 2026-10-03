@@ -82,6 +82,8 @@ import { integrationsRouter } from "./integrations";
 import { voiceCaptureRouter } from "./voiceCapture";
 import { adminBattlePassRouter } from "./adminBattlePass";
 import { razorpayRouter } from "./razorpay";
+import { appearanceRouter } from "./appearance";
+import { adminAppearanceRouter } from "./adminAppearance";
 
 const router: IRouter = Router();
 
@@ -176,5 +178,10 @@ router.use(adminBattlePassRouter);
 // answers 503 RAZORPAY_NOT_CONFIGURED rather than 404, so the client can tell
 // "not enabled yet" apart from "this build does not have it".
 router.use(razorpayRouter);
+// Design packs: the account's own assignment (timer face, companion art, battle
+// board, workspace layout) and the battle log. The admin half is a separate
+// router because it answers to a different door (checkAdminAuth).
+router.use(appearanceRouter);
+router.use(adminAppearanceRouter);
 
 export default router;

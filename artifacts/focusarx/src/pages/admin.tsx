@@ -33,6 +33,7 @@ import { AdminBreakFreePanel } from "@/components/admin/AdminBreakFreePanel";
 import { AdminCityPanel } from "@/components/admin/AdminCityPanel";
 import { AdminTokensPanel } from "@/components/admin/AdminTokensPanel";
 import { AdminFlagsPanel } from "@/components/admin/AdminFlagsPanel";
+import { AdminAppearancePanel } from "@/components/admin/AdminAppearancePanel";
 import { UserManagerDialog } from "@/components/admin/UserManagerDialog";
 import { GeminiPanel } from "@/components/admin/GeminiPanel";
 import { SqlConsolePanel } from "@/components/admin/SqlConsolePanel";
@@ -189,6 +190,10 @@ export default function AdminPage() {
     site: () => <AdminSitePanel authHeaders={authHeaders} />,
     tokens: () => <AdminTokensPanel authHeaders={authHeaders} />,
     flags: () => <AdminFlagsPanel authHeaders={authHeaders} />,
+    // Design packs: per-account assignment of the timer face, companion art,
+    // battle board and layout — and the log of which battle board is played.
+    // The panel owns its own header and fetch, like the other self-loading panels.
+    design: () => <AdminAppearancePanel authHeaders={authHeaders} />,
   };
 
   return (

@@ -10,6 +10,7 @@ import { useNow } from "@/hooks/useNow";
 import type { TimerMode } from "@/types/timer";
 import { FlipClockDisplay } from "@/components/FlipClockDisplay";
 import { TimerFaceBars, TimerFaceDots, TimerFaceRounds, TimerFaceSegments } from "@/components/timerfaces/TimerFaces";
+import { STUDIO_FACES } from "@/components/timerfaces/TimerFacesStudio";
 
 interface TimerDisplayProps {
   secondsLeft: number;
@@ -262,8 +263,14 @@ export function TimerDisplay({
   // Layout faces own the whole face, skin or not: the geometry is the point, and
   // a membership skin only supplies the accent colour it is drawn in. They are
   // listed once, here, so a face added to the registry cannot silently render as
-  // a ring because this branch was not extended.
-  const LAYOUT_FACES = new Set<TimerTheme>(["segments", "bars", "dots", "rounds"]);
+  // a ring because this branch was not extended — `timerTheme.test.ts` asserts
+  // every id in the registry reaches a component and that this switch covers the
+  // same set.
+  const LAYOUT_FACES = new Set<TimerTheme>([
+    "segments", "bars", "dots", "rounds",
+    // Ported design-pack faces.
+    "aurora", "orbit", "hourglass", "companion", "garden",
+  ]);
   if (LAYOUT_FACES.has(theme)) {
     const FaceProps = {
       secondsLeft,
@@ -288,7 +295,12 @@ export function TimerDisplay({
           {theme === "segments" ? <TimerFaceSegments {...FaceProps} />
             : theme === "bars" ? <TimerFaceBars {...FaceProps} />
             : theme === "dots" ? <TimerFaceDots {...FaceProps} />
-            : <TimerFaceRounds {...FaceProps} />}
+            : theme === "rounds" ? <TimerFaceRounds {...FaceProps} />
+            : theme === "aurora" ? <STUDIO_FACES.aurora {...FaceProps} />
+            : theme === "orbit" ? <STUDIO_FACES.orbit {...FaceProps} />
+            : theme === "hourglass" ? <STUDIO_FACES.hourglass {...FaceProps} />
+            : theme === "companion" ? <STUDIO_FACES.companion {...FaceProps} />
+            : <STUDIO_FACES.garden {...FaceProps} />}
         </motion.div>
       </AnimatePresence>
     );

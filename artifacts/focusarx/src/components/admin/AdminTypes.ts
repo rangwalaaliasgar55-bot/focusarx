@@ -83,7 +83,7 @@ export type Tab =
   | "overview" | "analytics" | "users" | "moderation" | "missions" | "retention" | "sql" | "rivals" | "breakfree"
   | "marketplace" | "pets" | "lootboxes" | "battlepass" | "quests"
   | "city" | "notify" | "drops" | "economy" | "coins" | "email" | "premium" | "site" | "gemini"
-  | "tokens" | "flags";
+  | "tokens" | "flags" | "design";
 
 // ─── Common props interface for admin panels ────────────────────────────────
 

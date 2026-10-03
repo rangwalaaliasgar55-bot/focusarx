@@ -1,11 +1,26 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { render, cleanup, fireEvent, screen } from "@testing-library/react";
+import { render, cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { DEFAULT_ACCENT, ACCENT_PRESETS } from "@/lib/accent";
 
 const LS_ACCENT = "focusarx-accent";
+
+/**
+ * The section reads the account's design assignment and writes it back, so it
+ * needs the app's query client — `App.tsx` provides one for the whole tree. The
+ * client is per-render so no cached appearance leaks between cases.
+ */
+function renderSettings() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+  return render(
+    <QueryClientProvider client={client}>
+      <AppearanceSettings />
+    </QueryClientProvider>,
+  );
+}
 
 describe("AppearanceSettings color customization", () => {
   beforeEach(() => {
@@ -20,17 +35,20 @@ describe("AppearanceSettings color customization", () => {
   });
 
   it("renders theme cards and accent presets", () => {
-    render(<AppearanceSettings />);
+    renderSettings();
     expect(screen.getByText("Theme & color")).toBeDefined();
+    // Scoped to the theme group: "Aurora" is also a timer face further down the
+    // section, and an unscoped lookup now matches both.
+    const themes = within(screen.getByRole("group", { name: "Colour theme" }));
     for (const label of ["Midnight", "Daylight", "Midnight Gold", "Aurora", "Crimson"]) {
-      expect(screen.getByText(label)).toBeDefined();
+      expect(themes.getByText(label)).toBeDefined();
     }
     expect(screen.getByLabelText("Emerald accent color")).toBeDefined();
     expect(screen.getByLabelText("Pick a custom accent color")).toBeDefined();
   });
 
   it("applies a preset accent to the document tokens and persists it", () => {
-    render(<AppearanceSettings />);
+    renderSettings();
 
     fireEvent.click(screen.getByLabelText("Emerald accent color"));
 
@@ -43,7 +61,7 @@ describe("AppearanceSettings color customization", () => {
   });
 
   it("applies a custom color from the color input", () => {
-    render(<AppearanceSettings />);
+    renderSettings();
 
     fireEvent.change(screen.getByLabelText("Pick a custom accent color"), {
       target: { value: "#ff6600" },
@@ -54,7 +72,7 @@ describe("AppearanceSettings color customization", () => {
   });
 
   it("reset clears overrides and returns to the default palette", () => {
-    render(<AppearanceSettings />);
+    renderSettings();
 
     fireEvent.click(screen.getByLabelText("Rose accent color"));
     expect(document.documentElement.style.getPropertyValue("--brand-500")).toBe("#F43F5E");
@@ -66,7 +84,7 @@ describe("AppearanceSettings color customization", () => {
 
   it("restores the stored accent on next render", () => {
     localStorage.setItem(LS_ACCENT, "teal");
-    render(<AppearanceSettings />);
+    renderSettings();
 
     // applyTheme (via useTheme on mount) re-asserts the stored accent.
     expect(document.documentElement.style.getPropertyValue("--brand-500")).toBe("#14B8A6");

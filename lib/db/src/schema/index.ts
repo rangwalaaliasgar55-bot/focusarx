@@ -13,3 +13,4 @@ export * from "./flashcards";
 export * from "./platform";
 export * from "./premium-economy";
 export * from "./integrations";
+export * from "./appearance";

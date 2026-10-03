@@ -143,6 +143,10 @@ interface MonsterBattleArenaProps {
   isPaused?: boolean;
   petLevel?: number;
   onComplete?: (outcome: "victory" | "defeat") => void;
+  /** Battle board from the design pack (`duel` / `arena` / `retro`). */
+  board?: "duel" | "arena" | "retro";
+  /** The compact layout: the fight keeps its numbers and loses its scene. */
+  compact?: boolean;
 }
 
 /** Decay a value from 1 to 0 once per strike, for the 3D lunge. Kept out of
@@ -495,6 +499,8 @@ export default function MonsterBattleArena({
   isPaused = false,
   petLevel = 1,
   onComplete,
+  board = "duel",
+  compact = false,
 }: MonsterBattleArenaProps) {
   /* Level comes from the pet inventory over the network, so it lands after the
      first render. Reading it live instead of freezing it into the initial state
@@ -657,8 +663,20 @@ export default function MonsterBattleArena({
         ? "Battle in progress."
         : "Ready.";
 
+  // `retro` is the handheld-console reading of whichever board is on: the same
+  // fight, monospaced and two-tone. `compact` is the layout pack's smallest
+  // footprint — the scene is what goes, never a number or a bar, because the
+  // fight's *result* must not depend on which layout is on screen.
+  const retro = board === "retro";
+
   return (
-    <div className="w-full overflow-hidden rounded-2xl border border-[var(--forge-border)] bg-[var(--card)]">
+    <div
+      data-board={board}
+      data-compact={compact ? "true" : undefined}
+      className={`w-full overflow-hidden rounded-2xl border border-[var(--forge-border)] bg-[var(--card)] ${
+        retro ? "font-mono [--brand-400:var(--palette-emerald-400)]" : ""
+      }`}
+    >
       {/* Battle Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--forge-border)] bg-[var(--surface-1)] px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
@@ -675,7 +693,9 @@ export default function MonsterBattleArena({
         </div>
       </div>
 
-      {/* 3D Arena */}
+      {/* 3D Arena — dropped in the compact layout, where a 256px scene is the
+          whole screen on a phone. */}
+      {!compact && (
       <div className="relative h-64 w-full">
         <Canvas
           camera={{ position: [0, 2, 8], fov: 50 }}
@@ -710,6 +730,7 @@ export default function MonsterBattleArena({
           ) : null}
         </AnimatePresence>
       </div>
+      )}
 
       {/* Health Bars + turn order.
           Out of the absolutely-positioned overlay and into flow: two fixed
@@ -733,7 +754,7 @@ export default function MonsterBattleArena({
           />
         </div>
 
-        <RoundStrip round={shownFrame.round} striker={shownFrame.striker} />
+        {!compact && <RoundStrip round={shownFrame.round} striker={shownFrame.striker} />}
 
         {/* One polite live region for the whole fight, so the bars, the round
             counter and the countdown have one narrated source instead of three
