@@ -127,7 +127,7 @@ export function LandingTimerPreview() {
       <div className="flex items-center justify-between gap-3">
         <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--foreground-subtle)]">
           <span className={cn("h-1.5 w-1.5 rounded-full", status === "running" ? "bg-[var(--success)]" : "bg-[var(--border-strong)]")} aria-hidden="true" />
-          Try it — no signup
+          Try it here — nothing is saved
         </p>
         <Link href={continueHref} className="inline-flex min-h-8 items-center gap-1 rounded-lg px-2 text-xs font-medium text-[var(--foreground-muted)] transition-colors hover:text-[var(--foreground)]" aria-label="Open the full focus timer">
           Full timer <Maximize2 size={12} aria-hidden="true" />

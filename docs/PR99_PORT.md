@@ -72,7 +72,8 @@ registers are asserted against each other in `lib/timerTheme.test.ts` and
 | Move names across `lib/pets.ts` (24 moves) | `MOVE_NAMES` per element: Inferno Comet, Tidal Crash, Solar Beam, Thunder Spark, Draco Meteor, Claw Swipe, Bubble Bonk, Zip Strike, Cinder Guard, Healing Mist, Charge Up, Photosynthesis, Void Veil, Comet Nudge, Starfall, Supernova |
 | `ARENA: ArenaStage[]` + `pages/Arena.tsx` "The ladder" | `lib/arenaLadder.ts` — the same six cups, names and blurbs verbatim, on `/arena` (see `docs/DESIGN_PACKS.md`) |
 | `pet/ArenaScene.tsx` + `Particles.tsx` (a `@react-three/fiber` + `drei` battle scene) | `components/MonsterBattleArena.tsx` — see "what was not ported" |
-| `lib/sound.ts`, `lib/audio.ts` (hit/guard/crit cues) | Not ported; this app's audio layer is its own |
+| `lib/sound.ts` (hit/guard/crit battle cues) | Not ported: this app's battle board reports a hit with its own cue set and `lib/petBattle.ts` exposes the same crit/guard/effectiveness flags, so a second cue table would be a second opinion about one event |
+| `lib/audio.ts` ×3 (ambient layers, chime, click) | Ported — see **Audio** below |
 
 ## Layouts and the shell
 
@@ -97,6 +98,60 @@ Where the uploads' shells also contributed is the visual language: panel/chip/
 segmented-control treatment, the stat row on the focus page, and the nav's
 active-pill behaviour.
 
+## Audio
+
+The uploads ship **three different** audio modules, not three copies of one.
+Each was read in full, and each asked a different question.
+
+| Upload source | Here | What happened |
+| --- | --- | --- |
+| `redesign-focusarx-frontend-interface/src/lib/audio.ts` (212 lines: `LAYERS` rain/brown/ocean/wind, `setLayer`, `stopAll`, `getVolumes`, `subscribeAudio`, `playChime`, `playTick`) | `lib/audioLayers.ts` + a **Layer mixer** section in `components/AmbientSoundBar.tsx` | Ported as-is: the same noise colours, the same filter frequencies (rain: highpass 900 → peak 3.2 kHz +4 → lowpass 7.5 kHz; brown: lowpass 900; ocean: lowpass 1.1 kHz with a 0.09 Hz swell; wind: bandpass 520 Q 0.8 swept ±260 Hz), the same `vol² × 0.55` fader law, the same 120 ms glide, the same 700 ms teardown that is cancelled if the layer comes back, and the same four-fader interaction. The one structural change: it borrows this app's single AudioContext from `ambientEngine` (`shareEngineContext`) instead of opening a second one |
+| `new-chat/src/lib/audio.ts` (`LayerId` rain/brown/waves/wind, `chime("done"\|"break")`, `click()`) | same file | The layers are the mixer above (`waves` is the table's `ocean`); `chime("done")`, the descending break cue and the 520 Hz click are ported as `playChime`/`playBreakChime`/`playClick` |
+| `redesign-focusarx-frontend-and-pets/src/lib/audio.ts` (`SOUNDS`: off/rain/brown/ocean/wind/fire/white, `playAmbient(id, volume)`, `setVolume`, `stopAmbient`) | `lib/ambientEngine.ts` | Already a subset of this app's engine, which has all seven (`rain`, `brown`, `ocean`, `wind`, `fireplace` for their "fire", `white`, plus fifteen more) with per-sound volume and stop. Asserted in `lib/ambientEngine.test.ts`; re-implementing seven ids that already exist would have been a second mixer for the same sounds |
+
+The chime is wired to a real moment: `pages/focus.tsx` plays it when a session
+completes, and the mixer carries the switch ("Chime when a session ends",
+`focusarx-completion-chime`, on by default as in the upload). The break cue and
+the click are ported, exported and tested but not yet attached, because both
+completion callbacks in this app are `() => void` — they do not say whether the
+block that ended was work or a break, and inventing that plumbing to trigger a
+sound would be the kind of invention this document exists to avoid.
+
+## Pet care states (showcasing)
+
+The uploads' companion pages are built around one list — `PetAnim`: `idle`,
+`wave`, `eat`, `victory`, `guard`, `heal`, `boost`, `sad`, `sleep`, plus the
+battle states — and one care row: **Feed**, **Play**, **Pet**, each of which
+stages a state and, in their local store, nudges coins/treats/joy.
+
+| Upload source | Here |
+| --- | --- |
+| `PetAnim` and the care row on `pages/Companion.tsx` | `WildAnim` in `components/pets/ProceduralWildPet.tsx` gained the seven action states; `components/Pet3D.tsx` takes an `anim` prop that outranks the server-derived mood and maps the states onto rig dynamics for the six hand-built species as well (`ACTIONS`, next to `MOODS`); the parametric body poses them properly |
+| The three actions and their feedback | A care row on the active-pet card in `pages/pets.tsx` (Pet → wave, Feed → eat, Play → victory), with the same 900 ms floor between taps that their `play()` uses, and the 2D stage naming the action in its chip (`PetStage2D`'s `MOOD_LABEL`) so the flat artwork reacts too |
+| Their coin/treat/hunger/joy economy (`feedPet`, `playWithPet`, `patPet` in `lib/store.ts`) | **Not copied.** It lives entirely in the upload's `localStorage` store; here bond XP is written by finished sessions on the server, and a button that minted XP would make the level on the card a lie. The interaction is copied, the ledger is not — the copy under the row says so |
+| `lib/progress.ts` `GAMES`, `LEVELS`, `NEXT_UNLOCKS` | Rule tables for their local progression; this app's 20-level companion progression and unlock list already exist (`pages/pets.tsx`). The *states* were the port; the tables would have duplicated the ladder |
+
+## The sign-in gate
+
+Every upload is a guest-first demo: open it, use the timer, no account. The
+timer here now requires a session — a guest who opens `/focus` is sent to
+`/login?redirect=…` and comes back to the session they asked for, and `/login`
+on its own goes to the dashboard. That is a deliberate break from the uploads'
+assumption, so it is written down:
+
+* `src/App.tsx` wraps the `/focus` route in `ProtectedRoute` (the marketing
+  pages that *introduce* the timer stay public).
+* Copy that promised otherwise was corrected across `focus.tsx`, the landing
+  CTA and timer preview, `exam.tsx`, `guides.tsx`, `prerender-data.mjs` and the
+  content corpus (`blog.mjs`, `locale-pages.mjs`, `minute-timers.mjs`,
+  `seo-pages.mjs`, `exam/derive.mjs`) — twenty-odd claims, each reworded rather
+  than deleted, so the pages still argue for the product.
+* `tests/e2e/auth-gate.spec.ts` asserts the three properties that matter: a
+  guest is redirected, the deep link (query string included) survives the trip,
+  and a signed-in visitor gets the timer. `tests/e2e/session.ts` is the shared
+  signed-in fixture; `timer-persistence`, `cross-tab-leader` and `responsive`
+  now use it, because all three used to treat `/focus` as public.
+
 ## What was **not** ported, and why
 
 | Item | Why not |
@@ -117,3 +172,5 @@ active-pill behaviour.
 * `components/admin/AdminAppearancePanel.test.tsx` — the console's assignment write (including the pin and the frame) and its battle list, cup included.
 * `lib/shellFrames.test.ts` — every frame id has a branch or a stylesheet rule, the frame is published to the DOM, it is read from the assignment rather than hard-coded, and it is documented.
 * `lib/designPacks.test.ts` — the coercion at the edges: a stale id falls back per field, a poisoned cache degrades to defaults, and every shipped id survives a round trip.
+* `lib/audioLayers.test.ts` — the uploaded mixer's contracts: the four layers, the `vol² × 0.55` fader law, the 700 ms teardown and its cancellation, the four-note chime, the break cue and the click, and the chime switch.
+* `tests/e2e/auth-gate.spec.ts` — the timer is not public: redirect, deep-link survival, and the signed-in path.

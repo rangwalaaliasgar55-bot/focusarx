@@ -54,7 +54,7 @@ const COLLECTIONS = [
     guides: [
       { href: "/study-method-quiz", icon: <Sparkles size={18} />, label: "Study Method Quiz", blurb: "Two minutes to find which study method fits your brain, schedule, and goals." },
       { href: "/study-calculator", icon: <Calculator size={18} />, label: "Study Time Calculator", blurb: "Enter your exam date and topics — get a personalized, retention-optimized schedule." },
-      { href: "/pomodoro-timer", icon: <Timer size={18} />, label: "Pomodoro Timer", blurb: "Free 25/5 timer in your browser. Custom intervals, session history, streaks — no signup to start." },
+      { href: "/pomodoro-timer", icon: <Timer size={18} />, label: "Pomodoro Timer", blurb: "Free 25/5 timer in your browser. Custom intervals, session history, streaks." },
       { href: "/study-timer", icon: <Clock size={18} />, label: "Study Timer", blurb: "Timed study blocks tied to subjects, so revision progress is measurable rather than a feeling." },
       { href: "/adhd-focus-tools", icon: <Sparkles size={18} />, label: "ADHD-Friendly Focus Tools", blurb: "Visual timers, body doubling rooms and recovery-friendly streaks. Free, no diagnosis required." },
     ],

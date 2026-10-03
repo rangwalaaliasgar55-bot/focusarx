@@ -68,7 +68,7 @@ const CONTENT = {
     description:
       "Free focus timer for Indian exam prep — JEE, NEET, UPSC, CA, GATE, boards. Pomodoro sessions, IST streaks, an AI coach. No card, no payment.",
     h1: "The focus timer for Indian exam aspirants",
-    lead: "FocusArx started as a study tool for Indian exams and it still shows: 21 of our 23 exam guides are for JEE, NEET, UPSC, CA, GATE, CLAT, CTET, CUET, SSC, IBPS, NDA, CAT and the CBSE boards. Start a timer in ten seconds — there is no signup wall and nothing to pay.",
+    lead: "FocusArx started as a study tool for Indian exams and it still shows: 21 of our 23 exam guides are for JEE, NEET, UPSC, CA, GATE, CLAT, CTET, CUET, SSC, IBPS, NDA, CAT and the CBSE boards. Sign in once and start a timer in seconds — nothing to pay, ever.",
     lastReviewed: "2026-09-18",
     software: {
       name: "FocusArx",
@@ -191,9 +191,9 @@ const CONTENT = {
   "us/": {
     title: "Free Focus Timer for US Students & Grad Test Prep",
     description:
-      "A free Pomodoro and deep work timer that runs with no account and no card. GRE and GMAT guides, distraction blocking, streaks that reset at your own midnight.",
+      "A free Pomodoro and deep work timer that asks for no card and no trial. GRE and GMAT guides, distraction blocking, streaks that reset at your own midnight.",
     h1: "A focus timer that starts before you do",
-    lead: "FocusArx is a free Pomodoro and deep work timer. The timer needs no account, no email and no card — it is running ten seconds after you land on it. If you are prepping the GRE or the GMAT, there are guides for those too.",
+    lead: "FocusArx is a free Pomodoro and deep work timer. No card, no trial, no upgrade nag — it is running seconds after a one-step sign-in. If you are prepping the GRE or the GMAT, there are guides for those too.",
     lastReviewed: "2026-09-18",
     software: {
       name: "FocusArx",

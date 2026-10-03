@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { authenticate } from "./session";
 
 /**
  * Single-timer contract across tabs (P0.3 e2e).
@@ -32,7 +33,11 @@ test.describe("cross-tab single timer", () => {
   });
 
   test("second tab stands down and mirrors the leader", async ({ page, context }) => {
+    // Both tabs need the session: the follower renders the same page and would
+    // otherwise bounce to /login instead of standing down.
+    await authenticate(page);
     const second = await context.newPage();
+    await authenticate(second);
     try {
       // Leader tab starts a session.
       await page.goto("/focus", { waitUntil: "domcontentloaded" });

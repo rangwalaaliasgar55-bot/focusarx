@@ -1020,10 +1020,10 @@ export const COMPARISONS = {
     description:
       "FocusArx vs Pomofocus compared — instant browser Pomodoro versus a full focus system with tasks, analytics, streaks and live study rooms.",
     lead: "Pomofocus is the reference implementation of an instant, no-friction browser Pomodoro, and it is very good at that. FocusArx keeps the instant start and builds a system on top of it.",
-    ours: ["Instant browser timer, no signup to start", "Saved sessions, streaks and focus score", "Task and goal tracking", "Analytics and trends", "Live study rooms", "AI coach", "Exam prep content"],
+    ours: ["Instant browser timer, free account, no card", "Saved sessions, streaks and focus score", "Task and goal tracking", "Analytics and trends", "Live study rooms", "AI coach", "Exam prep content"],
     theirs: ["Instant Pomodoro with zero setup", "Simple, fast, distraction-free UI", "Task list within a session", "Long track record as a browser timer"],
     rows: [
-      ["Starts in seconds without an account", true, true],
+      ["Starts in seconds, no card required", true, true],
       ["Custom interval lengths", true, true],
       ["Session history across visits", true, "Limited"],
       ["Streaks and focus score", true, false],

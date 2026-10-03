@@ -215,7 +215,7 @@ export const ROUTES = [
     faq: [
       [
         "Do I need an account to use the timer?",
-        "No. The focus timer is public and guest-first: open it, set a length and start. An account is only worth creating when you want your sessions, streaks and analytics saved across devices, or when you want the AI coach to read your history. You can use FocusArx for months without one.",
+        "You need one to run the timer. Everything that makes a session worth remembering — the history, the streaks, the analytics, the companion — hangs off an account, so the timer asks you to sign in first. Creating one is free and takes a moment; the marketing pages, the guides and every timer-length page stay readable without it.",
       ],
       [
         "Is FocusArx actually free?",
@@ -230,7 +230,7 @@ export const ROUTES = [
         "The attention monitor is optional and runs on-device: the model processes webcam frames in your browser and only the derived attention signal is stored. No video is uploaded. Everything else in FocusArx works with the camera off, and the camera-data page describes exactly what is and is not kept.",
       ],
     ],
-    cta: { href: "/focus", label: "Start a focus session — free, no account" },
+    cta: { href: "/focus", label: "Sign in and start a focus session" },
     related: GUIDE_LINKS,
   },
 
@@ -356,7 +356,7 @@ export const ROUTES = [
     faq: [
       [
         "What exactly is free?",
-        "Unlimited focus and deep-work sessions, tasks, habits and goals, XP and streaks, the session analytics, live study rooms, leaderboards, flashcards, and the whole guide library. There is no session limit, no trial timer and no account required to run the timer itself.",
+        "Unlimited focus and deep-work sessions, tasks, habits and goals, XP and streaks, the session analytics, live study rooms, leaderboards, flashcards, and the whole guide library. There is no session limit and no trial timer — a free account is all the timer asks for.",
       ],
       [
         "How do I earn Focus Tokens?",
@@ -437,7 +437,7 @@ export const ROUTES = [
       ],
       [
         "Are these guides free, and do I need an account?",
-        "Every guide and tool in this library is free and readable without an account. An account only matters if you want your sessions, streaks and analytics saved across devices; the focus timer itself starts a session without one.",
+        "Every guide and tool in this library is free and readable without an account. The focus timer itself asks you to sign in, because a session that is not saved to an account cannot show you a streak or a history.",
       ],
       [
         "Where do the claims in these guides come from?",
@@ -876,7 +876,7 @@ export const ROUTES = [
       ],
       [
         "Should I use a timer during the block?",
-        "Yes. A visible countdown makes the interval concrete, gives you a reason not to check anything until it rings, and turns 'study for a while' into a bounded commitment you can actually agree to. Pre-arming the length also removes a decision at the moment your motivation is lowest. The focus timer starts a 25, 50 or 90 minute block without an account.",
+        "Yes. A visible countdown makes the interval concrete, gives you a reason not to check anything until it rings, and turns 'study for a while' into a bounded commitment you can actually agree to. Pre-arming the length also removes a decision at the moment your motivation is lowest. Sign in, pick 25, 50 or 90 minutes, and the timer starts on that block.",
       ],
       [
         "Does this work for problem-based subjects like maths or physics?",
@@ -1327,7 +1327,7 @@ export const ROUTES = [
     faq: [
       ["Is the focus timer free?", "Yes. The core timer, tasks, streaks and public rooms are free forever. Premium unlocks with Focus Tokens earned from completed sessions."],
       ["How long can a session be?", "The default is 25 minutes. Premium presets allow 10 to 180 minutes for deep-work blocks."],
-      ["Do I need an account?", "Only to save sessions, streaks and analytics. The timer runs without one."],
+      ["Do I need an account?", "Yes — the timer asks you to sign in before it starts, so every session is saved to your history and your streak."],
     ],
     cta: { href: "/focus", label: "Start a free focus session" },
     related: ["/pomodoro-timer|Pomodoro timer", "/study-timer|Study timer", "/deep-work-guide|Deep work guide", "/focus-guide|How to focus"],
@@ -1335,18 +1335,18 @@ export const ROUTES = [
   },
   {
     path: "/focus",
-    title: "FocusArx focus timer: start a session free",
+    title: "FocusArx focus timer: sign in and start",
     description:
-      "The FocusArx focus app: a free online timer with tasks, streaks and session scoring.",
+      "The FocusArx focus app: a free online timer with tasks, streaks and session scoring. A free account is what makes a session count.",
     h1: "Focus, running in your browser",
-    lead: "One screen: the time that is left, the task you picked, and a Start button. Guests can run a full session with no account; signing in later saves history, streaks and analytics.",
+    lead: "One screen: the time that is left, the task you picked, and a Start button. Sign in first — a free account — and every session lands in your history, your streaks and your analytics.",
     answerFirst:
-      "The /focus app is the usable timer itself, not a page about a timer. Open /focus?duration=25&task=Revise+thermo to pre-arm a 25-minute slice with a task attached.",
+      "The /focus app is the usable timer itself, not a page about a timer. Sign in, then open /focus?duration=25&task=Revise+thermo to pre-arm a 25-minute slice with a task attached.",
     software: {
       name: "FocusArx Focus App",
       category: "ProductivityApplication",
       description:
-        "Guest-first focus timer with tasks, streaks, session scoring and deep links.",
+        "Focus timer with tasks, streaks, session scoring and deep links.",
     },
     sections: [
       {
@@ -1354,30 +1354,30 @@ export const ROUTES = [
         p: "Pick a duration or follow a link with one baked in. Press Start once — the timer is deadline-based, so background tabs, screen lock and sleep do not skew it. Pausing preserves the slice; completing records minutes, XP and streak progress.",
       },
       {
-        h: "Guests and accounts",
-        p: "Guests keep the current session across refresh and close on the same device. Signing in adds cloud history, streaks across devices, the AI coach and study rooms; local history is imported once, never overwritten.",
+        h: "Signing in",
+        p: "The timer asks for an account before it starts, so a finished session is never thrown away: minutes, XP, streaks and the companion all hang off it. Creating one is free, and any local history from before the change is imported once — never overwritten.",
       },
     ],
     faq: [
-      ["Do I need an account to use /focus?", "No. The timer runs fully for guests. An account adds cloud history, streaks, AI coaching and rooms."],
-      ["Can I link to a pre-set timer?", "Yes. /focus?duration=25&task=Revise+thermo arms a 25-minute slice with the task attached. Links from Instagram use /go/ig."],
+      ["Do I need an account to use /focus?", "Yes, a free one. The timer starts after you sign in, because the history, streaks and analytics it produces are the point; a signed-out visit is sent to the sign-in page and comes back to the session you asked for."],
+      ["Can I link to a pre-set timer?", "Yes. Sign in, then /focus?duration=25&task=Revise+thermo arms a 25-minute slice with the task attached, and the link survives the sign-in step. Links from Instagram use /go/ig."],
       ["Does the timer survive a locked phone?", "Yes. Remaining time derives from a wall-clock deadline, and the server re-verifies durations on save."],
     ],
-    cta: { href: "/signup", label: "Save sessions with a free account" },
+    cta: { href: "/signup", label: "Create a free account to start" },
     related: ["/focus-timer|Focus timer guide", "/pomodoro-timer|Pomodoro timer", "/study-timer|Study timer", "/pricing|Pricing — free forever"],
-    lastReviewed: "2026-09-04",
+    lastReviewed: "2026-10-03",
   },
   {
     path: "/changelog",
     title: "Changelog",
     description:
-      "What shipped in FocusArx lately: timer reliability fixes, streaks in your timezone, the /focus app and Instagram funnel.",
+      "What shipped in FocusArx lately: timer reliability fixes, streaks in your timezone, the sign-in gate on the focus app and the Instagram funnel.",
     h1: "Changelog",
     lead: "What shipped lately, newest first. Short sentences. No hype.",
     sections: [
       {
         h: "Unreleased",
-        p: "Guest timer sessions survive refresh and close. One tab runs the timer at a time. Streaks use your timezone. The public /focus app accepts deep links, and /go/ig arms it for Instagram traffic.",
+        p: "The timer now requires a session, so a finished slice always lands in your history, your streak and your analytics. One tab runs the timer at a time. Streaks use your timezone. Deep links arm a length and a task, and /go/ig forwards them for Instagram traffic.",
       },
       {
         h: "Version 1.0 and earlier",

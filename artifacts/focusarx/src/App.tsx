@@ -289,9 +289,16 @@ function RoutedContent() {
 
               {/* Core — Landing page for guests, Home for authenticated */}
               <Route path="/"><ErrorBoundary><RootPage /></ErrorBoundary></Route>
-              {/* Standalone focus app: public, deep-linkable, guest-first.
-                  This is the Instagram funnel landing (see IgEntry). */}
-              <Route path="/focus"><ErrorBoundary><Suspense fallback={<PageLoader />}><FocusHomePage /></Suspense></ErrorBoundary></Route>
+              {/* The timer requires a session.
+                  It used to be deliberately public — an Instagram or shared
+                  link landed straight on a usable timer with no account, and
+                  that is what this app no longer does. A guest is sent to
+                  /login with the destination preserved (ProtectedRoute), so
+                  signing in still drops them on the timer they asked for; a
+                  plain visit to /login goes to the dashboard. The pages that
+                  *introduce* the timer (/focus-timer, /pomodoro-timer, the
+                  guides) stay public — only the app itself is gated. */}
+              <Route path="/focus"><ErrorBoundary><ProtectedRoute component={FocusHomePage} /></ErrorBoundary></Route>
               <Route path="/go/ig" component={IgEntry} />
               <Route path="/changelog"><ErrorBoundary><Suspense fallback={<PageLoader />}><ChangelogPage /></Suspense></ErrorBoundary></Route>
               <Route path="/blog"><ErrorBoundary><Suspense fallback={<PageLoader />}><BlogPage /></Suspense></ErrorBoundary></Route>

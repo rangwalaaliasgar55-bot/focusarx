@@ -15,7 +15,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { is3DCapable } from "@/lib/webglCapability";
 import { petBodyParams, type PetBodyParams } from "@/lib/petBodyParams";
-import { ProceduralWildPet, mapMoodToAnim } from "@/components/pets/ProceduralWildPet";
+import { ProceduralWildPet, mapMoodToAnim, type WildAnim } from "@/components/pets/ProceduralWildPet";
 import { useAppearanceFields } from "@/lib/appearance";
 import type { PetDesignId } from "@/lib/designPacks";
 import { installThreeConsoleFilter, onWebGLContextLost } from "@/lib/threeConsole";
@@ -44,11 +44,42 @@ class Pet3DErrorBoundary extends Component<{ onCrash?: () => void; children: Rea
 
 type MoodName = "happy" | "excited" | "sleepy" | "focused";
 
-const MOODS: Record<MoodName, { amp: number; speed: number; headTilt: number; headNod: number; eyeScale: number; flap: number; flapSpeed: number }> = {
+type RigDynamics = { amp: number; speed: number; headTilt: number; headNod: number; eyeScale: number; flap: number; flapSpeed: number };
+
+const MOODS: Record<MoodName, RigDynamics> = {
   happy:    { amp: 0.05,  speed: 2.2, headTilt: 0.0,  headNod: 0.0,  eyeScale: 1.0,  flap: 0.12, flapSpeed: 2.0 },
   excited:  { amp: 0.1,   speed: 3.8, headTilt: 0.04, headNod: 0.04, eyeScale: 1.08, flap: 0.3,  flapSpeed: 5.0 },
   sleepy:   { amp: 0.02,  speed: 0.9, headTilt: 0.16, headNod: 0.22, eyeScale: 0.45, flap: 0.04, flapSpeed: 1.0 },
   focused:  { amp: 0.035, speed: 1.7, headTilt: 0.05, headNod: 0.0,  eyeScale: 0.9,  flap: 0.1,  flapSpeed: 2.2 },
+};
+
+/**
+ * The uploads' care/battle states, expressed as rig dynamics.
+ *
+ * The hand-built species rigs animate from a mood, not from a pose list, so a
+ * care action plays here as the *rhythm* it should have — a wave is quick and
+ * upright, an eat is a small fast bob with a lowered head — while the
+ * parametric bodies (`ProceduralWildPet`) pose it properly. Both are the same
+ * gesture to the person tapping the button, which is the point: the pet reacts
+ * to being petted on every art pack, not only on one.
+ */
+const ACTIONS: Record<WildAnim, RigDynamics> = {
+  idle:      MOODS.happy,
+  happy:     { ...MOODS.happy, amp: 0.07, speed: 3.0 },
+  focus:     MOODS.focused,
+  break:     { amp: 0.04, speed: 1.4, headTilt: 0.06, headNod: 0.02, eyeScale: 1.0,  flap: 0.16, flapSpeed: 1.6 },
+  celebrate: { ...MOODS.excited, amp: 0.14, speed: 4.6 },
+  sleep:     MOODS.sleepy,
+  attack:    { amp: 0.05, speed: 5.0, headTilt: -0.05, headNod: 0.12, eyeScale: 0.7, flap: 0.34, flapSpeed: 7.0 },
+  hurt:      { amp: 0.03, speed: 4.2, headTilt: -0.12, headNod: -0.08, eyeScale: 0.5, flap: 0.2, flapSpeed: 6.0 },
+  faint:     { amp: 0.008, speed: 0.5, headTilt: 0.3,  headNod: 0.34, eyeScale: 0.08, flap: 0.0, flapSpeed: 0.6 },
+  wave:      { amp: 0.055, speed: 5.4, headTilt: 0.06, headNod: 0.0,  eyeScale: 1.1,  flap: 0.42, flapSpeed: 9.0 },
+  eat:       { amp: 0.06, speed: 6.5, headTilt: 0.34, headNod: 0.18, eyeScale: 0.85, flap: 0.06, flapSpeed: 2.0 },
+  victory:   { amp: 0.16, speed: 5.2, headTilt: -0.06, headNod: 0.0, eyeScale: 1.12, flap: 0.5,  flapSpeed: 8.0 },
+  sad:       { amp: 0.015, speed: 0.9, headTilt: 0.22, headNod: 0.3,  eyeScale: 0.55, flap: 0.02, flapSpeed: 0.8 },
+  guard:     { amp: 0.02, speed: 1.2, headTilt: -0.08, headNod: 0.04, eyeScale: 0.8,  flap: 0.03, flapSpeed: 1.4 },
+  heal:      { amp: 0.05, speed: 1.9, headTilt: -0.14, headNod: 0.02, eyeScale: 0.7,  flap: 0.2,  flapSpeed: 2.6 },
+  boost:     { amp: 0.04, speed: 3.4, headTilt: 0.0,  headNod: -0.1,  eyeScale: 1.05, flap: 0.26, flapSpeed: 3.4 },
 };
 
 const STAGE_SCALE = [0.85, 1.0, 1.12, 1.22];
@@ -58,7 +89,7 @@ const STAGE_SCALE = [0.85, 1.0, 1.12, 1.22];
 // Shared mood animation for every species. The hook owns the refs and only
 // ever touches them from useFrame; models destructure the result and bind each
 // ref in their own JSX.
-function usePetRig(mood: string) {
+function usePetRig(mood: string, anim?: WildAnim) {
   const pet = useRef<THREE.Group>(null);
   const eyes = useRef<THREE.Group>(null);
   const head = useRef<THREE.Group>(null);
@@ -69,7 +100,9 @@ function usePetRig(mood: string) {
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
-    const m = MOODS[mood as MoodName] ?? MOODS.happy;
+    // An explicit action (a care tap, a battle state) outranks the mood the
+    // server reports: the user just asked for this one.
+    const m = anim ? ACTIONS[anim] ?? MOODS.happy : MOODS[mood as MoodName] ?? MOODS.happy;
 
     if (pet.current) {
       pet.current.position.y = Math.sin(t * m.speed) * m.amp;
@@ -130,12 +163,12 @@ function BlobShadow({ scale = 1 }: { scale?: number }) {
   );
 }
 
-type ModelProps = { mood: string; stage: number };
+type ModelProps = { mood: string; stage: number; anim?: WildAnim };
 
 // ── species ─────────────────────────────────────────────────────────────────
 
-function OwlPet({ mood }: ModelProps) {
-  const { pet, eyes, head, wingsL, wingsR } = usePetRig(mood);
+function OwlPet({ mood, anim }: ModelProps) {
+  const { pet, eyes, head, wingsL, wingsR } = usePetRig(mood, anim);
   return (
     <group ref={pet}>
       {/* body */}
@@ -192,8 +225,8 @@ function OwlPet({ mood }: ModelProps) {
   );
 }
 
-function FoxPet({ mood }: ModelProps) {
-  const { pet, eyes, head, tail } = usePetRig(mood);
+function FoxPet({ mood, anim }: ModelProps) {
+  const { pet, eyes, head, tail } = usePetRig(mood, anim);
   return (
     <group ref={pet}>
       {/* tail (behind, sways) */}
@@ -253,8 +286,8 @@ function FoxPet({ mood }: ModelProps) {
   );
 }
 
-function DragonPet({ mood }: ModelProps) {
-  const { pet, eyes, head, wingsL, wingsR, tail } = usePetRig(mood);
+function DragonPet({ mood, anim }: ModelProps) {
+  const { pet, eyes, head, wingsL, wingsR, tail } = usePetRig(mood, anim);
   return (
     <group ref={pet}>
       {/* tail chain */}
@@ -321,8 +354,8 @@ function DragonPet({ mood }: ModelProps) {
   );
 }
 
-function RobotPet({ mood }: ModelProps) {
-  const { pet, eyes, head, wingsL, wingsR } = usePetRig(mood);
+function RobotPet({ mood, anim }: ModelProps) {
+  const { pet, eyes, head, wingsL, wingsR } = usePetRig(mood, anim);
   return (
     <group ref={pet}>
       {/* body */}
@@ -401,8 +434,8 @@ function RobotPet({ mood }: ModelProps) {
   );
 }
 
-function CatPet({ mood }: ModelProps) {
-  const { pet, eyes, head, tail } = usePetRig(mood);
+function CatPet({ mood, anim }: ModelProps) {
+  const { pet, eyes, head, tail } = usePetRig(mood, anim);
   return (
     <group ref={pet}>
       {/* tail curl */}
@@ -479,8 +512,8 @@ function CatPet({ mood }: ModelProps) {
   );
 }
 
-function PhoenixPet({ mood }: ModelProps) {
-  const rig = usePetRig(mood);
+function PhoenixPet({ mood, anim }: ModelProps) {
+  const rig = usePetRig(mood, anim);
   const { pet, eyes, head, wingsL, wingsR, tail } = rig;
   return (
     <group ref={pet}>
@@ -546,8 +579,8 @@ function PhoenixPet({ mood }: ModelProps) {
   );
 }
 
-function BulbasaurPet({ mood }: ModelProps) {
-  const { pet, eyes, head } = usePetRig(mood);
+function BulbasaurPet({ mood, anim }: ModelProps) {
+  const { pet, eyes, head } = usePetRig(mood, anim);
   return (
     <group ref={pet}>
       {/* The bulb is behind the body, with three broad leaves so the model is
@@ -854,18 +887,19 @@ export function modelKindFor(petType: string, design: PetDesignId): "rig" | "wil
   return MODELS[petType] ? "rig" : "wild";
 }
 
-function PetScene({ petType, mood, stage, accessories, design }: {
+function PetScene({ petType, mood, stage, accessories, design, anim }: {
   petType: string;
   mood: string;
   stage: number;
   accessories: Array<{ itemId: string; slot: string }>;
   design: PetDesignId;
+  anim?: WildAnim;
 }) {
   const stageClamped = Math.min(3, Math.max(0, Math.floor(stage)));
   const kind = modelKindFor(petType, design);
   const wildParams = useMemo<PetBodyParams>(() => petBodyParams(petType), [petType]);
   const model: (p: ModelProps) => ReactNode = kind === "wild"
-    ? () => <ProceduralWildPet params={wildParams} anim={mapMoodToAnim(mood)} look />
+    ? () => <ProceduralWildPet params={wildParams} anim={anim ?? mapMoodToAnim(mood)} look />
     : MODELS[petType] ?? MODELS.owl;
 
   // Gentle orbiting camera so the pet is never fully static. Runs through the
@@ -884,7 +918,7 @@ function PetScene({ petType, mood, stage, accessories, design }: {
       <pointLight position={[-3, 2, -2]} intensity={0.6} color="#a78bfa" />
       <BlobShadow scale={STAGE_SCALE[stageClamped]} />
       <group scale={STAGE_SCALE[stageClamped]}>
-        {model({ mood, stage: stageClamped })}
+        {model({ mood, stage: stageClamped, anim })}
         <Accessories petType={petType} accessories={accessories} />
       </group>
       <group scale={STAGE_SCALE[stageClamped]}>
@@ -904,6 +938,12 @@ export type Pet3DProps = {
   /** Called once if the WebGL context crashes at runtime (parent should fall back to 2D). */
   onCrash?: () => void;
   /**
+   * A one-shot action to play *now* — the uploads' `PetAnim` care states
+   * (`wave`, `eat`, `victory`, …). Takes priority over `mood`; leave it unset
+   * (or clear it) to fall back to the server-derived mood.
+   */
+  anim?: WildAnim;
+  /**
    * Companion art pack. Defaults to the account's assignment (see
    * `lib/appearance.ts`), which is what makes the admin console's per-user
    * choice visible without every call site passing it down.
@@ -911,7 +951,7 @@ export type Pet3DProps = {
   design?: PetDesignId;
 };
 
-export function Pet3D({ petType, mood = "happy", evolutionStage = 0, accessories = [], onCrash, design }: Pet3DProps) {
+export function Pet3D({ petType, mood = "happy", evolutionStage = 0, accessories = [], onCrash, design, anim }: Pet3DProps) {
   const { petDesign: assignedDesign } = useAppearanceFields();
   const resolvedDesign = design ?? assignedDesign;
   const scene = useMemo(
@@ -922,9 +962,10 @@ export function Pet3D({ petType, mood = "happy", evolutionStage = 0, accessories
         stage={evolutionStage}
         accessories={accessories}
         design={resolvedDesign}
+        anim={anim}
       />
     ),
-    [petType, mood, evolutionStage, accessories, resolvedDesign]
+    [petType, mood, evolutionStage, accessories, resolvedDesign, anim]
   );
 
   return (

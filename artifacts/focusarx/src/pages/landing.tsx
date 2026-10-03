@@ -160,11 +160,12 @@ function MarketingNav() {
           <Button asChild variant="ghost" className="hidden md:inline-flex">
             <Link href="/login">Sign in</Link>
           </Button>
-          {/* Points at the timer, not the signup form. /focus is public and
-              guest-first (see the route comment in App.tsx), so the promise on
-              the button — "start focusing" — is one click true. Sending this to
-              /signup asked for an account before showing the product, which is
-              the leak behind the 0.2-0.7% landing-to-timer rate. */}
+          {/* Points at the timer, not the signup form. /focus needs a session
+              now (see the route comment in App.tsx), so this click lands on
+              /login with the timer as its destination and returns there after
+              sign-in — still one intent, just an honest one. Sending it
+              straight to /signup is the version this used to be, and it asked
+              for an account before the visitor had seen anything. */}
           <Button asChild>
             <Link href="/focus">Start focusing <ArrowRight /></Link>
           </Button>

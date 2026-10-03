@@ -26,7 +26,14 @@ import type { PetBodyParams } from "@/lib/petBodyParams";
  *     these and both tracking the cursor looks broken.
  */
 
-export type WildAnim = "idle" | "focus" | "break" | "celebrate" | "sleep" | "attack" | "hurt" | "faint" | "happy";
+export type WildAnim =
+  | "idle" | "focus" | "break" | "celebrate" | "sleep" | "attack" | "hurt" | "faint" | "happy"
+  // Actions, from the uploads' own pet-state list (`PetAnim`: wave, eat,
+  // victory, guard, heal, boost, sad). Their companion page plays one of these
+  // per care action — pet it and it waves, feed it and it eats, play and it
+  // celebrates — so the states are part of the design being copied, not
+  // decoration bolted on afterwards.
+  | "wave" | "eat" | "victory" | "sad" | "guard" | "heal" | "boost";
 
 /** The app's mood vocabulary (server-derived) → this rig's animation state. */
 export function mapMoodToAnim(mood?: string | null): WildAnim {
@@ -90,6 +97,10 @@ export function ProceduralWildPet({ params, anim = "idle", look = false }: WildP
 
   const { body, belly, patch, ears, tail: tailKind, beak, wings, snout, horns, squish = 1, plan } = params;
   const sleeping = anim === "sleep" || anim === "faint";
+  /** Droop: the "sad" state lowers the whole body, not only the head. */
+  const droop = anim === "sad" ? 0.05 : 0;
+  /** Repeated small bounce, shared by the eating and boost rhythms. */
+  const bounce = (at: number, rate: number, height: number) => Math.abs(Math.sin(at * rate)) * height;
   // Computed once, outside the narrowing below: TypeScript learns from
   // `sleeping`'s definition that `anim` is not "faint" on the else branch, so
   // comparing against it there is flagged as impossible even though the value
@@ -107,25 +118,56 @@ export function ProceduralWildPet({ params, anim = "idle", look = false }: WildP
     if (root.current) {
       // Breathing and (for the celebrate state) a hop. Every animated property
       // is transform-only, so the GPU never lays out.
-      const hop = anim === "celebrate" ? Math.abs(Math.sin(t * 4)) * 0.12 : 0;
-      root.current.position.y = Math.sin(t * 1.6) * (sleeping ? 0.015 : 0.03) + hop;
+      const hop =
+        anim === "celebrate" ? bounce(t, 4, 0.12)
+          : anim === "victory" ? bounce(t, 5, 0.2)
+            : anim === "eat" ? bounce(t, 7, 0.05)
+              : anim === "boost" ? bounce(t, 3, 0.06)
+                : anim === "wave" ? bounce(t, 6, 0.04)
+                  : 0;
+      root.current.position.y = Math.sin(t * 1.6) * (sleeping ? 0.015 : 0.03) + hop - droop;
+      // `wave` sways the whole animal so the raised wing reads as a greeting
+      // rather than as a twitch; `guard` turns away, `sad` faces down.
+      const sway = anim === "wave" ? Math.sin(t * 6) * 0.22 : anim === "guard" ? 0.18 : anim === "sad" ? -0.08 : 0;
       root.current.rotation.y = THREE.MathUtils.damp(
         root.current.rotation.y,
-        anim === "attack" ? -0.35 : anim === "hurt" ? 0.28 : 0,
+        anim === "attack" ? -0.35 : anim === "hurt" ? 0.28 : sway,
         8,
         dt,
+      );
+      // The boost is a pulse of scale — the one state that changes size, which
+      // is what "winding up" looks like on a small animal.
+      const pulse = anim === "boost" ? 1 + Math.sin(t * 3) * 0.045 : 1;
+      root.current.scale.set(
+        bodyScale[0] * pulse,
+        bodyScale[1] * squish * pulse,
+        bodyScale[2] * pulse,
       );
     }
     const h = head.current;
     if (h) {
       const pointerX = look && !sleeping ? state.pointer.x * 0.6 : 0;
       const pointerY = look && !sleeping ? -state.pointer.y * 0.28 : 0;
-      const tilt = sleeping ? 0.42 : anim === "focus" ? 0.16 : anim === "attack" ? -0.2 : pointerY;
+      const tilt =
+        sleeping ? 0.42
+          : anim === "focus" ? 0.16
+            : anim === "attack" ? -0.2
+              : anim === "eat" ? 0.34
+                : anim === "sad" ? 0.5
+                  : anim === "guard" ? -0.08
+                    : anim === "heal" ? -0.16
+                      : anim === "victory" ? -0.24
+                        : pointerY;
       h.rotation.y = THREE.MathUtils.damp(h.rotation.y, pointerX, 6, dt);
       h.rotation.x = THREE.MathUtils.damp(h.rotation.x, tilt, 6, dt);
       h.rotation.z = THREE.MathUtils.damp(
         h.rotation.z,
-        sleeping ? 0.14 : anim === "break" ? Math.sin(t * 3) * 0.1 : anim === "hurt" ? -0.12 : 0,
+        sleeping ? 0.14
+          : anim === "break" ? Math.sin(t * 3) * 0.1
+            : anim === "hurt" ? -0.12
+              : anim === "wave" ? Math.sin(t * 6) * 0.12
+                : anim === "sad" ? -0.1
+                  : 0,
         6,
         dt,
       );
@@ -134,18 +176,41 @@ export function ProceduralWildPet({ params, anim = "idle", look = false }: WildP
     if (e) {
       const cycle = (t * 0.9 + blinkOffset) % 4;
       const blink = cycle < 0.13 ? 0.08 : 1;
-      const target = sleeping ? 0.07 : hurtLike ? 0.3 : blink;
+      // Squinting reads as unhappy, half-closed as content; both are in the
+      // eye scale this rig already animates.
+      const target =
+        sleeping ? 0.07
+          : hurtLike ? 0.3
+            : anim === "sad" ? 0.45
+              : anim === "heal" ? 0.6
+                : anim === "boost" ? 0.7
+                  : blink;
       e.scale.y = THREE.MathUtils.damp(e.scale.y, target, 30, dt);
     }
     const tl = tail.current;
     if (tl) {
-      const speed = anim === "celebrate" || anim === "happy" ? 9 : anim === "focus" ? 4 : 2.4;
+      const speed =
+        anim === "celebrate" || anim === "happy" || anim === "victory" || anim === "wave" ? 9
+          : anim === "eat" ? 6
+            : anim === "sad" ? 1.2
+              : anim === "focus" ? 4
+                : 2.4;
       tl.rotation.y = Math.sin(t * speed) * (sleeping ? 0.05 : 0.45);
     }
-    const flap = anim === "celebrate" ? 0.55 : anim === "focus" ? 0.12 : anim === "break" ? 0.3 : 0.05;
-    const f = Math.sin(t * (anim === "celebrate" ? 16 : 5)) * flap;
-    if (wingL.current) wingL.current.rotation.z = -0.25 - f;
-    if (wingR.current) wingR.current.rotation.z = 0.25 + f;
+    const flap =
+      anim === "celebrate" || anim === "victory" ? 0.55
+        : anim === "wave" ? 0.4
+          : anim === "heal" ? 0.2
+            : anim === "focus" ? 0.12
+              : anim === "break" ? 0.3
+                : anim === "guard" ? 0.02
+                  : 0.05;
+    const f = Math.sin(t * (anim === "celebrate" || anim === "victory" ? 16 : anim === "wave" ? 12 : 5)) * flap;
+    // The greeting: the right wing is held up and swung, which is the whole
+    // difference between "flapping" and "waving".
+    const waving = anim === "wave" ? 0.85 + Math.sin(t * 9) * 0.35 : 0;
+    if (wingL.current) wingL.current.rotation.z = -0.25 - f - (anim === "guard" ? 0.5 : 0);
+    if (wingR.current) wingR.current.rotation.z = 0.25 + f + waving + (anim === "guard" ? 0.5 : 0);
     const twitch = Math.sin(t * 7) > 0.97 ? 0.3 : 0;
     if (earL.current) earL.current.rotation.z = THREE.MathUtils.damp(earL.current.rotation.z, 0.12 + twitch, 14, dt);
     if (earR.current) earR.current.rotation.z = THREE.MathUtils.damp(earR.current.rotation.z, -0.12, 14, dt);

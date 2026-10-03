@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
-import { CheckCircle, Crown, Heart, PawPrint, Search, Sparkles, Swords, TrendingUp, Trophy, X } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from "react";
+import { CheckCircle, Cookie, Crown, Gamepad2, Heart, PawPrint, Search, Sparkles, Swords, TrendingUp, Trophy, X } from "lucide-react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
@@ -11,6 +11,7 @@ import { is3DCapable } from "@/lib/webglCapability";
 import { petSpeciesEmoji } from "@/lib/petSpecies";
 import { PetStage2D } from "@/components/pets/PetStage2D";
 import { PetSprite } from "@/components/pets/PetSprite";
+import type { WildAnim } from "@/components/pets/ProceduralWildPet";
 
 // Lazy so three.js stays out of this page's static chunk graph.
 const Pet3D = lazy(() => import("@/components/Pet3D").then(m => ({ default: m.Pet3D })));
@@ -144,6 +145,31 @@ export default function PetsPage() {
    * showcase is not.
    */
   const [activeMood, setActiveMood] = useState<string>("happy");
+
+  /**
+   * Care actions on the live companion (the uploads' `PetAnim`: pet it and it
+   * waves, feed it and it eats, play and it celebrates).
+   *
+   * These are staged locally and deliberately award nothing: in this app bond
+   * XP is written by finished sessions, and a button that minted XP would make
+   * the level on the card a lie. What is copied here is the interaction and the
+   * pose it plays, not their coin/treat economy — that economy exists only in
+   * the uploaded build's local store.
+   */
+  const [careAction, setCareAction] = useState<WildAnim | null>(null);
+  const careTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastCare = useRef(0);
+  const care = useCallback((action: WildAnim) => {
+    const now = Date.now();
+    // Their `play()` refuses taps inside 1.5s; one shared floor keeps a mash
+    // from restarting the pose mid-gesture.
+    if (now - lastCare.current < 900) return;
+    lastCare.current = now;
+    setCareAction(action);
+    if (careTimer.current) clearTimeout(careTimer.current);
+    careTimer.current = setTimeout(() => setCareAction(null), 1900);
+  }, []);
+  useEffect(() => () => { if (careTimer.current) clearTimeout(careTimer.current); }, []);
   const [filter, setFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [selectedDetail, setSelectedDetail] = useState<CatalogPet | null>(null);
@@ -330,6 +356,7 @@ export default function PetsPage() {
                       <Pet3D
                         petType={activePet.catalog?.slug ?? activePet.petType ?? "bulbasaur"}
                         mood={activeMood}
+                        anim={careAction ?? undefined}
                         evolutionStage={Math.min(3, Math.floor(((activePet.inventory?.level ?? 1) - 1) / 5))}
                         accessories={[]}
                         onCrash={() => setWants3d(false)}
@@ -349,7 +376,7 @@ export default function PetsPage() {
                     species={activePet.catalog?.slug ?? activePet.petType}
                     name={activePet.inventory?.nickname ?? activePet.catalog?.name ?? activePet.petName ?? "Companion"}
                     rarity={activePet.catalog?.rarity}
-                    mood={activeMood}
+                    mood={careAction ?? activeMood}
                     size={260}
                     className="mx-auto max-w-sm"
                   />
@@ -360,6 +387,26 @@ export default function PetsPage() {
                   <span className="rounded-full border border-[var(--brand-400)]/30 bg-[var(--brand-soft)] px-3 py-1 text-xs font-bold text-[var(--brand-400)]">Lvl {activePet.inventory?.level ?? activePet.petLevel ?? 1}/20</span>
                   <span className="rounded-full bg-[var(--surface-1)] px-3 py-1 text-xs" style={{ color: RARITY_COLOR[activePet.catalog?.rarity ?? "common"] }}>{activePet.catalog?.rarity ?? "common"}</span>
                 </div>
+                <div className="mt-3 flex justify-center gap-2">
+                  {([
+                    { action: "wave" as const, label: "Pet", Icon: Heart },
+                    { action: "eat" as const, label: "Feed", Icon: Cookie },
+                    { action: "victory" as const, label: "Play", Icon: Gamepad2 },
+                  ]).map(({ action, label, Icon }) => (
+                    <button
+                      key={action}
+                      type="button"
+                      onClick={() => care(action)}
+                      className={`inline-flex min-h-11 items-center gap-1.5 rounded-xl border px-3.5 text-xs font-bold transition-colors ${careAction === action ? "border-[var(--brand-400)]/60 bg-[var(--brand-soft)] text-[var(--brand-400)]" : "border-[var(--forge-border)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"}`}
+                    >
+                      <Icon size={14} aria-hidden="true" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-[11px] text-[var(--foreground-subtle)]">
+                  {careAction ? "Reacting right here on the stage." : "Tap any of the three — the companion reacts on the stage."}
+                </p>
                 <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-[var(--surface-1)]">
                   <div className="h-full bg-[var(--brand-600)]" style={{ width: `${Math.min(100, ((activePet.inventory?.bondXp ?? 0) / ((activePet.inventory?.level ?? 1) * 100)) * 100)}%` }} />
                 </div>

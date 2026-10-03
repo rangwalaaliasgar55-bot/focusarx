@@ -32,6 +32,16 @@ describe("PetStage2D", () => {
     expect(screen.getByText("tap to say hi")).toBeTruthy();
   });
 
+  it("names a care action instead of the mood while it plays", () => {
+    // `pages/pets.tsx` swaps the mood for the action it just staged: petting
+    // sends "wave", feeding "eat", playing "victory". The chip is the only
+    // feedback the glyph itself can carry, so an unmapped action would show a
+    // lowercase id like "victory" — or, worse, nothing at all.
+    render(<PetStage2D emoji="🐾" name="Chotu" rarity="rare" mood="eat" />);
+    expect(screen.getByText("eating")).toBeTruthy();
+    expect(screen.queryByText("eat")).toBeNull();
+  });
+
   it("hides the mood chip when no mood is known", () => {
     render(<PetStage2D emoji="🐲" name="Study Dragon" rarity="legendary" />);
     expect(screen.queryByText("tap to say hi")).toBeNull();

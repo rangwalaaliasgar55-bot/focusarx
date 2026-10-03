@@ -38,6 +38,15 @@ const MOOD_LABEL: Record<string, string> = {
   excited: "excited",
   happy: "happy",
   sleepy: "sleepy",
+  // Care actions (see `pages/pets.tsx`): the chip names what just happened,
+  // which is the only feedback the glyph itself can carry.
+  wave: "saying hi",
+  eat: "eating",
+  victory: "playing",
+  guard: "guarding",
+  heal: "healing",
+  boost: "winding up",
+  sad: "downcast",
 };
 
 interface PetStage2DProps {
