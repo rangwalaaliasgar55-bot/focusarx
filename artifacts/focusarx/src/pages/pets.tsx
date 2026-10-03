@@ -15,6 +15,7 @@ import { PetSprite } from "@/components/pets/PetSprite";
 // Lazy so three.js stays out of this page's static chunk graph.
 const Pet3D = lazy(() => import("@/components/Pet3D").then(m => ({ default: m.Pet3D })));
 import { usePremium } from "@/hooks/usePremium";
+import { useAppearanceFields } from "@/lib/appearance";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 
 const CATEGORY_META: Record<string, { label: string; emoji: string; color: string }> = {
@@ -147,7 +148,18 @@ export default function PetsPage() {
   const [search, setSearch] = useState("");
   const [selectedDetail, setSelectedDetail] = useState<CatalogPet | null>(null);
   const [showQuality, setShowQuality] = useState<"low" | "med" | "high" | "auto">("auto");
-  const [view3d, setView3d] = useState(() => is3DCapable());
+  // The account's companion-art pack decides what the showcase draws:
+  // `sprite` refuses 3D outright (that is what the pack *means*, and it is the
+  // choice made by someone on a machine that stutters on a canvas), and
+  // `wild3d` swaps the six-species rig for the animal built from its own
+  // parameters. The toggle stays available for everyone else.
+  const { petDesign } = useAppearanceFields();
+  const spriteOnly = petDesign === "sprite";
+  // Two separate things: what the visitor last chose, and what the pack allows.
+  // `sprite` is "no 3D at all", so it wins over the toggle without destroying it
+  // — the assignment arrives after mount, and it can be released again.
+  const [wants3d, setWants3d] = useState(() => is3DCapable());
+  const view3d = wants3d && is3DCapable() && !spriteOnly;
   const [saving, setSaving] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"collection" | "inventory" | "progression">("collection");
@@ -298,10 +310,10 @@ export default function PetsPage() {
               <option value="med">Medium</option>
               <option value="high">High</option>
             </select>
-            {is3DCapable() && (
+            {is3DCapable() && !spriteOnly && (
               <div className="flex gap-1 rounded-xl bg-[var(--surface-1)] p-1">
-                <button onClick={() => setView3d(true)} className={`rounded-lg px-3 py-1.5 text-xs font-bold ${view3d ? "bg-[var(--brand-600)] text-white" : "text-[var(--foreground-subtle)]"}`}>3D</button>
-                <button onClick={() => setView3d(false)} className={`rounded-lg px-3 py-1.5 text-xs font-bold ${!view3d ? "bg-[var(--brand-600)] text-white" : "text-[var(--foreground-subtle)]"}`}>2D</button>
+                <button onClick={() => setWants3d(true)} className={`rounded-lg px-3 py-1.5 text-xs font-bold ${view3d ? "bg-[var(--brand-600)] text-white" : "text-[var(--foreground-subtle)]"}`}>3D</button>
+                <button onClick={() => setWants3d(false)} className={`rounded-lg px-3 py-1.5 text-xs font-bold ${!view3d ? "bg-[var(--brand-600)] text-white" : "text-[var(--foreground-subtle)]"}`}>2D</button>
               </div>
             )}
           </div>
@@ -315,7 +327,16 @@ export default function PetsPage() {
                 {view3d ? (
                   <div className="mx-auto h-64 max-w-sm">
                     <Suspense fallback={<PetSprite species={activePet.catalog?.slug ?? activePet.petType} src={activePet.catalog?.thumbnailUrl} glyph={emojiForPet(activePet.catalog ?? { slug: activePet.petType })} size={128} />}>
-                      <Pet3D petType={activePet.catalog?.slug ?? activePet.petType ?? "bulbasaur"} mood={activeMood} evolutionStage={Math.min(3, Math.floor(((activePet.inventory?.level ?? 1) - 1) / 5))} accessories={[]} onCrash={() => setView3d(false)} />
+                      <Pet3D
+                        petType={activePet.catalog?.slug ?? activePet.petType ?? "bulbasaur"}
+                        mood={activeMood}
+                        evolutionStage={Math.min(3, Math.floor(((activePet.inventory?.level ?? 1) - 1) / 5))}
+                        accessories={[]}
+                        onCrash={() => setWants3d(false)}
+                        /* Explicit rather than left to the component's own
+                           default: this page owns the pack-driven decision. */
+                        design={petDesign}
+                      />
                     </Suspense>
                   </div>
                 ) : (
