@@ -116,9 +116,9 @@ export const BLOG_POSTS = [
   },
   {
     slug: "pomodoro-timer-online-free-25-5",
-    title: "Free Pomodoro Timer Online — 25/5, No Signup | FocusArx",
+    title: "Free Pomodoro Timer Online — 25/5, Free Account | FocusArx",
     description:
-      "Free online Pomodoro timer — 25/5 sprints in your browser, custom 10–180 min, session history and streaks. No signup to start, free forever.",
+      "Free online Pomodoro timer — 25/5 sprints in your browser, custom 10–180 min, session history and streaks. Free forever, and a free account is what saves them.",
     date: "2026-09-18",
     readMin: 4,
     h1: "Free Pomodoro timer online — 25/5, sign in and go",
@@ -184,7 +184,7 @@ export const BLOG_POSTS = [
     slug: "focus-timer-for-deep-work",
     title: "Focus Timer for Deep Work — 90-Min Blocks | FocusArx",
     description:
-      "Free focus timer for deep work — 90-minute blocks, minimal UI, session scoring and live rooms. No signup to start.",
+      "Free focus timer for deep work — 90-minute blocks, minimal UI, session scoring and live rooms. Free, with a free account to keep the sessions.",
     date: "2026-09-18",
     readMin: 4,
     h1: "Focus timer for deep work",

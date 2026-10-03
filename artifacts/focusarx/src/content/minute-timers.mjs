@@ -223,7 +223,7 @@ export const MINUTE_TIMER_PAGES = {
       },
     ],
     faq: [
-      ["Is the 15 minute timer free to use?", "Yes. No signup, no trial, no card. Logging sessions to a streak is free too; Focus Tokens unlock Premium extras."],
+      ["Is the 15 minute timer free to use?", "Yes. No trial and no card — a free account, which is also what logs a session to your streak. Focus Tokens unlock Premium extras."],
       ["Does active recall really work better than rereading?", "Testing effect studies find retrieval practice produces better later recall than an equal amount of rereading, including on inference questions. Dunlosky and colleagues rated practice testing high utility across ages and materials."],
       ["Can I tag the sprint to a subject?", "Yes — the study timer links blocks to subjects, so revision time per topic is measurable instead of a feeling."],
       ["What if I finish the set early?", "Add a second pass on the items you missed rather than stopping. The misses are the useful part; a clean sweep usually means the questions were too easy."],
