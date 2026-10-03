@@ -199,7 +199,7 @@ const CONTENT = {
       name: "FocusArx",
       category: "Productivity",
       description:
-        "Free Pomodoro and deep work timer with distraction blocking, study rooms and session analytics. No account required to start.",
+        "Free Pomodoro and deep work timer with distraction blocking, study rooms and session analytics. A free account is all it asks for.",
     },
     sections: [
       {

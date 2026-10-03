@@ -384,7 +384,7 @@ export default function LandingPage() {
                   <span className="inline-flex items-center gap-1.5">
                     <Lock size={13} className="text-[var(--success)]" aria-hidden="true" /> Privacy-first by design
                   </span>
-                  <span>No signup to start your first session</span>
+                  <span>Free to try here — a free account keeps your history</span>
                 </p>
               </Reveal>
             </div>
@@ -606,8 +606,8 @@ export default function LandingPage() {
                 Your next focused hour starts now.
               </h2>
               <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-[var(--foreground-muted)]">
-                Choose one task and begin with a single focus block. No account and no credit card
-                required — save your streak later if you want to.
+                Choose one task and begin with a single focus block. Free, no card — and your
+                streaks are saved to a free account, which is also what makes a session count.
               </p>
               <Button asChild size="lg" className="mt-8">
                 <Link href="/focus">Start focusing free <ArrowRight /></Link>

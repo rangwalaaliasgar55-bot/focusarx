@@ -132,7 +132,7 @@ export const SEO_PAGES = {
     kind: "tool",
     title: "Free Pomodoro Timer Online — 25/5 Focus Sprints | FocusArx",
     description:
-      "Start a free Pomodoro timer in your browser. 25/5 focus sprints, custom intervals, session history, streaks and live study rooms. No signup needed to begin.",
+      "Start a free Pomodoro timer in your browser. 25/5 sprints, custom intervals, session history, streaks and live study rooms — sign in once, free, and begin.",
     h1: "Free Pomodoro Timer Online",
     lead: "Run classic 25/5 Pomodoro sprints or set your own interval. Your sessions, streaks and focus score are saved the moment you create a free account — the timer itself works without one.",
     answerFirst:
