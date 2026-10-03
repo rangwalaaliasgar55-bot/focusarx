@@ -76,7 +76,9 @@ const playSessionNotification = (mode: TimerMode) => {
   else playBreakOver();
 };
 
-export default function Timer({ onSessionComplete: onSessionCompleteProp }: { onSessionComplete?: () => void } = {}) {
+export default function Timer({
+  onSessionComplete: onSessionCompleteProp,
+}: { onSessionComplete?: (mode: TimerMode) => void } = {}) {
   const { addSession, focusSessionsToday } = useSessionHistory();
   const { toast } = useToast();
   const prompt = usePrompt();
@@ -295,7 +297,10 @@ export default function Timer({ onSessionComplete: onSessionCompleteProp }: { on
         setShowConfetti(true);
         haptic("celebrate");
         setTimeout(() => setShowConfetti(false), 3500);
-        onSessionCompleteProp?.();
+        // The mode goes with the event: the focus page plays a rising "done"
+        // and a falling "break over" (see `lib/audioLayers`), and ringing the
+        // wrong one is worse than ringing none.
+        onSessionCompleteProp?.(session.mode);
         // Premium reflection prompt
         if (isPremium) {
           setReflectionDuration(session.durationSeconds);

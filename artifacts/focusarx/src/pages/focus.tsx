@@ -5,14 +5,14 @@ import { useQuery } from "@tanstack/react-query";
 import { apiJson } from "@/lib/api";
 import { useFocusSessionState } from "@/lib/focusSessionBus";
 import { useActivePet } from "@/hooks/useActivePet";
-import { PetStage2D } from "@/components/pets/PetStage2D";
-import { petSpeciesEmoji } from "@/lib/petSpecies";
+import { PetCompanionStage } from "@/components/pets/PetCompanionStage";
 import { useAppearanceFields } from "@/lib/appearance";
-import { playChime } from "@/lib/audioLayers";
+import { playCompletionCue } from "@/lib/audioLayers";
 import { MovablePanel } from "@/components/MovablePanel";
 import { usePanelOrder } from "@/hooks/usePanelOrder";
 import { orderIndex } from "@/lib/panelLayout";
 import { useAuth } from "@/lib/auth";
+import type { TimerMode } from "@/types/timer";
 import { SessionRecoveryProvider } from "@/components/SessionRecoveryContext";
 import Timer from "@/components/Timer";
 import { useSessionHistory } from "@/hooks/useSessionHistory";
@@ -25,6 +25,7 @@ import StreakNudge from "@/components/StreakNudge";
 import SmartSuggestion from "@/components/SmartSuggestion";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { FocusTimerMobileFirst } from "@/components/mobile/FocusTimerMobileFirst";
+import { is3DCapable } from "@/lib/webglCapability";
 import { NotificationPermissionPrompt } from "@/components/mobile/NotificationPermissionPrompt";
 import { useNotificationPermission } from "@/hooks/useNotificationPermission";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
@@ -42,10 +43,6 @@ const DailyGoal = lazy(() => import("@/components/DailyGoal"));
 const FocusMoodWidget = lazy(() => import("@/components/FocusMoodWidget").then(m => ({ default: m.FocusMoodWidget })));
 const AskArx = lazy(() => import("@/components/AskArx"));
 const MonsterBattleArena = lazy(() => import("@/components/MonsterBattleArena"));
-// Lazy for the same reason as the arena: three.js must not join this page's
-// static chunk graph for someone whose companion art is the sprite.
-const Pet3D = lazy(() => import("@/components/Pet3D").then(m => ({ default: m.Pet3D })));
-
 function HeavyWidgetFallback() {
   return <div className="h-20 animate-pulse rounded-2xl bg-[var(--surface-1)]/50" />;
 }
@@ -434,9 +431,10 @@ function MotivationalLine() {
  * navigation actually links to — a user with a fully levelled pet saw *no pet
  * at all*: no canvas, no sprite, not even the glyph. The arena below is a
  * battle scene, not a companion, and it hides itself when there is nothing to
- * fight. `PetStage2D` takes the catalog's `thumbnailUrl`, so a released pet
- * shows its animated artwork (the GIF) and falls back to the species glyph,
- * which is what a catalog row with no artwork carries.
+ * fight. The stage itself is `PetCompanionStage`, which takes the catalog's
+ * `thumbnailUrl` for a released pet — its animated artwork (the GIF), falling
+ * back to the species glyph, which is what a catalog row with no artwork
+ * carries — and swaps in the wild 3D body for the `wild3d` pack.
  */
 function SessionCompanions() {
   const live = useFocusSessionState();
@@ -449,44 +447,7 @@ function SessionCompanions() {
   return (
     <div className={cn("w-full max-w-2xl space-y-4", compact ? "mt-3" : "mt-6")}>
       {activePet && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
-          className="flex flex-col items-center gap-2"
-        >
-          {petDesign === "wild3d" ? (
-            /* The wild body: the species the catalog says, built from its own
-               parameters (ears, tail, wings, plan) rather than a recoloured rig. */
-            <div className="w-full max-w-[280px]" style={{ height: compact ? 168 : 224 }}>
-              <Suspense fallback={<HeavyWidgetFallback />}>
-                <Pet3D
-                  petType={activePet.slug}
-                  mood={live.active ? "focused" : "happy"}
-                  design="wild3d"
-                />
-              </Suspense>
-            </div>
-          ) : (
-            /* Studio rig and Sprite both read as the catalog's own artwork on
-               this surface — the difference between them is whether a WebGL
-               device may upgrade to the posed rig (the pets page and the timer
-               column do that); the wild pack is the one that replaces the
-               artwork with a body built from the species. */
-            <PetStage2D
-              emoji={petSpeciesEmoji(activePet.slug, activePet.category)}
-              imageUrl={activePet.thumbnailUrl}
-              species={activePet.slug}
-              name={activePet.name}
-              mood={live.active ? "focused" : "happy"}
-              size={compact ? 144 : 200}
-              className="w-full max-w-[280px]"
-            />
-          )}
-          <p className="text-[11px] font-medium text-[var(--foreground-subtle)]">
-            {activePet.name} · level {activePet.level}
-          </p>
-        </motion.div>
+        <PetCompanionStage pet={activePet} design={petDesign} studying={live.active} compact={compact} />
       )}
       <Suspense fallback={<HeavyWidgetFallback />}>
         <MonsterBattleArena
@@ -503,6 +464,39 @@ function SessionCompanions() {
           dead/terminated streams) and rendered a stray "Play @AJourneyR Videos"
           pill on the timer page. AmbientSoundBar covers focus audio now. */}
     </div>
+  );
+}
+
+/**
+ * The companion the phone shows while studying.
+ *
+ * The workspace panel below the clock is off-screen on a phone the moment a
+ * session starts, so the pet the uploads make a fuss of was, on the surface a
+ * phone actually holds while working, invisible. `MobileFocusMode` shows it
+ * instead — the same `PetCompanionStage` the desktop column uses, in the
+ * account's art pack, at one size smaller.
+ *
+ * The `wild3d` pack falls back to the catalog artwork on a device that cannot
+ * take a WebGL canvas, which is the same rule the pets page applies: a full-
+ * screen overlay is the worst possible place to discover the GPU cannot keep
+ * up.
+ */
+function MobileStudyCompanion() {
+  const { data: activePet } = useActivePet();
+  const { petDesign } = useAppearanceFields();
+  const [canRender3D] = useState(() => is3DCapable());
+  if (!activePet) return null;
+  const design = petDesign === "wild3d" && !canRender3D ? "classic" : petDesign;
+  return (
+    <PetCompanionStage
+      pet={activePet}
+      design={design}
+      studying
+      compact
+      size={132}
+      caption={false}
+      tone="overlay"
+    />
   );
 }
 
@@ -635,8 +629,8 @@ function FocusChamberHeader() {
  * of interface in front of a student whose real question is "what do I do".
  *
  * So: three sentences, one per step, dismissible, and remembered — `localStorage`
- * so it never comes back once it has been read, and only shown to people with no
- * sign-in and no finished session, because the advice is only useful once.
+ * so it never comes back once it has been read, and only shown to an account
+ * that has not finished a session yet, because the advice is only useful once.
  */
 function FirstRunHint({ onDismiss }: { onDismiss: () => void }) {
   return (
@@ -699,17 +693,22 @@ export default function FocusHomePage() {
 
   // Signed-in students with sessions already know all of this, and saying it
   // again is the fastest way to make a product feel like it is talking to a
-  // beginner. The hint is only ever for a genuine first run.
-  const firstRunVisible = showFirstRun && status === "unauthenticated" && focusSessionsToday === 0;
+  // beginner. The hint is only ever for a genuine first run — and since this
+  // page now sits behind the sign-in gate, "first run" is an account that has
+  // not finished a session yet rather than a visitor with no account at all.
+  // Keyed off `unauthenticated` it would have been dead code: nobody signed out
+  // renders this page any more.
+  const firstRunVisible = showFirstRun && status === "authenticated" && focusSessionsToday === 0;
 
-  const handleSessionComplete = () => {
+  const handleSessionComplete = (mode?: TimerMode) => {
     trackSessionCompleted();
     feedback.recordSession();
-    // The uploaded build's completion chime (four rising notes, see
-    // `lib/audioLayers`); it is the one sound the mixer does not own, so it has
-    // its own switch in the ambient panel and is on by default, as it was in
-    // the build it came from.
-    playChime();
+    // The uploaded build's completion cues (see `lib/audioLayers`): four rising
+    // notes when a block of work ends, two falling ones when a break does. They
+    // are the one pair the mixer does not own, so they have their own switch in
+    // the ambient panel and are on by default, as they were in the build they
+    // came from.
+    playCompletionCue(mode);
   };
 
   // Deep-link entry (?duration=&task= from /go/ig and shared links).
@@ -813,7 +812,10 @@ export default function FocusHomePage() {
                 className={cn("flex w-full flex-col items-center", studio && "lg:flex-1")}
               >
                 {isMobile ? (
-                  <FocusTimerMobileFirst onSessionComplete={handleSessionComplete} />
+                  <FocusTimerMobileFirst
+                    onSessionComplete={handleSessionComplete}
+                    companion={<MobileStudyCompanion />}
+                  />
                 ) : (
                   <Timer onSessionComplete={handleSessionComplete} />
                 )}

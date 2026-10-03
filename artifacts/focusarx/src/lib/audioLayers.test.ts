@@ -7,6 +7,7 @@ import {
   playBreakChime,
   playChime,
   playClick,
+  playCompletionCue,
   playTick,
   setCompletionChime,
   setLayer,
@@ -223,6 +224,28 @@ describe("the uploaded layer mixer", () => {
     expect(tones.map((t) => t.frequency)).toEqual([783.99, 587.33]);
     playClick();
     expect(tones.at(-1)).toEqual({ type: "triangle", frequency: 520 });
+  });
+
+  it("picks the cue the ended phase earned", () => {
+    // A finished block of work rises; a finished break falls. The mode comes
+    // from the timer, which knows which one it just ran — the two timers pass
+    // it on completion (`Timer`, `FocusTimerMobileFirst`).
+    playCompletionCue("focus");
+    expect(tones.map((t) => t.frequency)).toEqual([523.25, 659.25, 783.99, 1046.5]);
+
+    const afterFocus = tones.length;
+    playCompletionCue("break");
+    expect(tones.slice(afterFocus).map((t) => t.frequency)).toEqual([783.99, 587.33]);
+
+    const afterBreak = tones.length;
+    playCompletionCue("longBreak");
+    expect(tones.slice(afterBreak).map((t) => t.frequency)).toEqual([783.99, 587.33]);
+
+    // A caller with no mode — a Flowtime run, or the public pages that mount
+    // the timer without a session history — still gets a cue, not silence.
+    const afterLong = tones.length;
+    playCompletionCue(undefined);
+    expect(tones.slice(afterLong).map((t) => t.frequency)).toEqual([523.25, 659.25, 783.99, 1046.5]);
   });
 
   it("goes quiet when the chime is switched off, and comes back on", () => {

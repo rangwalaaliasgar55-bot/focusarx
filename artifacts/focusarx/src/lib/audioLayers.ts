@@ -302,6 +302,19 @@ export function playBreakChime() {
   });
 }
 
+/**
+ * The cue a finished session earned.
+ *
+ * The timers know which phase ended — a focus block or a break — and hand it
+ * over; anything that does not (a Flowtime run, a caller written before the
+ * mode was passed down) gets the "done" cue rather than silence, because the
+ * moment is the same moment either way.
+ */
+export function playCompletionCue(mode?: "focus" | "break" | "longBreak") {
+  if (mode === "break" || mode === "longBreak") playBreakChime();
+  else playChime();
+}
+
 /** The UI click — 520 Hz triangle, 120 ms. */
 export function playClick() {
   const c = getCtx();

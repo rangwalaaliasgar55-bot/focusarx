@@ -1,5 +1,5 @@
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { RollingClock } from "@/components/RollingClock";
 import { motion, AnimatePresence } from "framer-motion";
 import { Pause, Play, RotateCcw, Volume2, VolumeX, CheckCircle, AlertTriangle } from "lucide-react";
@@ -36,7 +36,20 @@ function formatTime(totalSeconds: number) {
   return { m: String(m).padStart(2, "0"), s: String(s).padStart(2, "0"), total: totalSeconds };
 }
 
-export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete?: () => void } = {}) {
+/**
+ * The phone's timer.
+ *
+ * `companion` is the pet the page hands down for the full-screen studying view
+ * (`MobileFocusMode`); it is a node rather than a pet here because `/exam` and
+ * `/minute-timer` mount this same timer on public pages, where there is no
+ * account to have a pet and no query to run one. The focus page decides.
+ */
+export function FocusTimerMobileFirst(
+  { onSessionComplete, companion }: {
+    onSessionComplete?: (mode: Session["mode"]) => void;
+    companion?: ReactNode;
+  } = {},
+) {
   const { addSession } = useSessionHistory();
   const { activeTasks } = useTasks();
   const { toast } = useToast();
@@ -121,7 +134,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
         toast("Offline — saved locally, will sync when reconnected", "info");
         setSummary({ minutes: Math.round(session.durationSeconds / 60), xp: 0, coins: 0 });
         setShowSummary(true);
-        onSessionComplete?.();
+        onSessionComplete?.(session.mode);
         return canLeaveFlow;
       }
 
@@ -170,7 +183,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
         }
         setSummary({ minutes: Math.round(session.durationSeconds / 60), xp: res.earnedXp ?? 0, coins: res.earnedCoins ?? 0 });
         setShowSummary(true);
-        onSessionComplete?.();
+        onSessionComplete?.(session.mode);
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification("Focus session complete — time for a break.");
         }
@@ -587,8 +600,8 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
         )}
 
         {/* Secondary controls - Finish separated from Pause */}
-        <div className="flex w-full items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-1 flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={handleReset}
@@ -645,15 +658,21 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
 
         {/* Duration chips - numeric keyboard friendly */}
         {isIdle && mode === "focus" && (
-          <div className="flex flex-col items-center gap-2 w-full">
-            <div className="flex flex-wrap items-center justify-center gap-2" role="group" aria-label="Session mode">
+          <div className="flex w-full flex-col gap-2">
+            {/* Both rows are horizontal strips that scroll rather than wrap: on a
+                375px screen the five lengths used to wrap onto three lines and
+                the six themes onto two, which pushed the clock's own settings
+                under the thumbs of the person choosing the clock. A strip is one
+                row at every width and the page never scrolls sideways for it —
+                the overflow is inside the strip. */}
+            <div className="-mx-4 flex w-[calc(100%+2rem)] gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Session mode">
               {SESSION_PRESETS.map((p) => (
                 <button
                   key={p.id}
                   type="button"
                   onClick={() => applyPreset(p.id)}
                   aria-pressed={presetId === p.id}
-                  className={`min-h-[44px] rounded-full border px-3.5 text-xs font-bold ${presetId === p.id ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)]"}`}
+                  className={`min-h-[44px] shrink-0 rounded-full border px-3.5 text-xs font-bold ${presetId === p.id ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)]"}`}
                   aria-label={p.blurb}
                 >
                   {p.label}{p.focusMin ? ` ${p.focusMin}m` : ""}
@@ -661,14 +680,14 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
               ))}
             </div>
             {/* Theme switcher */}
-            <div className="flex items-center justify-center gap-1.5 pt-1" role="group" aria-label="Timer theme">
+            <div className="-mx-4 flex w-[calc(100%+2rem)] gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Timer theme">
               {TIMER_THEMES.map((t) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => chooseTimerTheme(t.id)}
                   aria-pressed={timerTheme === t.id}
-                  className={`min-h-[44px] rounded-full border px-2.5 text-[11px] font-semibold transition-colors ${timerTheme === t.id ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"}`}
+                  className={`min-h-[44px] shrink-0 rounded-full border px-2.5 text-[11px] font-semibold transition-colors ${timerTheme === t.id ? "border-[var(--brand-500)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"}`}
                 >
                   {t.label}
                 </button>
@@ -703,6 +722,7 @@ export function FocusTimerMobileFirst({ onSessionComplete }: { onSessionComplete
         ambientSoundEnabled={soundEnabled}
         onToggleSound={() => setSoundEnabled(v => !v)}
         tier={membershipTier}
+        companion={companion}
       />
 
       {/* Exit confirmation - prevents accidental completion */}
