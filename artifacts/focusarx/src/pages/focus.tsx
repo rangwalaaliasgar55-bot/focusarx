@@ -27,6 +27,7 @@ import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { ErrorState } from "@/components/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { parseFocusDeepLink, dispatchFocusDeepLink } from "@/lib/focusDeepLink";
+import { cn } from "@/lib/utils";
 import SceneBackdrop from "@/components/SceneBackdrop";
 
 // Heavy features lazy-loaded after main interface is usable
@@ -402,7 +403,11 @@ const MOTIVATIONAL = [
  */
 function MotivationalLine() {
   const [line] = useState(() => MOTIVATIONAL[Math.floor(Math.random() * MOTIVATIONAL.length)]);
-  return <p className="mt-1 text-center text-xs text-[var(--foreground-subtle)]">{line}</p>;
+  return (
+    <p data-region="motivation" className="mt-1 text-center text-xs text-[var(--foreground-subtle)]">
+      {line}
+    </p>
+  );
 }
 
 /**
@@ -436,8 +441,9 @@ function SessionCompanions() {
   // The account's design pack. It changes what is *drawn*, never what happens:
   // the same session, the same fight, the same numbers on either board.
   const { petDesign, battleDesign, layout } = useAppearanceFields();
+  const compact = layout === "compact";
   return (
-    <div className="mt-6 w-full max-w-2xl space-y-4">
+    <div className={cn("w-full max-w-2xl space-y-4", compact ? "mt-3" : "mt-6")}>
       {activePet && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -448,7 +454,7 @@ function SessionCompanions() {
           {petDesign === "wild3d" ? (
             /* The wild body: the species the catalog says, built from its own
                parameters (ears, tail, wings, plan) rather than a recoloured rig. */
-            <div className="w-full max-w-[280px]" style={{ height: 224 }}>
+            <div className="w-full max-w-[280px]" style={{ height: compact ? 168 : 224 }}>
               <Suspense fallback={<HeavyWidgetFallback />}>
                 <Pet3D
                   petType={activePet.slug}
@@ -469,7 +475,7 @@ function SessionCompanions() {
               species={activePet.slug}
               name={activePet.name}
               mood={live.active ? "focused" : "happy"}
-              size={200}
+              size={compact ? 144 : 200}
               className="w-full max-w-[280px]"
             />
           )}
@@ -709,9 +715,18 @@ export default function FocusHomePage() {
     }
   }, []);
 
+  // The workspace layout pack. `quiet` is the house arrangement (one column of
+  // focus, tasks in a rail); `studio` puts the companion beside the timer so the
+  // pet and its board are visible *while* working rather than below the fold;
+  // `compact` is the smallest footprint — no rail, no motivational line, a
+  // smaller stage — for small screens and for people who want only the clock.
+  const { layout } = useAppearanceFields();
+  const studio = layout === "studio";
+  const compact = layout === "compact";
+
   return (
     <SessionRecoveryProvider>
-      <div className="flex flex-col min-h-[100dvh] focus-chamber relative">
+      <div className="flex flex-col min-h-[100dvh] focus-chamber relative" data-layout={layout}>
         {/* The screen a shared link and an Instagram bio both land on had no
             heading of any kind — the first thing a visitor saw was a greeting
             ("Good morning, there") and a ring. Screen readers announced a page
@@ -729,21 +744,37 @@ export default function FocusHomePage() {
         <SmartSuggestion />
         <div className="flex-1 flex flex-col lg:flex-row gap-0 overflow-auto">
           {/* Timer area - mobile-first */}
-          <div className="flex-1 flex flex-col items-center justify-start gap-3 px-4 sm:px-6 py-6 lg:py-8">
-            <div className="w-full flex flex-col items-center">
-              {isMobile ? (
-                <FocusTimerMobileFirst onSessionComplete={handleSessionComplete} />
-              ) : (
-                <Timer onSessionComplete={handleSessionComplete} />
-              )}
-              <MotivationalLine />
-              <SessionCompanions />
+          <div className={cn("flex-1 flex flex-col items-center justify-start gap-3 px-4 sm:px-6", compact ? "py-3" : "py-6 lg:py-8")}>
+            {/* The studio arrangement is the same two children, given a second
+                column: the timer keeps its own column and the companion (with
+                the battle board under it) sits beside it from `lg` up. */}
+            <div
+              data-region="workspace"
+              className={cn("w-full flex flex-col items-center", studio && "lg:flex-row lg:items-start lg:justify-center lg:gap-8")}
+            >
+              <div data-region="timer" className={cn("flex w-full flex-col items-center", studio && "lg:flex-1")}>
+                {isMobile ? (
+                  <FocusTimerMobileFirst onSessionComplete={handleSessionComplete} />
+                ) : (
+                  <Timer onSessionComplete={handleSessionComplete} />
+                )}
+                {!compact && <MotivationalLine />}
+              </div>
+              <div data-region="companion" className={cn(studio && "w-full lg:w-[380px] lg:shrink-0")}>
+                <SessionCompanions />
+              </div>
             </div>
           </div>
-          {/* Desktop side panel */}
-          <aside className="hidden shrink-0 border-l border-[var(--border-subtle)] p-4 lg:flex lg:w-[300px] lg:flex-col xl:w-[320px]" aria-label="Session tasks and stats">
-            <SidePanel />
-          </aside>
+          {/* Desktop side panel — the rail `compact` folds away */}
+          {!compact && (
+            <aside
+              data-region="rail"
+              className="hidden shrink-0 border-l border-[var(--border-subtle)] p-4 lg:flex lg:w-[300px] lg:flex-col xl:w-[320px]"
+              aria-label="Session tasks and stats"
+            >
+              <SidePanel />
+            </aside>
+          )}
         </div>
         <MobileSidePanelDrawer />
         <ReadinessCheckInModal />
