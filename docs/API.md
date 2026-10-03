@@ -117,6 +117,28 @@ All errors follow a consistent envelope:
 | POST | `/battle-pass/claim/:tier` | Yes | Claim battle pass tier |
 | POST | `/daily-reward/claim` | Yes | Claim daily login reward |
 
+### Design packs
+
+How the signed-in account is told to look: the timer face, the companion art,
+the battle board, the workspace layout and the app frame. The server owns the
+assignment (a row in `user_appearance`); a client reads the *effective* value,
+which is its own choice folded over the catalog defaults and any admin pin.
+Full design notes: [DESIGN_PACKS.md](./DESIGN_PACKS.md).
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/appearance` | Yes | The effective assignment, its labels, the catalog (faces, packs, layouts, frames) and whether an admin pinned it |
+| PUT | `/appearance` | Yes | Set one or more fields. Partial patches are the norm; an unknown id is a `400` naming the field |
+| DELETE | `/appearance` | Yes | Drop the account's own row and go back to the defaults |
+| GET | `/appearance/battles` | Yes | The account's battle log (`?limit=`, default 20, max 100) |
+| POST | `/appearance/battles` | Yes | Log a finished fight — result, rounds, damage, board, and the ladder cup (`stage`, 1–6, or `null` for a pick-up) |
+| GET | `/appearance/rivals` | Yes | The opponents the arena may draw, from the live pet catalog |
+
+Two writers share the row, so the precedence is explicit rather than
+last-write-wins: an admin pin (`locked`) makes the user's own `PUT` fail with
+`409 appearance_locked`, which the settings UI renders as "managed by an
+admin" instead of a failed save.
+
 ### Social
 
 | Method | Path | Auth | Description |
@@ -205,6 +227,11 @@ All errors follow a consistent envelope:
 | GET | `/admin/cms/site-settings` | Admin | Get site settings |
 | PUT | `/admin/cms/site-settings` | Admin | Update site settings |
 | GET | `/admin/moderation/queue` | Admin | Moderation queue |
+| GET | `/admin/appearance` | Admin | Every account with the design it renders, its labels, the per-field distribution and the boards actually played (`?search=`, `?page=`) |
+| GET | `/admin/appearance/battles` | Admin | Recent battles across all accounts (max 100), each with its design and ladder cup |
+| PUT | `/admin/appearance/:userId` | Admin | Assign any field to one account; `locked` is tri-state (pin, release, leave alone) |
+| DELETE | `/admin/appearance/:userId` | Admin | Release the account back to the defaults |
+| POST | `/admin/appearance/bulk` | Admin | Move a cohort at once (`userIds` or `all: true`); `dryRun` counts the blast radius and writes nothing |
 
 ## Rate Limits
 

@@ -280,7 +280,29 @@ SELECT * FROM study_streaks WHERE userId = 'test-user-id';
   - [ ] Works on mobile
   - [ ] Feedback animation plays
 
-### 7.2 Other Mobile Sizes
+### 7.2 App frame (the `shell` design pack)
+
+The frame is a per-account design, so it has to survive being switched under an
+open tab. Settings → Design packs → **App frame**, or the console's per-user
+**App frame** select.
+
+- [ ] `Sidebar` (the default) renders the rail and looks like the app always did
+- [ ] `Top bar`: no rail; a horizontal strip of destinations sits under the
+      header and scrolls when the window is narrow; **More** opens the full list,
+      admin entry included
+- [ ] `Top bar` on a phone: unchanged (sheet + bottom bar), no strip
+- [ ] `Bottom tabs`: the tab bar is present at desktop widths too, and the page
+      content is not hidden behind it (bottom padding)
+- [ ] In every frame: the same destinations are reachable, a feature-flagged link
+      stays hidden, and the admin entry only shows for admins
+- [ ] Start a focus session from `/` in each frame: the bottom bar and the
+      floating launcher both disappear, in all three
+- [ ] Admin pins an **App frame** for an account, then that account opens
+      Settings: the frame is selected, the section reads "managed by an admin",
+      and changing it is refused
+- [ ] Reload after switching: the chosen frame is still there (server row + cache)
+
+### 7.3 Other Mobile Sizes
 - [ ] Test 320px (iPhone SE)
   - [ ] Layout still works
   - [ ] Text readable
