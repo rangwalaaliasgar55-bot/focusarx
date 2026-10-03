@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  BOOST_MOVE_STACKS,
+  ENERGY_REGEN,
+  MAX_BOOST,
   MAX_ENERGY,
   chooseEnemyMove,
   effectiveness,
   elementFor,
   makeFighter,
   makeRng,
+  movesFor,
   resolveEnemyTurn,
   resolveTurn,
   rivalLevelFor,
@@ -80,7 +84,10 @@ describe("fighter construction", () => {
   it("starts every fighter with a name, a moveset and energy for one big move", () => {
     const fighter = makeFighter("player", "capybara", 3);
     expect(fighter.name).toBe("Capybara");
-    expect(fighter.moves.length).toBeGreaterThanOrEqual(4);
+    // Six slots: free, steady, heavy, sustain, defence, setup — and a blurb on
+    // each, because the board prints it under the move's name.
+    expect(fighter.moves.map((m) => m.kind).sort()).toEqual(["attack", "attack", "attack", "boost", "guard", "heal"]);
+    for (const move of fighter.moves) expect(move.blurb.length).toBeGreaterThan(15);
     expect(fighter.moves.some((m) => m.kind === "attack" && m.cost === 0)).toBe(true);
     expect(fighter.energy).toBeGreaterThanOrEqual(2);
     expect(fighter.energy).toBeLessThanOrEqual(MAX_ENERGY);
@@ -148,7 +155,9 @@ describe("turn order", () => {
     // The player's move now resolves for the player, not for the opponent.
     const reply = resolveTurn(opening.state, 0, "player");
     expect(reply.event.side).toBe("player");
-    expect(reply.event.move.name).toBe("Nudge");
+    // Named through the engine, because the moveset is element-flavoured: a fox
+    // and an axolotl do not call their free move the same thing.
+    expect(reply.event.move.name).toBe(movesFor("fox").find((m) => m.id === "jab")!.name);
   });
 
   it("refuses a side acting out of turn, so one side cannot move twice", () => {
@@ -222,6 +231,115 @@ describe("turn resolution", () => {
     expect(after.player.energy).toBeLessThan(MAX_ENERGY);
   });
 
+  it("regenerates one point per turn, so the free move builds energy", () => {
+    // The economy this pins: without regeneration a fighter could spend their
+    // opening two points and then never afford anything but the free move for
+    // the rest of the fight — the heavy strike, the heal and the brace were dead
+    // buttons, and the free move's own blurb was a lie.
+    let state = openFight(41);
+    const jab = state.player.moves.findIndex((m) => m.id === "jab");
+    expect(jab).toBeGreaterThanOrEqual(0);
+    const before = state.player.energy;
+    state = resolveTurn(state, jab, "player").state;
+    expect(state.player.energy).toBe(Math.min(MAX_ENERGY, before + ENERGY_REGEN));
+  });
+
+  it("makes every move in the set affordable at some point in a fight", () => {
+    // The regression guard for the dead-button bug: whatever the moveset costs,
+    // a patient fighter must be able to reach each of them. Jabs alone are the
+    // worst case (they cost nothing), so this is the slowest a player can be.
+    let state = openFight(7);
+    const jab = state.player.moves.findIndex((m) => m.id === "jab");
+    const reachable = new Set<number>();
+    for (let playerTurns = 0; playerTurns < 8 && !state.winner; ) {
+      if (state.turn === "player") {
+        for (const move of state.player.moves) {
+          if (state.player.energy >= move.cost) reachable.add(move.cost);
+        }
+        state = resolveTurn(state, jab, "player").state;
+        playerTurns += 1;
+      } else {
+        // Both sides are played by the real engine, so the reachable set is
+        // whatever the regeneration rule actually produces.
+        state = resolveEnemyTurn(state).state;
+      }
+    }
+    for (const move of state.player.moves) {
+      expect(reachable.has(move.cost), `${move.name} (cost ${move.cost}) is never affordable`).toBe(true);
+    }
+  });
+
+  it("winds up a boost move, caps it, and hits harder for it", () => {
+    const state = openFight(61);
+    const boostIndex = state.player.moves.findIndex((m) => m.kind === "boost");
+    expect(boostIndex).toBeGreaterThanOrEqual(0);
+    const boosted = resolveTurn(state, boostIndex, "player");
+    expect(boosted.state.player.boost).toBe(BOOST_MOVE_STACKS);
+    expect(boosted.event.text).toMatch(/winds up/);
+
+    // Capped: a second wind-up adds nothing once the boost is at the maximum.
+    // (The opponent takes their turn in between — the engine refuses a side
+    // acting twice in a row, which is the point of the explicit sides.)
+    const enemyTurn = resolveEnemyTurn(boosted.state).state;
+    const pumped = { ...enemyTurn, player: { ...enemyTurn.player, energy: MAX_ENERGY } };
+    const again = resolveTurn(pumped, boostIndex, "player");
+    expect(again.state.player.boost).toBe(MAX_BOOST);
+    expect(again.state.player.boost).toBeLessThan(BOOST_MOVE_STACKS * 2);
+
+    // A third wind-up is a wasted turn, and says so.
+    const third = resolveTurn(
+      { ...resolveEnemyTurn(again.state).state, player: { ...again.state.player, energy: MAX_ENERGY } },
+      boostIndex,
+      "player",
+    );
+    expect(third.state.player.boost).toBe(MAX_BOOST);
+    expect(third.event.text).toMatch(/already wound up/);
+
+    // And the stacks are worth something: the same attack, by the same fighter,
+    // with the same RNG, lands harder with a boost than without one. Both states
+    // differ only in `boost`, so the comparison is the boost and nothing else.
+    // Accuracy rolls mean a given seed can miss, so scan for one that connects.
+    const attackIndex = state.player.moves.findIndex((m) => m.id === "sig");
+    let compared = 0;
+    for (let seed = 1; seed <= 80 && compared === 0; seed += 1) {
+      const base = openFight(seed * 17);
+      const withStacks = resolveTurn(
+        { ...base, player: { ...base.player, boost: BOOST_MOVE_STACKS, energy: MAX_ENERGY } },
+        attackIndex,
+        "player",
+      );
+      const without = resolveTurn(
+        { ...base, player: { ...base.player, boost: 0, energy: MAX_ENERGY } },
+        attackIndex,
+        "player",
+      );
+      if (withStacks.event.dmg > 0) {
+        compared = withStacks.event.dmg;
+        expect(withStacks.event.dmg).toBeGreaterThan(without.event.dmg);
+      }
+    }
+    expect(compared, "no seeded attack connected to compare against").toBeGreaterThan(0);
+  });
+
+  it("keeps a fight a fight, not a war of attrition", () => {
+    // The other half of the energy change: more energy means more healing and
+    // more guardianship, which could quietly make fights endless. Every seeded
+    // fight must still resolve inside a sane number of rounds.
+    for (let seed = 1; seed <= 40; seed += 1) {
+      let state = openFight(seed * 13);
+      let rounds = 0;
+      // Cycle the whole moveset rather than parking on one move: a player who
+      // only ever heals is not a fight, and would never resolve for that
+      // reason alone.
+      while (!state.winner && rounds < 120) {
+        state = round(state, (seed + rounds) % 6);
+        rounds += 1;
+      }
+      expect(state.winner, `seed ${seed} never resolved`).not.toBeNull();
+      expect(rounds, `seed ${seed} took ${rounds} rounds`).toBeLessThan(120);
+    }
+  });
+
   it("heals up to — and never past — the maximum", () => {
     let state = openFight(21);
     state = round(state, 0);
@@ -288,6 +406,33 @@ describe("turn resolution", () => {
       expect(index).toBeGreaterThanOrEqual(0);
       expect(index).toBeLessThan(state.enemy.moves.length);
       state = resolveTurn(state, index, "enemy").state;
+    }
+  });
+});
+
+describe("movesets", () => {
+  it("names each move in its element's register", () => {
+    const fire = movesFor("charmander").map((m) => m.name);
+    expect(fire).toContain("Inferno Comet");
+    expect(fire).toContain("Ember Burst");
+    expect(movesFor("squirtle").map((m) => m.name)).toContain("Tidal Crash");
+    expect(movesFor("bulbasaur").map((m) => m.name)).toContain("Solar Beam");
+    expect(movesFor("pikachu").map((m) => m.name)).toContain("Thunder Spark");
+    expect(movesFor("dragonite").map((m) => m.name)).toContain("Draco Meteor");
+    // No move is ever named after a placeholder: "Normal burst" was the generic
+    // form this table replaced.
+    for (const slug of ["fox", "capybara", "owl", "axolotl", "robot", "slime"]) {
+      for (const move of movesFor(slug)) {
+        expect(move.name, `${slug} has a placeholder move name`).not.toMatch(/^(Normal|Fire|Water|Grass|Electric) (tap|burst)$/);
+      }
+    }
+  });
+
+  it("gives the same six shapes to every species", () => {
+    const shape = (slug: string) => movesFor(slug).map((m) => `${m.id}:${m.cost}:${m.kind}`).join(",");
+    const expected = shape("fox");
+    for (const slug of ["capybara", "dragon", "robot", "slime", "mew", "penguin"]) {
+      expect(shape(slug), `${slug} has a different move economy`).toBe(expected);
     }
   });
 });

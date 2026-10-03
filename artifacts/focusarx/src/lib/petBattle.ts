@@ -24,8 +24,10 @@
  *     below this line.
  *   • **Bounded.** HP can only fall within [0, maxHp], energy within
  *     [0, MAX_ENERGY]; a turn cannot loop forever because every state change
- *     either spends energy or ends the battle. `petBattle.test.ts` asserts
- *     these directly, including a fuzz run over the whole action space.
+ *     either spends energy, banks the turn's regeneration, or ends the battle —
+ *     healing is capped by the maximum, and a setup move adds nothing once the
+ *     boost is at `MAX_BOOST`. `petBattle.test.ts` asserts these directly,
+ *     including a fuzz run over the whole action space.
  *
  * The fight is client-side by design (see the `pet_battles` comment in
  * `lib/db/src/schema/appearance.ts`): it carries no rewards, so the client is
@@ -34,7 +36,7 @@
 
 export type Side = "player" | "enemy";
 export type Difficulty = "easy" | "normal" | "hard";
-export type MoveKind = "attack" | "heal" | "guard";
+export type MoveKind = "attack" | "heal" | "guard" | "boost";
 
 export interface Move {
   id: string;
@@ -58,6 +60,7 @@ export interface Fighter {
   energy: number;
   guard: boolean;
   /** Damage multiplier stacks gained from a successful guard. */
+  /** Damage multiplier stacks (attack damage is `1 + 0.15 × boost`). */
   boost: number;
   moves: Move[];
 }
@@ -82,6 +85,19 @@ export interface TurnEvent {
 export const MAX_ENERGY = 5;
 /** Energy a fighter starts with: enough for one heavy move or two cheap ones. */
 const START_ENERGY = 2;
+/**
+ * Energy granted to a fighter at the start of their own next turn.
+ *
+ * Load-bearing, and it was missing: without it a fighter could spend their
+ * opening two points and then never afford anything but the free move again, so
+ * the heavy strike, the heal and the brace were dead buttons for the rest of the
+ * fight (and the free move's own blurb — "builds energy for the big one" — was a
+ * lie). The uploads' `Battle.beginTurn` regenerated one point per turn; this
+ * grants the same point at the end of a turn instead, which is the same economy
+ * with the advantage that the energy a player *sees* is exactly the energy they
+ * can spend when the grid comes back to them.
+ */
+export const ENERGY_REGEN = 1;
 
 /* ── elements ────────────────────────────────────────────────────────────── */
 
@@ -188,17 +204,69 @@ export function statsFor(slug: string, level: number): { hp: number; atk: number
   };
 }
 
-/** The moveset: one free jab, one signature, one heavy, one utility. */
+/**
+ * Move names by element.
+ *
+ * The names are the PR #99 uploads' own ("Inferno Comet", "Tidal Crash",
+ * "Thunder Spark", "Solar Beam", "Draco Meteor", "Photosynthesis", "Charge Up",
+ * "Dragon Rage", "Healing Mist", "Cinder Guard"…), which is the part of that
+ * design that makes a fight feel like *this animal* rather than like a generic
+ * stat exchange. The upload carried a hand-written moveset per species; here the
+ * species comes from the catalog (~1,700 slugs), so the moveset is chosen by the
+ * element the species names — a fire companion gets the fire register.
+ *
+ * Elements the uploads never wrote for (psychic, dark, ice, fairy, and plain
+ * normal) are written in the same register rather than left generic: the point
+ * of the table is that no move is called "Normal burst".
+ */
+interface MoveNames {
+  jab: string;
+  sig: string;
+  heavy: string;
+  recover: string;
+  guard: string;
+  boost: string;
+}
+
+const MOVE_NAMES: Record<Element, MoveNames> = {
+  fire: { jab: "Quick Pounce", sig: "Ember Burst", heavy: "Inferno Comet", recover: "Warm Up", guard: "Cinder Guard", boost: "Stoke the Coals" },
+  water: { jab: "Bubble Bonk", sig: "Aqua Jet", heavy: "Tidal Crash", recover: "Healing Mist", guard: "Undertow", boost: "Tide Focus" },
+  grass: { jab: "Leaf Tackle", sig: "Razor Leaf", heavy: "Solar Beam", recover: "Morning Dew", guard: "Bark Guard", boost: "Photosynthesis" },
+  electric: { jab: "Zip Strike", sig: "Thunder Spark", heavy: "Storm Surge", recover: "Recharge", guard: "Insulate", boost: "Charge Up" },
+  psychic: { jab: "Ponder Tap", sig: "Mind Pulse", heavy: "Starfall", recover: "Deep Breath", guard: "Ward", boost: "Meditate" },
+  dark: { jab: "Shadow Nip", sig: "Night Shade", heavy: "Eclipse", recover: "Steady Nerves", guard: "Void Veil", boost: "Sharpen" },
+  ice: { jab: "Frost Nudge", sig: "Frost Bite", heavy: "Avalanche", recover: "Cool Down", guard: "Ice Shell", boost: "Cold Focus" },
+  fairy: { jab: "Pixie Poke", sig: "Pixie Dust", heavy: "Supernova", recover: "Wish", guard: "Charm", boost: "Star Wish" },
+  dragon: { jab: "Claw Swipe", sig: "Dragon Breath", heavy: "Draco Meteor", recover: "Hoard Strength", guard: "Scale Wall", boost: "Dragon Rage" },
+  normal: { jab: "Comet Nudge", sig: "Claw Swipe", heavy: "Meteor Smash", recover: "Catch Breath", guard: "Brace", boost: "Tune In" },
+};
+
+/**
+ * The moveset: one free jab, one signature, one heavy, a heal, a brace and a
+ * boost — the same six shapes for every animal, in its own element's language.
+ *
+ * Six rather than the uploads' four because this engine has to model every
+ * catalog species at every level without a hand-written table: the shapes carry
+ * the strategy (cheap/free, steady, expensive, sustain, defence, setup) and the
+ * numbers are level-scaled, so a level-1 axolotl and a level-60 dragon both have
+ * a real decision on every turn.
+ */
 export function movesFor(slug: string): Move[] {
   const element = elementFor(slug);
+  const names = MOVE_NAMES[element];
   return [
-    { id: "jab", name: "Nudge", power: 10, cost: 0, kind: "attack", blurb: "Free and reliable. Builds energy for the big one." },
-    { id: "sig", name: `${cap(element)} tap`, power: 22, cost: 2, kind: "attack", blurb: `A steady ${element} blow.` },
-    { id: "heavy", name: `${cap(element)} burst`, power: 38, cost: 4, kind: "attack", blurb: `The heavy ${element} strike — spends everything.` },
-    { id: "recover", name: "Catch breath", power: 0, cost: 3, kind: "heal", blurb: "Restore about a third of your health." },
-    { id: "guard", name: "Brace", power: 0, cost: 1, kind: "guard", blurb: "Take half damage next turn and gain a boost." },
+    { id: "jab", name: names.jab, power: 10, cost: 0, kind: "attack", blurb: "Free and reliable — and it regenerates a point of energy every turn." },
+    { id: "sig", name: names.sig, power: 22, cost: 2, kind: "attack", blurb: `A steady ${element} blow.` },
+    { id: "heavy", name: names.heavy, power: 38, cost: 4, kind: "attack", blurb: `The heavy ${element} strike — spends everything, lands about four times in five.` },
+    { id: "recover", name: names.recover, power: 0, cost: 3, kind: "heal", blurb: "Restore about a third of your health." },
+    { id: "guard", name: names.guard, power: 0, cost: 1, kind: "guard", blurb: "Take half damage next turn and gain a boost stack." },
+    { id: "boost", name: names.boost, power: 0, cost: 2, kind: "boost", blurb: "Set up: two boost stacks (max three), then hit harder." },
   ];
 }
+
+/** Boost stacks a setup move grants, and the cap every source shares. */
+export const BOOST_MOVE_STACKS = 2;
+export const MAX_BOOST = 3;
 
 function cap(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
@@ -270,6 +338,9 @@ export function chooseEnemyMove(state: BattleState): number {
 
   // Heal when hurt and able.
   if (hpPct < 0.35 && me.energy >= 3 && roll < 0.6) return me.moves.findIndex((m) => m.kind === "heal");
+  // Wind up early, while healthy — the uploads' AI did the same, and it is what
+  // makes a heavy move land at the end of a fight instead of never.
+  if (hpPct > 0.5 && me.boost === 0 && me.energy >= 2 && roll > 0.7) return me.moves.findIndex((m) => m.kind === "boost");
   // Finish when the heavy move is affordable.
   if (me.energy >= 4 && foePct < 0.4 && roll < 0.75) return me.moves.findIndex((m) => m.id === "heavy");
   if (me.energy >= 2 && roll < 0.55) return me.moves.findIndex((m) => m.id === "sig");
@@ -310,8 +381,9 @@ export function resolveTurn(
   const nextActor = fighterOf(next, actorSide);
   const nextTarget = fighterOf(next, other(actorSide));
 
-  // Spend energy, clear the guard flag that protected the *other* side.
-  nextActor.energy = clamp(nextActor.energy - move.cost, 0, MAX_ENERGY);
+  // Spend the cost, then bank this turn's regeneration for their next turn —
+  // one point, so the free move nets +1 and the expensive ones come round again.
+  nextActor.energy = clamp(nextActor.energy - move.cost + ENERGY_REGEN, 0, MAX_ENERGY);
 
   let dmg = 0;
   let heal = 0;
@@ -343,9 +415,16 @@ export function resolveTurn(
     heal = Math.min(nextActor.maxHp - nextActor.hp, Math.round(nextActor.maxHp * 0.32));
     nextActor.hp += heal;
     text = heal > 0 ? `${actor.name} catches their breath (+${heal}).` : `${actor.name} is already at full strength.`;
+  } else if (move.kind === "boost") {
+    const before = nextActor.boost;
+    nextActor.boost = Math.min(MAX_BOOST, nextActor.boost + BOOST_MOVE_STACKS);
+    text =
+      nextActor.boost > before
+        ? `${actor.name} winds up ${move.name} (+${nextActor.boost} power).`
+        : `${actor.name} is already wound up as far as it goes.`;
   } else {
     nextActor.guard = true;
-    nextActor.boost = Math.min(3, nextActor.boost + 1);
+    nextActor.boost = Math.min(MAX_BOOST, nextActor.boost + 1);
     text = `${actor.name} braces for the next hit.`;
   }
 
