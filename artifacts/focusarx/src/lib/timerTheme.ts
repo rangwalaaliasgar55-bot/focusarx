@@ -1,12 +1,12 @@
 /**
  * Timer face designs (purely cosmetic, client-side, remembered).
  *
- * Thirteen faces for the countdown timer, in two families. The ring faces
+ * Fourteen faces for the countdown timer, in two families. The ring faces
  * (`classic` / `neon` / `zen`) and `flip` describe progress on the same dial; the
  * rest are *layouts* — they change what the picture means, not only how it is
  * coloured: geometry the house already shipped (`segments` / `bars` / `dots` /
- * `rounds`) and the design-pack faces ported from the PR #99 uploads (`aurora` /
- * `orbit` / `hourglass` / `companion` / `garden`, implemented in
+ * `rounds`) and the design-pack faces ported from the PR #99 uploads (`analog` /
+ * `aurora` / `orbit` / `hourglass` / `companion` / `garden`, implemented in
  * `components/timerfaces/TimerFacesStudio.tsx`). Every face carries a `blurb`
  * written to be read: the picker shows the selected face's blurb under the row,
  * so "how does this one work" is answerable in the interface instead of being
@@ -31,7 +31,8 @@ export type TimerTheme =
   | "orbit"
   | "hourglass"
   | "companion"
-  | "garden";
+  | "garden"
+  | "analog";
 
 export interface TimerThemeDef {
   id: TimerTheme;
@@ -59,6 +60,7 @@ export const TIMER_THEMES: TimerThemeDef[] = [
   { id: "hourglass", label: "Hourglass", blurb: "Sand, because it is the one picture everyone already reads: the top chamber is what is left." },
   { id: "companion", label: "Companion trail", blurb: "Your pet walks a ten-step track to the flag — how far along the animal is, is how much is left." },
   { id: "garden", label: "Garden", blurb: "A stem grows and a flower opens, one petal per remaining block. Written for breaks, not for work." },
+  { id: "analog", label: "Analog clock", blurb: "A wedge dial with a hand and its own scale at twelve o'clock — a wall clock asked one question." },
 ];
 
 const THEME_KEY = "focusarx-timer-theme";

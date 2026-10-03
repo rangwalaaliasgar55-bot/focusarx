@@ -9,7 +9,7 @@ import { petBodyParams } from "@/lib/petBodyParams";
 import { EditHint, sessionTotal, useFaceLabels, type TimerFaceProps } from "@/components/timerfaces/TimerFaces";
 
 /**
- * The ported faces — Aurora, Orbit, Hourglass, Companion trail and Garden.
+ * The ported faces — Analog, Aurora, Orbit, Hourglass, Companion trail and Garden.
  *
  * These are the timer faces from the PR #99 design uploads, rebuilt against the
  * contract the existing four layout faces already share
@@ -31,6 +31,8 @@ import { EditHint, sessionTotal, useFaceLabels, type TimerFaceProps } from "@/co
  *                   animal is the same body the 3D stage draws.
  *   • **Garden**  — a stem grows and a flower opens petal by petal, one petal
  *                   per remaining block. A growing thing, for breaks.
+ *   • **Analog**  — the wedge dial with a hand: a wall clock that answers one
+ *                   question, including its own scale at twelve o'clock.
  *
  * Design gates that shape the code (see src/quiet-interface.test.ts and
  * src/legibility.test.ts): no `backdrop-blur`, no `shadow-[0_0_…]` glow, no
@@ -596,7 +598,132 @@ export function TimerFaceGarden({ secondsLeft, mode, isRunning, progress, totalS
 }
 
 /** Named export used by the registry test: every face id must exist here. */
+/* ───────────────────────────── 6 · Analog clock ─────────────────────────── */
+
+const ANALOG_R = 66;
+const ANALOG_C = 2 * Math.PI * ANALOG_R;
+
+/**
+ * Analog clock — the wedge dial, ported from the PR #99 uploads.
+ *
+ * A *wedge* from the middle fills as the block runs down, a hand points at the
+ * remaining fraction, and the face is ringed with minute ticks and five-minute
+ * numbers, so it reads like a wall clock that has been asked one question. The
+ * hand is what makes it different from the other ring faces: it points at what
+ * is left rather than sweeping past what is spent, which is the reading people
+ * reach for without being taught.
+ *
+ * The wedge stops short of the numbers on purpose. The upload drew it out to
+ * the ticks with the numerals on top of it; over a mid-tone accent those
+ * numerals are the first thing to lose contrast, so here the wedge ends inside
+ * them and the scale stays on the surface in the foreground colour.
+ *
+ * A dial only makes sense when its scale is stated, so twelve o'clock carries
+ * the session's own length in minutes, and the numbers step in tens once the
+ * block is longer than an hour (five *hours* of ticks is not a dial anyone can
+ * read).
+ */
+export function TimerFaceAnalog({ secondsLeft, mode, isRunning, progress, totalSeconds, onEditClick, sessionType, accent, accentSoft }: TimerFaceProps) {
+  const reduced = !!useReducedMotion();
+  const { spoken, endsAt } = useFaceLabels(secondsLeft);
+  const total = sessionTotal(secondsLeft, progress, totalSeconds);
+  const remaining = total > 0 ? Math.min(1, Math.max(0, secondsLeft / total)) : 0;
+  const label = modeWord(mode, sessionType);
+  const totalMinutes = Math.max(1, Math.round(total / 60));
+  const left = Math.max(0, Math.ceil(secondsLeft / 60));
+  const longBlock = total > 3600;
+  const handAngle = remaining * Math.PI * 2 - Math.PI / 2;
+  const handX = 150 + 129 * Math.cos(handAngle);
+  const handY = 150 + 129 * Math.sin(handAngle);
+
+  return (
+    <FaceFrame>
+      <svg viewBox="0 0 300 300" className="absolute inset-0 h-full w-full" aria-hidden="true">
+        {/* Case and dial */}
+        <circle cx="150" cy="150" r="146" fill="var(--surface-1)" stroke="var(--border-strong)" strokeWidth="1.4" />
+        <circle cx="150" cy="150" r="132" fill="var(--surface-2)" />
+
+        {/* The wedge: everything still ahead of you, from the middle out. */}
+        <circle
+          cx="150"
+          cy="150"
+          r={ANALOG_R}
+          fill="none"
+          stroke={accent}
+          strokeWidth={ANALOG_R * 2}
+          strokeDasharray={`${ANALOG_C * remaining} ${ANALOG_C}`}
+          transform="rotate(-90 150 150)"
+          opacity="0.92"
+          style={{ transition: reduced ? "none" : `stroke-dasharray ${isRunning ? "1s linear" : "0.4s ease"}` }}
+        />
+
+        {/* Minute ticks: long every five. */}
+        {Array.from({ length: 60 }).map((_, i) => {
+          const a = (i / 60) * Math.PI * 2 - Math.PI / 2;
+          const big = i % 5 === 0;
+          const r1 = 132;
+          const r2 = big ? 118 : 125;
+          return (
+            <line
+              key={i}
+              x1={150 + Math.cos(a) * r1}
+              y1={150 + Math.sin(a) * r1}
+              x2={150 + Math.cos(a) * r2}
+              y2={150 + Math.sin(a) * r2}
+              stroke="var(--foreground)"
+              strokeOpacity={big ? 0.85 : 0.32}
+              strokeWidth={big ? 2.2 : 1}
+            />
+          );
+        })}
+
+        {/* The scale. Twelve o'clock states the block's own length. */}
+        {Array.from({ length: 12 }).map((_, i) => {
+          const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
+          const value = i === 0 ? totalMinutes : longBlock ? i * 10 : i * 5;
+          return (
+            <text
+              key={i}
+              x={150 + Math.cos(a) * 105}
+              y={150 + Math.sin(a) * 105 + 5}
+              textAnchor="middle"
+              fontSize="14"
+              fontWeight="600"
+              fill="var(--foreground)"
+              fillOpacity="0.82"
+            >
+              {value}
+            </text>
+          );
+        })}
+
+        {/* The hand, and its hub. */}
+        <line x1="150" y1="150" x2={handX} y2={handY} stroke={accentSoft} strokeWidth="3.6" strokeLinecap="round" />
+        <circle cx="150" cy="150" r="9" fill="var(--foreground)" />
+        <circle cx="150" cy="150" r="3.6" fill={accent} />
+      </svg>
+
+      <div className="relative z-[var(--z-content)] mt-[86%] flex w-[58%] flex-col items-center text-center">
+        <ModeLabel label={label} accent={accent} />
+        <TimeButton
+          secondsLeft={secondsLeft}
+          spoken={spoken}
+          endsAt={endsAt}
+          onEditClick={onEditClick}
+          isRunning={isRunning}
+          className="text-[clamp(1.75rem,6vw,2.75rem)]"
+        />
+        <span className="mt-1.5 text-[11px] font-medium text-[var(--foreground-subtle)]">
+          {left} of {totalMinutes} min left
+        </span>
+      </div>
+      <EditHint onClick={onEditClick} running={isRunning} label={spoken} />
+    </FaceFrame>
+  );
+}
+
 export const STUDIO_FACES = {
+  analog: TimerFaceAnalog,
   aurora: TimerFaceAurora,
   orbit: TimerFaceOrbit,
   hourglass: TimerFaceHourglass,

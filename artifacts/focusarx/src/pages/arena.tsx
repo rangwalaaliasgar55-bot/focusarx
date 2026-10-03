@@ -25,7 +25,8 @@ import {
   type Difficulty,
   type TurnEvent,
 } from "@/lib/petBattle";
-import { petSpeciesVisual } from "@/lib/petSpecies";
+import { AnimalGlyph } from "@/components/pets/AnimalGlyph";
+import { petBodyParams } from "@/lib/petBodyParams";
 import { is3DCapable } from "@/lib/webglCapability";
 import { cn } from "@/lib/utils";
 
@@ -83,6 +84,8 @@ function authHeaders(): Record<string, string> {
 function FighterCard({
   title,
   subtitle,
+  slug,
+  category,
   hp,
   max,
   energy,
@@ -93,6 +96,9 @@ function FighterCard({
 }: {
   title: string;
   subtitle: string;
+  /** Species slug — the card draws the animal from it, not a generic avatar. */
+  slug: string;
+  category?: string;
   hp: number;
   max: number;
   energy: number;
@@ -106,9 +112,14 @@ function FighterCard({
   return (
     <Card className={cn("flex-1", align === "right" && "text-right")}>
       <CardContent className="p-3">
-        <div className={cn("flex items-baseline justify-between gap-2", align === "right" && "flex-row-reverse")}>
-          <span className="truncate font-display text-sm font-semibold text-[var(--foreground)]">{title}</span>
-          <span className="text-[11px] font-semibold text-[var(--foreground-subtle)]">{subtitle}</span>
+        <div className={cn("flex items-center justify-between gap-2", align === "right" && "flex-row-reverse")}>
+          {/* The same animal the companion stages draw (petBodyParams → glyph),
+              mirrored for the right-hand fighter so the two face each other. */}
+          <AnimalGlyph params={petBodyParams(slug, category)} size={40} flip={align === "right"} />
+          <span className="flex min-w-0 flex-col items-start gap-0.5" style={align === "right" ? { alignItems: "flex-end" } : undefined}>
+            <span className="w-full truncate font-display text-sm font-semibold text-[var(--foreground)]">{title}</span>
+            <span className="text-[11px] font-semibold text-[var(--foreground-subtle)]">{subtitle}</span>
+          </span>
         </div>
         <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full" style={{ background: "var(--surface-3)" }}>
           <motion.div
@@ -166,7 +177,7 @@ export default function ArenaPage() {
   const petSlug = activePet?.slug ?? "bulbasaur";
   const petName = activePet?.name ?? "Your companion";
   const petLevel = activePet?.level ?? 1;
-  const petVisual = petSpeciesVisual(petSlug, activePet?.category);
+  const petCategory = activePet?.category;
 
   const [rivals, setRivals] = useState<Rival[]>(FALLBACK_RIVALS);
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
@@ -358,11 +369,10 @@ export default function ArenaPage() {
                   <div className="space-y-4">
                     <div className="flex flex-wrap items-center gap-3">
                       <span
-                        aria-hidden="true"
-                        className="grid h-12 w-12 place-items-center rounded-full text-2xl"
-                        style={{ background: "var(--surface-2)", color: petVisual.color }}
+                        className="grid h-12 w-12 place-items-center overflow-hidden rounded-full"
+                        style={{ background: "var(--surface-2)" }}
                       >
-                        {petVisual.emoji}
+                        <AnimalGlyph params={petBodyParams(petSlug, petCategory)} size={44} />
                       </span>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-[var(--foreground)]">{petName}</p>
@@ -376,7 +386,6 @@ export default function ArenaPage() {
                       <p className="mb-1.5 text-xs font-semibold text-[var(--foreground-muted)]">Opponent</p>
                       <div className="flex flex-wrap gap-2">
                         {rivals.slice(0, 8).map((r, index) => {
-                          const visual = petSpeciesVisual(r.slug, r.category);
                           const active = index === Math.min(rivalIndex, rivals.length - 1);
                           return (
                             <button
@@ -391,7 +400,7 @@ export default function ArenaPage() {
                                   : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)] hover:border-[var(--border-strong)]",
                               )}
                             >
-                              <span aria-hidden="true">{visual.emoji}</span>
+                              <AnimalGlyph params={petBodyParams(r.slug, r.category)} size={20} />
                               {r.name}
                             </button>
                           );
@@ -438,6 +447,8 @@ export default function ArenaPage() {
                       <FighterCard
                         title={battle.player.name}
                         subtitle={`Lv ${battle.player.level} · ${elementFor(battle.player.slug)}`}
+                        slug={battle.player.slug}
+                        category={petCategory}
                         hp={battle.player.hp}
                         max={battle.player.maxHp}
                         energy={battle.player.energy}
@@ -449,6 +460,8 @@ export default function ArenaPage() {
                       <FighterCard
                         title={battle.enemy.name}
                         subtitle={`Lv ${battle.enemy.level} · ${elementFor(battle.enemy.slug)}`}
+                        slug={battle.enemy.slug}
+                        category={rival.category}
                         hp={battle.enemy.hp}
                         max={battle.enemy.maxHp}
                         energy={battle.enemy.energy}

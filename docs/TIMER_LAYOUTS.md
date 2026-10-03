@@ -1,7 +1,7 @@
 # Timer layouts — what each one is and how it works
 
-The timer has thirteen faces. They are not thirteen colours of the same dial:
-nine of them (`segments`, `bars`, `dots`, `rounds`, `aurora`, `orbit`,
+The timer has fourteen faces. They are not fourteen colours of the same dial:
+ten of them (`segments`, `bars`, `dots`, `rounds`, `analog`, `aurora`, `orbit`,
 `hourglass`, `companion`, `garden`) are **layouts**, which means the geometry
 itself carries the information and the countdown is read a different way in each.
 
@@ -9,7 +9,7 @@ Pick one from the face row under the ring (the picker shows the selected face's
 explanation under it, and the choice is remembered per device). Nothing about a
 layout changes the session: same seconds, same rewards, same saved history.
 
-The first four layouts are the house set. The last five are the design-pack
+The first four layouts are the house set. The last six are the design-pack
 faces ported from the PR #99 uploads; they live in
 `src/components/timerfaces/TimerFacesStudio.tsx` rather than with the house
 faces, and they are the human half of the same assignment an admin can pin per
@@ -32,6 +32,7 @@ account from the console's Design packs tab.
 | **Orbit** | A planet on a rail, with a moon on a faster one | The block is exactly one lap. The planet marks how far into the session you are and the moon laps it faster, so the face reads as clockwork rather than as a gauge running down. | Sessions long enough that a single slow arc would look static. |
 | **Hourglass** | Falling sand in a two-chamber glass | The one picture everyone already reads: the top chamber is what is left, the bottom is what is done, and the stream between them runs only while the timer runs. It is the only face whose "empty" reading is unambiguous to someone who has never seen the app. | Breaks and short blocks — nobody has to be taught it. |
 | **Companion trail** | Your active pet walking a ten-step track to a flag | Your companion (the same animal as the focus-tab pet, from `useActivePet`) advances one step per tenth of the session and waits at the flag on the last one. How far along the animal is, is how much is left; the pet also reads as your own, which is the point. | People who respond to the pet more than to the clock. |
+| **Analog clock** | A wedge dial with a hand, minute ticks and numbers | A wedge fills from the middle for the time still ahead while a hand points at the remaining fraction — the wall-clock reading, with the difference that the hand answers the question instead of sweeping past it. The wedge stops inside the numerals so the scale never sits on top of a mid-tone accent, and twelve o'clock states the session's own length in minutes (with the numbers stepping in tens once the block passes an hour). | Anyone who wants the shape of the remaining time — a quarter of the dial is a glance, not an arithmetic problem. |
 | **Garden** | A stem that grows and a flower that opens, one petal per block | Deliberately written for breaks rather than for work: petals open as the session progresses, so the thing on screen gets *larger* as the block finishes instead of running out. | Breaks, and anyone who finds a countdown stressful. |
 
 ## The four ring faces

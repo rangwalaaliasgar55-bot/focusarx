@@ -269,7 +269,7 @@ export function TimerDisplay({
   const LAYOUT_FACES = new Set<TimerTheme>([
     "segments", "bars", "dots", "rounds",
     // Ported design-pack faces.
-    "aurora", "orbit", "hourglass", "companion", "garden",
+    "analog", "aurora", "orbit", "hourglass", "companion", "garden",
   ]);
   if (LAYOUT_FACES.has(theme)) {
     const FaceProps = {
@@ -300,6 +300,7 @@ export function TimerDisplay({
             : theme === "orbit" ? <STUDIO_FACES.orbit {...FaceProps} />
             : theme === "hourglass" ? <STUDIO_FACES.hourglass {...FaceProps} />
             : theme === "companion" ? <STUDIO_FACES.companion {...FaceProps} />
+            : theme === "analog" ? <STUDIO_FACES.analog {...FaceProps} />
             : <STUDIO_FACES.garden {...FaceProps} />}
         </motion.div>
       </AnimatePresence>

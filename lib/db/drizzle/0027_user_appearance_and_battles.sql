@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS "user_appearance" (
   "source" text DEFAULT 'user' NOT NULL,
   "updated_by" text,
   "updated_at" timestamp DEFAULT now() NOT NULL,
-  CONSTRAINT "user_appearance_timer_face_known" CHECK ("timer_face" IN ('classic', 'neon', 'zen', 'flip', 'segments', 'bars', 'dots', 'rounds', 'aurora', 'orbit', 'hourglass', 'companion', 'garden')),
+  CONSTRAINT "user_appearance_timer_face_known" CHECK ("timer_face" IN ('classic', 'neon', 'zen', 'flip', 'segments', 'bars', 'dots', 'rounds', 'aurora', 'orbit', 'hourglass', 'companion', 'garden', 'analog')),
   CONSTRAINT "user_appearance_pet_design_known" CHECK ("pet_design" IN ('classic', 'wild3d', 'sprite')),
   CONSTRAINT "user_appearance_battle_design_known" CHECK ("battle_design" IN ('duel', 'arena', 'retro')),
   CONSTRAINT "user_appearance_layout_known" CHECK ("layout" IN ('quiet', 'studio', 'compact')),
