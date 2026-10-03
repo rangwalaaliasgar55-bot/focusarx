@@ -80,6 +80,12 @@ export const petBattlesTable = pgTable("pet_battles", {
   difficulty: text("difficulty").notNull().default("normal"),
   /** Battle board design in play when the fight was fought. */
   design: text("design").notNull().default("duel"),
+  /**
+   * Arena cup fought, 1–6 (the ladder ported from the PR #99 uploads), or null
+   * for a pick-up fight. Nothing is derived from this column — it exists so the
+   * console can say *which cup* a fight was, not only that one happened.
+   */
+  stage: integer("stage"),
   /** win | loss | flee */
   result: text("result").notNull(),
   rounds: integer("rounds").notNull().default(0),
@@ -94,6 +100,7 @@ export const petBattlesTable = pgTable("pet_battles", {
   check("pet_battles_difficulty_known", sql`${t.difficulty} IN ('easy', 'normal', 'hard')`),
   check("pet_battles_levels_sane", sql`${t.petLevel} >= 1 AND ${t.rivalLevel} >= 1`),
   check("pet_battles_rounds_non_negative", sql`${t.rounds} >= 0`),
+  check("pet_battles_stage_known", sql`${t.stage} IS NULL OR (${t.stage} >= 1 AND ${t.stage} <= 6)`),
 ]);
 
 export type PetBattle = typeof petBattlesTable.$inferSelect;

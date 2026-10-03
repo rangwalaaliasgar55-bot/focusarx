@@ -197,6 +197,13 @@
       "when": 1790000008000,
       "tag": "0027_user_appearance_and_battles",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1790000009000,
+      "tag": "0028_pet_battle_arena_stage",
+      "breakpoints": true
     }
   ]
 }

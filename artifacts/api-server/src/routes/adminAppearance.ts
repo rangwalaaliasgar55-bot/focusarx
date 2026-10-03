@@ -179,6 +179,9 @@ router.get("/admin/appearance/battles", async (req, res: Response) => {
         rivalLevel: petBattlesTable.rivalLevel,
         difficulty: petBattlesTable.difficulty,
         design: petBattlesTable.design,
+        // The ladder cup, when the fight was one — the console prints the cup's
+        // name from the client's ladder, so this stays a plain number here.
+        stage: petBattlesTable.stage,
         result: petBattlesTable.result,
         rounds: petBattlesTable.rounds,
         damageDealt: petBattlesTable.damageDealt,

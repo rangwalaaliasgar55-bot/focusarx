@@ -252,6 +252,9 @@ describe.runIf(hasDb)("design packs (live app + real database)", () => {
       rivalLevel: 5,
       difficulty: "normal",
       design: "retro",
+      // Cup 3 of the ladder: the point of the column is that the console can ask
+      // *which cup* was fought, so the round trip has to carry it.
+      stage: 3,
       result: "win",
       rounds: 7,
       damageDealt: 41,
@@ -259,6 +262,26 @@ describe.runIf(hasDb)("design packs (live app + real database)", () => {
     };
     const logged = await call("/api/appearance/battles", { method: "POST", jar: user.jar, body: report });
     expect(logged.status).toBe(201);
+    expect((logged.json.battle as { stage: number | null }).stage).toBe(3);
+
+    // A stage outside the ladder is refused at the door with the field named;
+    // the column's CHECK is what would otherwise turn this into a 500.
+    const badStage = await call("/api/appearance/battles", {
+      method: "POST",
+      jar: user.jar,
+      body: { ...report, stage: 7 },
+    });
+    expect(badStage.status).toBe(400);
+    expect(String(badStage.json.error)).toContain("stage");
+
+    // A pick-up fight still logs, with no cup.
+    const pickUp = await call("/api/appearance/battles", {
+      method: "POST",
+      jar: user.jar,
+      body: { ...report, stage: null, result: "loss" },
+    });
+    expect(pickUp.status).toBe(201);
+    expect((pickUp.json.battle as { stage: number | null }).stage).toBeNull();
 
     // The player's own history ...
     const mine = await call("/api/appearance/battles", { jar: user.jar });
@@ -271,11 +294,24 @@ describe.runIf(hasDb)("design packs (live app + real database)", () => {
     // battles" means: the row carries the account, not just the fight.
     const all = await call("/api/admin/appearance/battles?limit=100", { jar: admin.jar });
     expect(all.status).toBe(200);
-    const battles = all.json.battles as { userId: string; rivalSlug: string; design: string; result: string }[];
-    const found = battles.find((b) => b.userId === user.id && b.rivalSlug === "owl");
-    expect(found, "the admin battle log does not contain the fight just played").toBeTruthy();
+    const battles = all.json.battles as {
+      userId: string;
+      rivalSlug: string;
+      design: string;
+      result: string;
+      stage: number | null;
+    }[];
+    // Found by cup, not by rival: the same rival is faced in a cup and in a
+    // pick-up fight, and the cup is the row this test is about.
+    const found = battles.find((b) => b.userId === user.id && b.stage === 3);
+    expect(found, "the admin battle log does not contain the cup fight just played").toBeTruthy();
+    expect(found!.rivalSlug).toBe("owl");
     expect(found!.design).toBe("retro");
     expect(found!.result).toBe("win");
+    // ... and the cup it was fought at, which is how the console sees ladder
+    // progress at all. The pick-up fight above must not be mistaken for one.
+    expect(found!.stage).toBe(3);
+    expect(battles.filter((b) => b.userId === user.id && b.stage === null)).toHaveLength(1);
 
     // A non-admin cannot read the cross-account log.
     expect((await call("/api/admin/appearance/battles", { jar: user.jar })).status).toBe(403);

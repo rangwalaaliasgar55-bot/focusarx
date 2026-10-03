@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, Coins, Crown, Flag, Heart, RotateCcw, Shield, Sparkles, Swords, Zap } from "lucide-react";
+import { ArrowLeft, Check, Coins, Crown, Flag, Heart, RotateCcw, Shield, Sparkles, Swords, Trophy, Zap } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
 import { PageSEO, PAGE_SEO } from "@/components/PageSEO";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +25,13 @@ import {
   type Difficulty,
   type TurnEvent,
 } from "@/lib/petBattle";
+import {
+  ARENA_CUPS,
+  clearedCups,
+  cupLockReason,
+  cupUnlocked,
+  nextCup,
+} from "@/lib/arenaLadder";
 import { AnimalGlyph } from "@/components/pets/AnimalGlyph";
 import { petBodyParams } from "@/lib/petBodyParams";
 import { is3DCapable } from "@/lib/webglCapability";
@@ -186,7 +193,19 @@ export default function ArenaPage() {
   const [lastEvent, setLastEvent] = useState<TurnEvent | null>(null);
 
   const [summary, setSummary] = useState<{ total: number; wins: number; losses: number } | null>(null);
+  /** Cups the log says have been won. */
+  const [cleared, setCleared] = useState<number[]>([]);
+  /** The cup being entered, or null for a pick-up fight against a chosen rival. */
+  const [cupId, setCupId] = useState<number | null>(null);
   const reportedRef = useRef(false);
+  /**
+   * The stage of the *current* fight, captured when it started.
+   *
+   * The cup selector stays live during a fight, so reading `cupId` at report
+   * time would file the win under whatever cup the user had wandered to. The
+   * fight's own stage is what the log must record.
+   */
+  const stageRef = useRef<number | null>(null);
 
   // Rivals come from the live catalog (so new releases are opponents); the local
   // list keeps the page usable offline and for guests.
@@ -210,10 +229,14 @@ export default function ArenaPage() {
     if (!hasSessionHint()) return;
     void (async () => {
       try {
-        const data = await apiJson<{ summary?: { total: number; wins: number; losses: number } }>("/api/appearance/battles?limit=1", {
-          credentials: "include",
-        });
+        const data = await apiJson<{
+          summary?: { total: number; wins: number; losses: number };
+          battles?: { stage?: unknown; result?: unknown }[];
+        }>("/api/appearance/battles?limit=50", { credentials: "include" });
         if (data.summary) setSummary(data.summary);
+        // The ladder's progress is not a column anywhere: it is read back out of
+        // the battle log, which is the same record the console reads.
+        if (Array.isArray(data.battles)) setCleared(clearedCups(data.battles));
       } catch {
         /* no history yet */
       }
@@ -221,15 +244,21 @@ export default function ArenaPage() {
   }, []);
 
   const rival = rivals[Math.min(rivalIndex, Math.max(0, rivals.length - 1))] ?? FALLBACK_RIVALS[0]!;
-  const rivalLevel = rivalLevelFor(petLevel, difficulty);
+  const cup = cupId === null ? null : ARENA_CUPS.find((c) => c.id === cupId) ?? null;
+  // A cup sets the stakes: its own level and difficulty, not the free-fight
+  // controls. Everything downstream (the fight button, the report) reads these.
+  const fightDifficulty = cup?.difficulty ?? difficulty;
+  const rivalLevel = cup ? cup.level : rivalLevelFor(petLevel, difficulty);
+  const suggested = nextCup(petLevel, cleared);
 
   const start = useCallback(() => {
     const player = makeFighter("player", petSlug, petLevel, petName);
-    const enemy = makeFighter("enemy", rival.slug, rivalLevel, rivalNameFor(rival.slug, difficulty));
+    const enemy = makeFighter("enemy", rival.slug, rivalLevel, rivalNameFor(rival.slug, fightDifficulty));
     reportedRef.current = false;
+    stageRef.current = cup?.id ?? null;
     setLastEvent(null);
     setBattle(startBattle(player, enemy, Date.now() >>> 0));
-  }, [petSlug, petLevel, petName, rival.slug, rivalLevel, difficulty]);
+  }, [petSlug, petLevel, petName, rival.slug, rivalLevel, fightDifficulty, cup]);
 
   const report = useCallback(
     async (state: BattleState, result: "win" | "loss" | "flee") => {
@@ -247,8 +276,9 @@ export default function ArenaPage() {
             rivalSlug: state.enemy.slug,
             rivalName: state.enemy.name,
             rivalLevel: state.enemy.level,
-            difficulty,
+            difficulty: fightDifficulty,
             design: battleDesign,
+            stage: stageRef.current,
             result,
             rounds: state.round,
             damageDealt: state.dealt.player,
@@ -266,12 +296,19 @@ export default function ArenaPage() {
               : prev,
           );
         }
+        // Winning a cup advances the ladder immediately, without waiting for a
+        // refetch: the log read is the authority on the next visit, but a user
+        // who has just won must not be told the cup is still locked.
+        const won = stageRef.current;
+        if (result === "win" && won !== null) {
+          setCleared((prev) => (prev.includes(won) ? prev : [...prev, won].sort((a, b) => a - b)));
+        }
       } catch {
         // The log is a nice-to-have: a failed report must never interrupt the
         // fight or look like the battle itself failed.
       }
     },
-    [battleDesign, difficulty],
+    [battleDesign, fightDifficulty],
   );
 
   const act = useCallback(
@@ -362,8 +399,77 @@ export default function ArenaPage() {
 
         <div className={cn("grid gap-4", studio && "lg:grid-cols-[minmax(0,1fr)_320px]")}>
           <div className="space-y-4">
+            {/* The ladder — the uploads' six cups, unlocked in order. */}
+            <Card data-cup-ladder="true">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Trophy size={14} className="text-[var(--brand-gold)]" aria-hidden="true" />
+                  The ladder
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 p-4 pt-0">
+                <p className="text-xs text-[var(--foreground-subtle)]">
+                  {cleared.length === 0
+                    ? "Six cups, unlocked in order. Winning one opens the next."
+                    : `${cleared.length} of ${ARENA_CUPS.length} cups cleared — ${suggested.name} is next.`}
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {ARENA_CUPS.map((c) => {
+                    const open = cupUnlocked(c, petLevel, cleared);
+                    const won = cleared.includes(c.id);
+                    const reason = cupLockReason(c, petLevel, cleared);
+                    const chosen = cupId === c.id;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        disabled={!open}
+                        aria-pressed={chosen}
+                        onClick={() => {
+                          setCupId(chosen ? null : c.id);
+                          setBattle(null);
+                        }}
+                        className={cn(
+                          "flex min-h-[52px] flex-col gap-0.5 rounded-xl border px-3 py-2 text-left transition-colors",
+                          chosen
+                            ? "border-[var(--brand-400)]/60 bg-[var(--rgba-124-58-237-0_15)]"
+                            : "border-[var(--border-subtle)] bg-[var(--surface-1)]",
+                          open ? "hover:border-[var(--border-strong)]" : "opacity-60",
+                        )}
+                      >
+                        <span className="flex items-center gap-1.5 text-xs font-bold text-[var(--foreground)]">
+                          <span
+                            aria-hidden="true"
+                            className="h-2 w-2 shrink-0 rounded-full"
+                            style={{ background: c.palette[2] }}
+                          />
+                          {c.name}
+                          {won && (
+                            <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-[var(--brand-gold)]">
+                              <Check size={10} aria-hidden="true" /> cleared
+                            </span>
+                          )}
+                          <span className="ml-auto text-[11px] font-semibold text-[var(--foreground-subtle)]">Lv {c.level}</span>
+                        </span>
+                        <span className="text-[11px] text-[var(--foreground-subtle)]">{open ? c.blurb : reason}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {cup && (
+                  <button
+                    type="button"
+                    onClick={() => setCupId(null)}
+                    className="text-[11px] font-semibold text-[var(--foreground-muted)] underline"
+                  >
+                    Leave the cup and fight any rival
+                  </button>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Stage */}
-            <Card>
+            <Card data-cup={cup?.id ?? undefined} style={cup ? { borderColor: cup.palette[2] } : undefined}>
               <CardContent className="p-4">
                 {!battle ? (
                   <div className="space-y-4">
@@ -408,6 +514,17 @@ export default function ArenaPage() {
                       </div>
                     </div>
 
+                    {cup && (
+                      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-1)] px-3 py-2">
+                        <p className="text-xs font-bold text-[var(--foreground)]">
+                          Cup {cup.id} · {cup.name}
+                        </p>
+                        <p className="text-[11px] text-[var(--foreground-subtle)]">
+                          {cup.blurb} Level {cup.level} opponent, {cup.difficulty} band — the cup sets both.
+                        </p>
+                      </div>
+                    )}
+
                     <div>
                       <p className="mb-1.5 text-xs font-semibold text-[var(--foreground-muted)]">Difficulty</p>
                       <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Battle difficulty">
@@ -416,14 +533,16 @@ export default function ArenaPage() {
                             key={d.id}
                             type="button"
                             role="radio"
-                            aria-checked={difficulty === d.id}
+                            aria-checked={fightDifficulty === d.id}
+                            disabled={!!cup}
                             onClick={() => setDifficulty(d.id)}
-                            title={d.hint}
+                            title={cup ? "The cup sets the difficulty" : d.hint}
                             className={cn(
                               "min-h-[32px] rounded-full border px-3 py-1 text-xs font-bold transition-colors",
-                              difficulty === d.id
+                              fightDifficulty === d.id
                                 ? "border-[var(--brand-400)]/60 bg-[var(--rgba-124-58-237-0_15)] text-[var(--brand-400)]"
                                 : "border-[var(--border-subtle)] bg-[var(--surface-1)] text-[var(--foreground-subtle)] hover:border-[var(--border-strong)]",
+                              cup && "opacity-50",
                             )}
                           >
                             {d.label}
@@ -433,7 +552,10 @@ export default function ArenaPage() {
                     </div>
 
                     <Button onClick={start} className="w-full sm:w-auto">
-                      <Swords size={14} aria-hidden="true" /> Fight {rivalNameFor(rival.slug, difficulty)} (Lv {rivalLevel})
+                      <Swords size={14} aria-hidden="true" />
+                      {cup
+                        ? ` Fight for the ${cup.name} (Lv ${rivalLevel})`
+                        : ` Fight ${rivalNameFor(rival.slug, difficulty)} (Lv ${rivalLevel})`}
                     </Button>
                     {!is3DCapable() && (
                       <p className="text-[11px] text-[var(--foreground-subtle)]">
@@ -472,6 +594,11 @@ export default function ArenaPage() {
                       />
                     </div>
 
+                    {cup && (
+                      <p className="text-[11px] font-semibold text-[var(--foreground-subtle)]">
+                        Cup {cup.id} · {cup.name}
+                      </p>
+                    )}
                     <p
                       className="min-h-[32px] rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-1)] px-3 py-2 text-xs text-[var(--foreground-muted)]"
                       aria-live="polite"
