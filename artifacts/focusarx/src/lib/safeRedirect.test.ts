@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { redirectFromSearch, safeRedirect } from "./safeRedirect";
+import { postLoginDestination, redirectFromSearch, safeRedirect } from "./safeRedirect";
 
 /**
  * Regression tests for the open redirect in the login flow.
@@ -82,5 +82,34 @@ describe("redirectFromSearch", () => {
   it("falls back when the parameter is absent", () => {
     expect(redirectFromSearch("")).toBe("/dashboard");
     expect(redirectFromSearch("?foo=bar")).toBe("/dashboard");
+  });
+});
+
+describe("postLoginDestination", () => {
+  it("sends a bare gated screen to the dashboard instead of the timer", () => {
+    // "Sign required to use timer" and "direct dashboard when sign in" are the
+    // same sentence: the timer is where you *go*, the dashboard is where you
+    // *arrive*. A stale bookmark to /focus is not a deep link.
+    expect(postLoginDestination("/focus")).toBe("/dashboard");
+    expect(postLoginDestination("/focus?src=navbar")).toBe("/dashboard");
+  });
+
+  it("keeps a link that was asking for a session", () => {
+    expect(postLoginDestination("/focus?duration=25")).toBe("/focus?duration=25");
+    // `safeRedirect` decodes before returning (that is how the parameter is
+    // read), so the space comes back as a space.
+    expect(postLoginDestination("/focus?task=Revise%20thermo")).toBe("/focus?task=Revise thermo");
+    expect(postLoginDestination("/focus?duration=25&task=Revise&src=ig")).toBe(
+      "/focus?duration=25&task=Revise&src=ig",
+    );
+  });
+
+  it("leaves every other destination alone, and still refuses unsafe ones", () => {
+    expect(postLoginDestination("/pets")).toBe("/pets");
+    expect(postLoginDestination("/dashboard?tab=week")).toBe("/dashboard?tab=week");
+    // The open-redirect guard runs first: a smuggled absolute URL falls back,
+    // and the fallback is never the timer.
+    expect(postLoginDestination("https://evil.example/focus?duration=25")).toBe("/dashboard");
+    expect(postLoginDestination("//evil.example")).toBe("/dashboard");
   });
 });

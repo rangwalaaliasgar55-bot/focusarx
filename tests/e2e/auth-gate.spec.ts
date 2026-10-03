@@ -10,10 +10,12 @@ import { authenticate } from "./session";
  * /focus now sits behind `ProtectedRoute`, and these are the three properties
  * that make that gate honest rather than annoying:
  *
- *  1. a guest is sent to /login, not shown a broken timers;
- *  2. the destination survives the trip, including its query string, so a deep
- *     link like /focus?duration=50&task=Thermo still opens that exact session
- *     once the sign-in finishes;
+ *  1. a guest is sent to /login, not shown a broken timer;
+ *  2. a *deep* link survives the trip, query string and all, so
+ *     /focus?duration=50&task=Thermo still opens that exact session once the
+ *     sign-in finishes — while a bare /focus, which is a bookmark rather than
+ *     a link, lands the new account on the dashboard instead of dropping it
+ *     into a running-timer screen it did not ask for;
  *  3. a signed-in visitor gets the timer, so the gate is not simply a wall.
  *
  * The logged-out assertions matter more than they look: a redirect that lost
@@ -28,13 +30,15 @@ test.describe("the focus timer requires a session", () => {
     // done by the router on mount, so the response itself is a 200.
     expect(response?.status()).toBeLessThan(400);
 
-    await expect(page).toHaveURL(/\/login\?redirect=%2Ffocus$/, { timeout: 10_000 });
+    // Not `redirect=%2Ffocus`: a bare timer URL is not a deep link, so the trip
+    // ends on the dashboard (see `postLoginDestination`).
+    await expect(page).toHaveURL(/\/login\?redirect=%2Fdashboard$/, { timeout: 10_000 });
     await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible({ timeout: 10_000 });
     // The timer itself must not be reachable underneath the redirect.
     await expect(page.getByText("25:00")).toHaveCount(0);
   });
 
-  test("the redirect keeps the deep link, query string and all", async ({ page }) => {
+  test("the redirect keeps a session link, query string and all", async ({ page }) => {
     await page.goto("/focus?duration=50&task=Thermo", { waitUntil: "domcontentloaded" });
 
     await expect(page).toHaveURL(
