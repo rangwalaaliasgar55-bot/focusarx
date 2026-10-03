@@ -102,15 +102,38 @@ the code as well as here:
   server. The interactions were ported, the ledger was not — the copy under the
   care row says where XP comes from.
 
+## Ours, not theirs (built here, labelled here)
+
+Three things in this branch have no line to point at in any upload. They are
+listed here so nobody goes looking for the source, and each one names the
+request it answers.
+
+* **Moveable workspace panels** (`lib/panelLayout.ts`, `components/MovablePanel.tsx`,
+  `hooks/usePanelOrder.ts`) — "interface components should be movable like timer
+  or other things". The only `draggable` attributes anywhere in the five ZIPs are
+  `draggable={false}` on pet images; there is no reorder machinery to copy. The
+  three `/focus` panels are placed with flex `order`, the move buttons come
+  first and the drag second, and the arrangement is stored in this browser under
+  `focusarx-panel-order`. See `docs/DESIGN_PACKS.md` for how it coexists with the
+  admin-pinned `layout` pack.
+* **The completion cue's dispatch** (`playCompletionCue`) — the uploads' two
+  chimes were already ported, but their app plays them from a completion
+  callback that knows which phase ended and this app's did not. The timers now
+  pass the mode up, so a finished break stops ringing the "work is done"
+  arpeggio. The chimes themselves are theirs; only the wiring is ours.
+* **The phone's studying companion** (`components/pets/PetCompanionStage.tsx`) —
+  the pet stage existed inline on `/focus`, which is why a phone never showed
+  one: the desktop column drew it and `MobileFocusMode` — the screen a phone
+  actually looks at while studying — did not. Extracted, then used in both. The
+  art pack still decides what is drawn; the fallback to catalog artwork on a
+  device without WebGL is the same rule `/pets` applies.
+
 ## Still open (tracked, not done)
 
-* **Moveable interface components.** The request — "interface components should
-  be movable like timer or other things" — has no counterpart in any upload (the
-  only `draggable` attributes in them are `draggable={false}` on pet images), so
-  there is nothing to copy: it needs a drag/reorder mechanism of this app's own,
-  persisted per user (a `panelOrder` field alongside the appearance packs) with
-  keyboard alternatives for the a11y gates. Not started.
-* **A mobile-layout pass beyond the `tabs` frame.** `FocusTimerMobileFirst`,
-  `MobileBottomNav` and the `w320`–`w414` responsive suite cover the phone
-  contract, but the "its bad" complaint was about the app's mobile *layout* at
-  large, which is a design pass rather than a port.
+* **A mobile-layout pass beyond the strips and the companion.** The phone
+  contract is measured by the `w375` responsive suite (overflow, 44px targets,
+  bottom-nav clearance) and the known offenders are fixed: the session-length
+  and theme chip rows no longer wrap onto three lines, the control row can no
+  longer outgrow 375px while a session runs, and the duplicate sound control is
+  gone. What remains is taste rather than defect — spacing and density on the
+  idle screen — and it needs a real device to judge.

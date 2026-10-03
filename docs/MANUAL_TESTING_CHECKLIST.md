@@ -291,6 +291,14 @@ SELECT * FROM study_streaks WHERE userId = 'test-user-id';
         timer → companion → tasks
   - [ ] An admin-pinned `layout` pack still decides the frame (studio's two
         columns, compact's folded rail) around the user's order
+- [ ] The phone's studying screen (start a session, then `Focus mode`)
+  - [ ] The companion is above the clock while the session runs, and is gone
+        from the screen when the session is idle
+  - [ ] The pet is the account's own — the same one `/focus` and `/pets` show
+  - [ ] `wild3d` on a device without WebGL falls back to the catalog artwork
+        instead of an empty square
+  - [ ] One sound control, 44px, and it does not double with a second speaker
+  - [ ] The pet leaves with the session when the session ends
 - [ ] Swipe to complete task
   - [ ] Works on mobile
   - [ ] Feedback animation plays

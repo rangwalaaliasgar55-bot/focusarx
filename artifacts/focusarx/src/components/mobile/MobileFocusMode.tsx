@@ -1,7 +1,7 @@
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Volume2, VolumeX, Pause, Play, Music } from "lucide-react";
+import { X, Volume2, VolumeX, Pause, Play } from "lucide-react";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { haptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,16 @@ interface MobileFocusModeProps {
   onToggleSound?: () => void;
   /** Cosmetic membership tier — tints the digits/ring. Defaults to free. */
   tier?: MembershipTier;
+  /**
+   * The account's companion, drawn above the clock while the session runs.
+   *
+   * This is the phone's "studying" surface — the timer column with the pet in
+   * it is what a desktop shows the whole time, and on a phone the equivalent
+   * moment is this full-screen view, which previously showed the account
+   * nothing alive at all. It is a node so the public pages that mount the timer
+   * (`/exam`, `/minute-timer`) render no pet and run no pet query.
+   */
+  companion?: ReactNode;
 }
 
 function formatTimeDisplay(totalSeconds: number) {
@@ -46,6 +56,7 @@ export function MobileFocusMode({
   ambientSoundEnabled,
   onToggleSound,
   tier = "free",
+  companion,
 }: MobileFocusModeProps) {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const skin = getTimerSkin(tier);
@@ -92,7 +103,7 @@ export function MobileFocusMode({
           <button
             type="button"
             onClick={handleEndRequest}
-            className="flex items-center gap-1.5 rounded-full bg-[var(--surface-1)] px-3 py-2 text-xs font-medium text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
+            className="flex min-h-11 items-center gap-1.5 rounded-full bg-[var(--surface-1)] px-4 text-xs font-medium text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
             aria-label="Exit focus mode"
           >
             <X size={16} />
@@ -114,7 +125,7 @@ export function MobileFocusMode({
               <button
                 type="button"
                 onClick={onToggleSound}
-                className="grid h-9 w-9 place-items-center rounded-full bg-[var(--surface-1)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"
+                className="grid h-11 w-11 place-items-center rounded-full bg-[var(--surface-1)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"
                 aria-label={ambientSoundEnabled ? "Mute ambient sound" : "Enable ambient sound"}
               >
                 {ambientSoundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
@@ -124,7 +135,14 @@ export function MobileFocusMode({
         </div>
 
         {/* Main content - very large timer, minimal */}
-        <div className="flex flex-1 flex-col items-center justify-center px-6 py-8">
+        <div className="flex flex-1 flex-col items-center justify-center px-6 py-6">
+          {/* The companion. Small on purpose: it is company while working, not
+              the thing the person is looking at. */}
+          {companion && (
+            <div className="mb-4 w-full max-w-[15rem]" data-testid="focus-mode-companion">
+              {companion}
+            </div>
+          )}
           {/* Mode indicator */}
           <div className="mb-6 flex items-center gap-2">
             <span className="h-2 w-2 animate-pulse rounded-full" style={{ background: accent }} />
@@ -242,15 +260,7 @@ export function MobileFocusMode({
         </div>
 
         {/* Bottom controls - separated */}
-        <div className="flex items-center justify-between gap-3 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-          <button
-            type="button"
-            onClick={onToggleSound}
-            className="flex min-h-[44px] items-center gap-2 rounded-full bg-[var(--surface-1)] px-4 py-2.5 text-sm font-medium text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
-          >
-            <Music size={16} />
-            <span className="hidden sm:inline">Sound</span>
-          </button>
+        <div className="flex items-center justify-end gap-3 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={handleEndRequest}
