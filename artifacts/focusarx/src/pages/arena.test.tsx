@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@/components/Toast";
-import { statsFor } from "@/lib/petBattle";
+import { movesFor, statsFor } from "@/lib/petBattle";
 import ArenaPage from "./arena";
 
 /**
@@ -77,10 +77,14 @@ function logLines(): string[] {
 
 const lastLine = () => logLines().at(-1) ?? "";
 
+/** The player's free move — the one always affordable, whatever the energy. */
+const FREE_MOVE = movesFor(PET.slug).find((m) => m.id === "jab")!.name;
+
 /**
- * Move buttons are named by their whole row ("Nudge10 pow · freeFree and
- * reliable…" — the name computation does not insert spaces between the nested
+ * Move buttons are named by their whole row ("Tidal Crash38 pow · 4 energy2
+ * ..." — the name computation does not insert spaces between the nested
  * spans), so the match is a prefix and deliberately has no trailing boundary.
+ * Move names come from `movesFor`, so tests read the name off the engine.
  */
 function moveButton(name: string): HTMLButtonElement {
   return screen.getByRole("button", { name: new RegExp(`^${name}`) }) as HTMLButtonElement;
@@ -115,7 +119,7 @@ describe("arena page", () => {
     // The fight starts on the enemy's turn: the board says so, and the player's
     // buttons are disabled rather than offering a move that cannot resolve.
     expect(screen.getByText(/is winding up/)).toBeTruthy();
-    expect(moveButton("Nudge").disabled).toBe(true);
+    expect(moveButton(FREE_MOVE).disabled).toBe(true);
     const opening = logLines().length;
 
     // The beat lands: the rival acts, and the turn (and therefore the grid)
@@ -126,7 +130,7 @@ describe("arena page", () => {
     });
     expect(logLines().length).toBe(opening + 1);
     expect(lastLine()).toMatch(/^Wild Owl /);
-    expect(moveButton("Nudge").disabled).toBe(false);
+    expect(moveButton(FREE_MOVE).disabled).toBe(false);
     expect(screen.queryByText(/is winding up/)).toBeNull();
   });
 
@@ -140,16 +144,16 @@ describe("arena page", () => {
 
     const playerBefore = playerHp();
     const before = logLines().length;
-    fireEvent.click(moveButton("Nudge"));
+    fireEvent.click(moveButton(FREE_MOVE));
 
     // The click resolved for the *player*: the log names the player, and the
     // player's own health is untouched by their own attack. Before the fix this
     // line read "Wild Owl …" — the click acted for whoever's turn it was.
     expect(logLines().length).toBe(before + 1);
     expect(lastLine()).toMatch(/^Axolotl /);
-    expect(lastLine()).toMatch(/Nudge/);
+    expect(lastLine()).toContain(FREE_MOVE);
     expect(playerHp()).toBe(playerBefore);
-    expect(moveButton("Nudge").disabled).toBe(true);
+    expect(moveButton(FREE_MOVE).disabled).toBe(true);
   });
 
   it("takes exactly one enemy action per player move", async () => {
@@ -161,7 +165,7 @@ describe("arena page", () => {
     });
 
     const beforeMove = logLines().length;
-    fireEvent.click(moveButton("Nudge"));
+    fireEvent.click(moveButton(FREE_MOVE));
     // Exactly one line between the click and the beat: a scheduled second strike
     // (or a doubled effect) would show up here as an extra one.
     expect(logLines().length).toBe(beforeMove + 1);
@@ -173,7 +177,34 @@ describe("arena page", () => {
     expect(logLines().length).toBe(beforeMove + 2);
     expect(lastLine()).toMatch(/^Wild Owl /);
     // ...and the loop is back with the player, not stuck on the rival.
-    expect(moveButton("Nudge").disabled).toBe(false);
+    expect(moveButton(FREE_MOVE).disabled).toBe(false);
+  });
+
+  it("offers the element's own moveset, priced, with the setup move labelled", async () => {
+    // The board reads its moves off the engine, so the label wiring is the only
+    // thing this test owns: an attack shows its power, a boost shows "set up",
+    // and the price on the row matches whether the button is usable.
+    renderArena();
+    fireEvent.click(screen.getByRole("button", { name: FAST_RIVAL }));
+    fireEvent.click(screen.getByRole("button", { name: /^Fight / }));
+    await act(async () => {
+      vi.advanceTimersByTime(700); // hand the turn to the player
+    });
+
+    const moves = movesFor(PET.slug);
+    const boost = moves.find((m) => m.kind === "boost");
+    const heavy = moves.find((m) => m.id === "heavy");
+    expect(boost, "the moveset has no setup move").toBeDefined();
+    expect(heavy, "the moveset has no heavy attack").toBeDefined();
+
+    // Two starting points: the two-cost setup move is affordable, the four-cost
+    // heavy is not, and the free move is always there.
+    expect(moveButton(boost!.name).disabled).toBe(false);
+    expect(moveButton(boost!.name).textContent).toContain("set up");
+    expect(moveButton(heavy!.name).disabled).toBe(true);
+    expect(moveButton(heavy!.name).textContent).toContain("4");
+    expect(moveButton(FREE_MOVE).disabled).toBe(false);
+    expect(moveButton(FREE_MOVE).textContent).toContain("free");
   });
 
   it("keeps the fight's numbers in the compact layout", async () => {
@@ -183,6 +214,6 @@ describe("arena page", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Fight / }));
     const bars = screen.getAllByRole("progressbar");
     expect(bars.length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByRole("button", { name: /^Nudge/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: new RegExp(`^${FREE_MOVE}`) })).toBeTruthy();
   });
 });

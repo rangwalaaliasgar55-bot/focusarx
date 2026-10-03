@@ -520,7 +520,13 @@ export default function ArenaPage() {
                               <span className="flex items-center justify-between gap-2">
                                 <span className="text-xs font-bold text-[var(--foreground)]">{move.name}</span>
                                 <span className="text-[11px] font-semibold text-[var(--foreground-subtle)]">
-                                  {move.kind === "attack" ? `${move.power} pow` : move.kind === "heal" ? "heal" : "guard"}
+                                  {move.kind === "attack"
+                                    ? `${move.power} pow`
+                                    : move.kind === "heal"
+                                      ? "heal"
+                                      : move.kind === "boost"
+                                        ? "set up"
+                                        : "guard"}
                                   {move.cost > 0 ? ` · ${move.cost}⚡` : " · free"}
                                 </span>
                               </span>
