@@ -40,13 +40,13 @@ describe("timerTheme persistence", () => {
   it("ships exactly the documented faces", () => {
     // Order is the picker's order and is part of the UX: the ring faces first,
     // then the layouts that change what the face means — the four the house
-    // shipped, then the five ported from the PR #99 design uploads. Adding a
-    // face here is a deliberate edit (this list, the doc and the two lists
-    // below move together), which is the point: a face cannot land without its
-    // blurb and its renderer.
+    // shipped, then the ported design-pack faces, then the two written in that
+    // same idiom (wave, candle). Adding a face here is a deliberate edit (this
+    // list, the doc and the two lists below move together), which is the point:
+    // a face cannot land without its blurb and its renderer.
     expect(TIMER_THEMES.map((t) => t.id)).toEqual([
       "classic", "neon", "zen", "flip", "segments", "bars", "dots", "rounds",
-      "aurora", "orbit", "hourglass", "companion", "garden", "analog",
+      "aurora", "orbit", "hourglass", "companion", "garden", "analog", "wave", "candle", "seven",
     ]);
     for (const t of TIMER_THEMES) {
       expect(t.label.length).toBeGreaterThan(0);
@@ -69,7 +69,7 @@ describe("timerTheme persistence", () => {
     const setLine = display.slice(display.indexOf("const LAYOUT_FACES"));
     const declared = setLine.slice(0, setLine.indexOf("]")).match(/"[a-z]+"/g)?.map((q) => q.replace(/"/g, "")) ?? [];
     const registered = TIMER_THEMES.map((t) => t.id);
-    const layouts = ["segments", "bars", "dots", "rounds", "analog", "aurora", "orbit", "hourglass", "companion", "garden"];
+    const layouts = ["segments", "bars", "dots", "rounds", "analog", "aurora", "orbit", "hourglass", "companion", "garden", "wave", "candle", "seven"];
     expect(declared.sort()).toEqual(layouts.slice().sort());
     for (const layout of layouts) {
       expect(registered, `${layout} is a layout but is not in the registry`).toContain(layout);

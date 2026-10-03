@@ -8,6 +8,7 @@ import { logger } from "../lib/logger";
 import {
   DEFAULT_APPEARANCE,
   LAYOUT_LABELS,
+  SHELL_LABELS,
   BATTLE_DESIGN_LABELS,
   PET_DESIGN_LABELS,
   TIMER_FACE_LABELS,
@@ -16,6 +17,7 @@ import {
   type PetDesignId,
   type BattleDesignId,
   type LayoutId,
+  type ShellId,
 } from "../lib/appearanceCatalog";
 
 /**
@@ -38,7 +40,7 @@ const router = Router();
 const checkAuth = checkAdminAuth;
 
 /** Label lookups so the console never prints a raw id. */
-function labelFor(field: "timerFace" | "petDesign" | "battleDesign" | "layout", value: string): string {
+function labelFor(field: "timerFace" | "petDesign" | "battleDesign" | "layout" | "shell", value: string): string {
   switch (field) {
     case "timerFace":
       return TIMER_FACE_LABELS[value as TimerFaceId] ?? value;
@@ -48,6 +50,8 @@ function labelFor(field: "timerFace" | "petDesign" | "battleDesign" | "layout", 
       return BATTLE_DESIGN_LABELS[value as BattleDesignId] ?? value;
     case "layout":
       return LAYOUT_LABELS[value as LayoutId] ?? value;
+    case "shell":
+      return SHELL_LABELS[value as ShellId] ?? value;
   }
 }
 
@@ -86,6 +90,7 @@ router.get("/admin/appearance", async (req, res: Response) => {
         petDesign: userAppearanceTable.petDesign,
         battleDesign: userAppearanceTable.battleDesign,
         layout: userAppearanceTable.layout,
+        shell: userAppearanceTable.shell,
         locked: userAppearanceTable.locked,
         source: userAppearanceTable.source,
         updatedBy: userAppearanceTable.updatedBy,
@@ -118,12 +123,14 @@ router.get("/admin/appearance", async (req, res: Response) => {
         petDesign: row.petDesign ?? DEFAULT_APPEARANCE.petDesign,
         battleDesign: row.battleDesign ?? DEFAULT_APPEARANCE.battleDesign,
         layout: row.layout ?? DEFAULT_APPEARANCE.layout,
+        shell: row.shell ?? DEFAULT_APPEARANCE.shell,
       },
       labels: {
         timerFace: labelFor("timerFace", row.timerFace ?? DEFAULT_APPEARANCE.timerFace),
         petDesign: labelFor("petDesign", row.petDesign ?? DEFAULT_APPEARANCE.petDesign),
         battleDesign: labelFor("battleDesign", row.battleDesign ?? DEFAULT_APPEARANCE.battleDesign),
         layout: labelFor("layout", row.layout ?? DEFAULT_APPEARANCE.layout),
+        shell: labelFor("shell", row.shell ?? DEFAULT_APPEARANCE.shell),
       },
     }));
 
@@ -135,6 +142,7 @@ router.get("/admin/appearance", async (req, res: Response) => {
       petDesign: countBy(users.map((u) => u.appearance.petDesign)),
       battleDesign: countBy(users.map((u) => u.appearance.battleDesign)),
       layout: countBy(users.map((u) => u.appearance.layout)),
+      shell: countBy(users.map((u) => u.appearance.shell)),
       locked: users.filter((u) => u.locked).length,
       unassigned: users.filter((u) => !u.assigned).length,
     };
@@ -248,6 +256,7 @@ router.put("/admin/appearance/:userId", async (req, res: Response) => {
         petDesign: patch.petDesign ?? existing?.petDesign ?? DEFAULT_APPEARANCE.petDesign,
         battleDesign: patch.battleDesign ?? existing?.battleDesign ?? DEFAULT_APPEARANCE.battleDesign,
         layout: patch.layout ?? existing?.layout ?? DEFAULT_APPEARANCE.layout,
+        shell: patch.shell ?? existing?.shell ?? DEFAULT_APPEARANCE.shell,
         locked,
         source: "admin",
         updatedBy: extractUserId(req) ?? null,
@@ -273,12 +282,14 @@ router.put("/admin/appearance/:userId", async (req, res: Response) => {
         petDesign: row.petDesign,
         battleDesign: row.battleDesign,
         layout: row.layout,
+        shell: row.shell,
       },
       labels: {
         timerFace: labelFor("timerFace", row.timerFace),
         petDesign: labelFor("petDesign", row.petDesign),
         battleDesign: labelFor("battleDesign", row.battleDesign),
         layout: labelFor("layout", row.layout),
+        shell: labelFor("shell", row.shell),
       },
     });
   } catch (err) {
@@ -391,6 +402,7 @@ router.post("/admin/appearance/bulk", async (req, res: Response) => {
         petDesign: patch.petDesign ?? current?.petDesign ?? DEFAULT_APPEARANCE.petDesign,
         battleDesign: patch.battleDesign ?? current?.battleDesign ?? DEFAULT_APPEARANCE.battleDesign,
         layout: patch.layout ?? current?.layout ?? DEFAULT_APPEARANCE.layout,
+        shell: patch.shell ?? current?.shell ?? DEFAULT_APPEARANCE.shell,
         locked: lockedFor(userId),
         source: "admin",
         updatedBy: actor,
@@ -409,6 +421,7 @@ router.post("/admin/appearance/bulk", async (req, res: Response) => {
             petDesign: sql`excluded.pet_design`,
             battleDesign: sql`excluded.battle_design`,
             layout: sql`excluded.layout`,
+            shell: sql`excluded.shell`,
             locked: sql`excluded.locked`,
             source: sql`excluded.source`,
             updatedBy: sql`excluded.updated_by`,

@@ -59,11 +59,12 @@ describe("ported timer faces", () => {
     for (const id of Object.keys(STUDIO_FACES)) {
       expect(known.has(id as never), `${id} is in STUDIO_FACES but not in TIMER_THEMES`).toBe(true);
     }
-    // The five from the first port plus the wedge dial: a face that exists in
-    // the registry but not here would render as nothing (the gate in
-    // timerTheme.test.ts catches the reverse direction).
+    // The five from the first port, the wedge dial, and the two written here in
+    // the uploads' idiom (wave, candle): a face that exists in the registry but
+    // not here would render as nothing (the gate in timerTheme.test.ts catches
+    // the reverse direction).
     expect(Object.keys(STUDIO_FACES).sort()).toEqual(
-      ["analog", "aurora", "companion", "garden", "hourglass", "orbit"],
+      ["analog", "aurora", "candle", "companion", "garden", "hourglass", "orbit", "seven", "wave"],
     );
   });
 

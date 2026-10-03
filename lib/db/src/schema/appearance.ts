@@ -35,6 +35,8 @@ export const userAppearanceTable = pgTable("user_appearance", {
   battleDesign: text("battle_design").notNull().default("duel"),
   /** Workspace layout: quiet | studio | compact. */
   layout: text("layout").notNull().default("quiet"),
+  /** App frame: sidebar | topbar | tabs — the shell the whole UI is built in. */
+  shell: text("shell").notNull().default("sidebar"),
   /** Admin pin. While true the user's own PUT returns 409. */
   locked: boolean("locked").notNull().default(false),
   /** Who wrote the row last. */
@@ -44,10 +46,11 @@ export const userAppearanceTable = pgTable("user_appearance", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => [
   index("user_appearance_locked_idx").on(t.locked),
-  check("user_appearance_timer_face_known", sql`${t.timerFace} IN ('classic', 'neon', 'zen', 'flip', 'segments', 'bars', 'dots', 'rounds', 'aurora', 'orbit', 'hourglass', 'companion', 'garden', 'analog')`),
+  check("user_appearance_timer_face_known", sql`${t.timerFace} IN ('classic', 'neon', 'zen', 'flip', 'segments', 'bars', 'dots', 'rounds', 'aurora', 'orbit', 'hourglass', 'companion', 'garden', 'analog', 'wave', 'candle', 'seven')`),
   check("user_appearance_pet_design_known", sql`${t.petDesign} IN ('classic', 'wild3d', 'sprite')`),
   check("user_appearance_battle_design_known", sql`${t.battleDesign} IN ('duel', 'arena', 'retro')`),
   check("user_appearance_layout_known", sql`${t.layout} IN ('quiet', 'studio', 'compact')`),
+  check("user_appearance_shell_known", sql`${t.shell} IN ('sidebar', 'topbar', 'tabs')`),
   check("user_appearance_source_known", sql`${t.source} IN ('user', 'admin', 'default')`),
 ]);
 

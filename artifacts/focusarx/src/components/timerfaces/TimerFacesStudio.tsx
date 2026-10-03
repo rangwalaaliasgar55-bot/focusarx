@@ -33,6 +33,13 @@ import { EditHint, sessionTotal, useFaceLabels, type TimerFaceProps } from "@/co
  *                   per remaining block. A growing thing, for breaks.
  *   • **Analog**  — the wedge dial with a hand: a wall clock that answers one
  *                   question, including its own scale at twelve o'clock.
+ *   • **Wave**    — a tide that sinks. The waterline is what is left, so the
+ *                   session reads as a level falling past a ruler.
+ *   • **Candle**  — a candle burning down. Wax is remaining time and the flame
+ *                   marks the moment, which is how a candle has always worked.
+ *   • **Seven-segment** — the uploads' own LED readout: four segment glyphs, a
+ *                   twenty-four block bar and the percentage. No picture at all,
+ *                   which is the point of having one face that is a display.
  *
  * Design gates that shape the code (see src/quiet-interface.test.ts and
  * src/legibility.test.ts): no `backdrop-blur`, no `shadow-[0_0_…]` glow, no
@@ -78,6 +85,7 @@ function TimeButton({
   isRunning,
   className,
   style,
+  children,
 }: {
   secondsLeft: number;
   spoken: string;
@@ -86,6 +94,12 @@ function TimeButton({
   isRunning: boolean;
   className?: string;
   style?: React.CSSProperties;
+  /**
+   * Drawn countdown, for the face whose digits are segments rather than type.
+   * The button keeps the accessible name either way — that is the contract the
+   * house faces set, and a picture of a number is not a number to a reader.
+   */
+  children?: React.ReactNode;
 }) {
   const { minutes, seconds } = formatTime(secondsLeft);
   return (
@@ -97,7 +111,7 @@ function TimeButton({
       className={`font-display font-semibold leading-none tracking-[-0.05em] tabular-nums text-[var(--foreground)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--surface)] disabled:cursor-default ${className ?? ""}`}
       style={{ fontFeatureSettings: '"tnum" 1', ...style }}
     >
-      <RollingClock value={`${minutes}:${seconds}`} />
+      {children ?? <RollingClock value={`${minutes}:${seconds}`} />}
     </button>
   );
 }
@@ -722,8 +736,307 @@ export function TimerFaceAnalog({ secondsLeft, mode, isRunning, progress, totalS
   );
 }
 
+/* ──────────────────────────────── 7 · Wave ──────────────────────────────── */
+
+const WAVE_W = 300;
+const WAVE_H = 300;
+/** Amplitude in viewBox units — the crest, not a ripple. */
+const WAVE_AMPLITUDE = 9;
+
+/**
+ * Wave — a tide that sinks as the block runs.
+ *
+ * Two lines, not one: the drawn surface is the *crest* of a slow swell, and the
+ * flat line behind it is the still-water mark the crest is measured against, so
+ * the level can be read without counting anything. The wave only drifts while
+ * the timer runs — a still surface would look broken, and a moving one on a
+ * paused timer would say the wrong thing.
+ *
+ * The session's own length is written under the waterline as "x of y min left",
+ * because a level on its own says how far it has fallen, not how long that was.
+ */
+export function TimerFaceWave({ secondsLeft, mode, isRunning, progress, totalSeconds, onEditClick, sessionType, accent, accentSoft }: TimerFaceProps) {
+  const reduced = !!useReducedMotion();
+  const { spoken, endsAt } = useFaceLabels(secondsLeft);
+  const total = sessionTotal(secondsLeft, progress, totalSeconds);
+  const remaining = total > 0 ? Math.min(1, Math.max(0, secondsLeft / total)) : 0;
+  const label = modeWord(mode, sessionType);
+  const totalMinutes = Math.max(1, Math.round(total / 60));
+  const left = Math.max(0, Math.ceil(secondsLeft / 60));
+
+  // The waterline falls from near the brim to near the floor, and never quite
+  // reaches either: a level pinned to an edge stops reading as a level.
+  const top = WAVE_H * (0.18 + (1 - remaining) * 0.68);
+  const build = (offset: number) => {
+    const points: string[] = [];
+    for (let x = 0; x <= WAVE_W; x += 10) {
+      const y = top + Math.sin((x / WAVE_W) * Math.PI * 3 + offset) * WAVE_AMPLITUDE;
+      points.push(`${x === 0 ? "M" : "L"}${x} ${y.toFixed(1)}`);
+    }
+    points.push(`L${WAVE_W} ${WAVE_H} L0 ${WAVE_H} Z`);
+    return points.join(" ");
+  };
+
+  return (
+    <FaceFrame>
+      <svg viewBox={`0 0 ${WAVE_W} ${WAVE_H}`} className="absolute inset-0 h-full w-full" aria-hidden="true">
+        <circle cx="150" cy="150" r="146" fill="var(--surface-1)" stroke="var(--border-strong)" strokeWidth="1.4" />
+        <circle cx="150" cy="150" r="132" fill="var(--surface-2)" />
+
+        {/* The still-water mark: where this block's waterline started. */}
+        <line x1="24" y1={WAVE_H * 0.18} x2={276} y2={WAVE_H * 0.18} stroke={accentSoft} strokeWidth="1.2" strokeDasharray="5 7" opacity="0.7" />
+
+        {/* A ruler on the left edge, one notch per quarter of the block. */}
+        {[0, 0.25, 0.5, 0.75, 1].map((step) => {
+          const y = WAVE_H * (0.18 + step * 0.68);
+          return (
+            <g key={step}>
+              <line x1="24" y1={y} x2={step % 0.5 === 0 ? 46 : 36} y2={y} stroke="var(--foreground)" strokeOpacity="0.35" strokeWidth="1.4" />
+            </g>
+          );
+        })}
+
+        {/* The swell, drifting only while the timer runs. */}
+        <g style={reduced || !isRunning ? undefined : { animation: "fa-wave-drift 9s linear infinite" }}>
+          <path d={build(0)} fill={accent} opacity="0.22" />
+          <path d={build(0)} fill="none" stroke={accent} strokeWidth="2.4" opacity="0.95" />
+          <path d={build(1.1)} fill="none" stroke={accentSoft} strokeWidth="1.4" opacity="0.55" />
+        </g>
+
+        {/* The bed, so "below the waterline" has something to be below. */}
+        <path d={`M0 ${WAVE_H - 10} Q150 ${WAVE_H - 26} 300 ${WAVE_H - 10} L300 ${WAVE_H} L0 ${WAVE_H} Z`} fill="var(--foreground)" opacity="0.06" />
+      </svg>
+
+      <div className="relative z-[var(--z-content)] mt-[58%] flex w-[70%] flex-col items-center text-center">
+        <ModeLabel label={label} accent={accent} />
+        <TimeButton
+          secondsLeft={secondsLeft}
+          spoken={spoken}
+          endsAt={endsAt}
+          onEditClick={onEditClick}
+          isRunning={isRunning}
+          className="text-[clamp(1.75rem,6vw,2.75rem)]"
+        />
+        <span className="mt-1.5 text-[11px] font-medium text-[var(--foreground-subtle)]">
+          {left} of {totalMinutes} min left
+        </span>
+      </div>
+      <EditHint onClick={onEditClick} running={isRunning} label={spoken} />
+    </FaceFrame>
+  );
+}
+
+/* ─────────────────────────────── 8 · Candle ─────────────────────────────── */
+
+/**
+ * Candle — wax is the time, the flame is now.
+ *
+ * The wax column's height *is* the remaining fraction, and the flame sits on
+ * top of it: as the block runs the flame travels down the picture, which is the
+ * one property a candle has that a progress bar does not. The flame flickers
+ * only while the timer runs, and holds still when it is paused, so the picture
+ * never disagrees with the clock.
+ *
+ * A short stub is always drawn under the flame — a candle with no wax left has
+ * stopped being a picture of time remaining and become a picture of nothing.
+ */
+export function TimerFaceCandle({ secondsLeft, mode, isRunning, progress, totalSeconds, onEditClick, sessionType, accent, accentSoft }: TimerFaceProps) {
+  const reduced = !!useReducedMotion();
+  const id = useId().replace(/:/g, "");
+  const { spoken, endsAt } = useFaceLabels(secondsLeft);
+  const total = sessionTotal(secondsLeft, progress, totalSeconds);
+  const remaining = total > 0 ? Math.min(1, Math.max(0, secondsLeft / total)) : 0;
+  const label = modeWord(mode, sessionType);
+  const totalMinutes = Math.max(1, Math.round(total / 60));
+  const left = Math.max(0, Math.ceil(secondsLeft / 60));
+
+  // A stub of wax is always present; the flame walks down with it.
+  const waxTop = 250 - (60 + remaining * 150);
+  const flameY = waxTop - 14;
+
+  return (
+    <FaceFrame>
+      <svg viewBox="0 0 300 300" className="absolute inset-0 h-full w-full" aria-hidden="true">
+        <defs>
+          <radialGradient id={`candle-glow-${id}`}>
+            <stop offset="0%" stopColor={accent} stopOpacity="0.45" />
+            <stop offset="100%" stopColor={accent} stopOpacity="0" />
+          </radialGradient>
+          <linearGradient id={`candle-wax-${id}`} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="var(--foreground)" stopOpacity="0.16" />
+            <stop offset="45%" stopColor="var(--foreground)" stopOpacity="0.07" />
+            <stop offset="100%" stopColor="var(--foreground)" stopOpacity="0.2" />
+          </linearGradient>
+        </defs>
+
+        <circle cx="150" cy="150" r="146" fill="var(--surface-1)" stroke="var(--border-strong)" strokeWidth="1.4" />
+        <circle cx="150" cy="150" r="132" fill="var(--surface-2)" />
+
+        {/* The glow is drawn behind the flame so it reads as light, not as a
+            halo stuck on top of it. */}
+        <circle cx="150" cy={flameY} r="58" fill={`url(#candle-glow-${id})`} />
+
+        {/* Holder. */}
+        <ellipse cx="150" cy="256" rx="46" ry="9" fill="var(--foreground)" opacity="0.12" />
+        <rect x="104" y="248" width="92" height="10" rx="5" fill="var(--foreground)" opacity="0.18" />
+
+        {/* Wax. */}
+        <rect x="126" y={waxTop} width="48" height={Math.max(0, 248 - waxTop)} rx="8" fill={`url(#candle-wax-${id})`} stroke="var(--border-strong)" strokeWidth="1" />
+        {/* A melted lip at the top edge, on the side the flame leans. */}
+        <path d={`M126 ${waxTop + 6} q10 -6 20 0 q10 6 28 -2 l0 -4 l-48 0 Z`} fill={accentSoft} opacity="0.55" />
+
+        {/* Wick and flame. */}
+        <line x1="150" y1={waxTop} x2="150" y2={flameY + 4} stroke="var(--foreground)" strokeWidth="1.6" opacity="0.7" />
+        <g style={reduced || !isRunning ? undefined : { animation: "fa-flame-flicker 1.6s ease-in-out infinite", transformOrigin: `150px ${flameY + 8}px` }}>
+          <path d={`M150 ${flameY - 20} q13 14 13 22 a13 13 0 0 1 -26 0 q0 -8 13 -22 Z`} fill={accent} />
+          <path d={`M150 ${flameY - 6} q6 7 6 11 a6 6 0 0 1 -12 0 q0 -4 6 -11 Z`} fill="var(--surface-1)" opacity="0.9" />
+        </g>
+      </svg>
+
+      <div className="relative z-[var(--z-content)] mt-[40%] flex w-[64%] flex-col items-center text-center">
+        <ModeLabel label={label} accent={accent} />
+        <TimeButton
+          secondsLeft={secondsLeft}
+          spoken={spoken}
+          endsAt={endsAt}
+          onEditClick={onEditClick}
+          isRunning={isRunning}
+          className="text-[clamp(1.6rem,5.4vw,2.5rem)]"
+        />
+        <span className="mt-1.5 text-[11px] font-medium text-[var(--foreground-subtle)]">
+          {left} of {totalMinutes} min left
+        </span>
+      </div>
+      <EditHint onClick={onEditClick} running={isRunning} label={spoken} />
+    </FaceFrame>
+  );
+}
+
+/* ──────────────────────────── 9 · Seven-segment ─────────────────────────── */
+
+/**
+ * Seven-segment — the uploads' own readout, ported as it was drawn.
+ *
+ * Their `Segment` face is not a ring or a picture: it is an LED display. Four
+ * fifteen-segment-shaped glyphs (the classic a–g bars, the geometry lifted
+ * verbatim) spell out the remaining time, a row of twenty-four blocks drains
+ * underneath, and the plate states the mode and the percentage. It is the one
+ * face in the set that answers "how much is left" the way a bedside clock does,
+ * which is why it survives alongside the ring.
+ *
+ * Two house rules shape the port. The countdown is still a **button**: the SVG
+ * is `aria-hidden` and the accessible name is the same spoken label every other
+ * face produces, so the digits being segments rather than text costs nothing to
+ * a screen reader. And the lit bars keep their small glow — the uploads' design
+ * — because here the glow is not atmosphere: lit versus unlit *is* the reading.
+ */
+const SEGMENT_PATHS: Record<string, string> = {
+  a: "M5 3.5 L8.5 0 H27.5 L31 3.5 L27.5 7 H8.5 Z",
+  g: "M5 32 L8.5 28.5 H27.5 L31 32 L27.5 35.5 H8.5 Z",
+  d: "M5 60.5 L8.5 57 H27.5 L31 60.5 L27.5 64 H8.5 Z",
+  f: "M3.5 5 L7 8.5 V27.5 L3.5 31 L0 27.5 V8.5 Z",
+  b: "M32.5 5 L36 8.5 V27.5 L32.5 31 L29 27.5 V8.5 Z",
+  e: "M3.5 33 L7 36.5 V55.5 L3.5 59 L0 55.5 V36.5 Z",
+  c: "M32.5 33 L36 36.5 V55.5 L32.5 59 L29 55.5 V36.5 Z",
+};
+const DIGIT_SEGMENTS: Record<string, string> = {
+  "0": "abcdef",
+  "1": "bc",
+  "2": "abdeg",
+  "3": "abcdg",
+  "4": "bcfg",
+  "5": "acdfg",
+  "6": "acdefg",
+  "7": "abc",
+  "8": "abcdefg",
+  "9": "abcdfg",
+};
+/** The bar under the readout: one block per 1/24th of the block. */
+const READOUT_BLOCKS = 24;
+
+/** The uploads' `parts()`: hours once the block passes 100 minutes. */
+function readoutParts(seconds: number): [string, string, string] {
+  if (seconds >= 6000) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return [String(hours).padStart(2, "0"), String(minutes).padStart(2, "0"), "h m"];
+  }
+  return [String(Math.floor(seconds / 60)).padStart(2, "0"), String(seconds % 60).padStart(2, "0"), "m s"];
+}
+
+export function TimerFaceSeven({ secondsLeft, mode, isRunning, progress, totalSeconds, onEditClick, sessionType, accent, accentSoft }: TimerFaceProps) {
+  const { spoken, endsAt } = useFaceLabels(secondsLeft);
+  const total = sessionTotal(secondsLeft, progress, totalSeconds);
+  const elapsed = total > 0 ? Math.min(1, Math.max(0, 1 - secondsLeft / total)) : 0;
+  const [first, second, unit] = readoutParts(secondsLeft);
+  const digits = [first[0]!, first[1]!, second[0]!, second[1]!];
+  const xs = [-4, 42, 108, 154];
+  const lit = Math.round(elapsed * READOUT_BLOCKS);
+  const label = modeWord(mode, sessionType);
+
+  return (
+    <FaceFrame maxWidth={340}>
+      <div className="w-full rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--surface-2)] p-4">
+        <TimeButton
+          secondsLeft={secondsLeft}
+          spoken={spoken}
+          endsAt={endsAt}
+          onEditClick={onEditClick}
+          isRunning={isRunning}
+          className="block w-full"
+        >
+          <svg viewBox="-4 -4 202 72" className="w-full overflow-visible" aria-hidden="true">
+            {digits.map((digit, index) => (
+              <g key={index} transform={`translate(${xs[index]} 0)`}>
+                {Object.entries(SEGMENT_PATHS).map(([bar, path]) => {
+                  const on = (DIGIT_SEGMENTS[digit] ?? "").includes(bar);
+                  return (
+                    <path
+                      key={bar}
+                      d={path}
+                      fill={accent}
+                      opacity={on ? 1 : 0.07}
+                      style={on ? { filter: `drop-shadow(0 0 2.5px ${accent})` } : undefined}
+                    />
+                  );
+                })}
+              </g>
+            ))}
+            {/* The colon, lit twice a second only while the block runs. */}
+            <g style={isRunning ? { animation: "fa-colon-blink 1s steps(1, end) infinite" } : { opacity: 0.35 }}>
+              <rect x="85" y="18" width="7" height="7" rx="1" fill={accent} />
+              <rect x="85" y="40" width="7" height="7" rx="1" fill={accent} />
+            </g>
+          </svg>
+        </TimeButton>
+
+        <div className="mt-3 flex gap-1" aria-hidden="true">
+          {Array.from({ length: READOUT_BLOCKS }).map((_, index) => (
+            <span
+              key={index}
+              className="h-1.5 flex-1 rounded-[2px] transition-opacity duration-300"
+              style={{ background: index < lit ? accent : accentSoft, opacity: index < lit ? 0.95 : 0.35 }}
+            />
+          ))}
+        </div>
+
+        <div className="mt-2 flex justify-between font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--foreground-subtle)]">
+          <span>{label}</span>
+          <span>
+            {unit} · {Math.round(elapsed * 100)}%
+          </span>
+        </div>
+      </div>
+      <EditHint onClick={onEditClick} running={isRunning} label={spoken} />
+    </FaceFrame>
+  );
+}
+
 export const STUDIO_FACES = {
   analog: TimerFaceAnalog,
+  wave: TimerFaceWave,
+  candle: TimerFaceCandle,
+  seven: TimerFaceSeven,
   aurora: TimerFaceAurora,
   orbit: TimerFaceOrbit,
   hourglass: TimerFaceHourglass,

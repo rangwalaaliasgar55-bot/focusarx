@@ -908,6 +908,30 @@ html[data-coach-open] .quicklaunch-orb { opacity: 0; pointer-events: none; }
 }
 @media (min-width: 1024px) { .app-main { padding-bottom: var(--space-8); } }
 
+/* ── The shell packs ─────────────────────────────────────────────────────
+   `data-shell` on `.app-frame` is which frame the account renders (an
+   assignable design — see src/lib/designPacks.ts, SHELLS). The default frame
+   (`sidebar`) needs nothing here; the other two remove the rail and re-house
+   navigation: `topbar` puts a horizontal strip under the header, `tabs` keeps
+   the bottom bar at every width. These selectors carry an attribute plus a
+   class, so they out-rank the base rules and the 1024px media query above
+   without needing to be ordered after them. */
+.app-nav-strip {
+  display: none;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-0);
+}
+@media (min-width: 1024px) {
+  .app-frame[data-shell="topbar"] .app-nav-strip { display: flex; }
+}
+.app-frame[data-shell="topbar"] .app-sidebar,
+.app-frame[data-shell="tabs"] .app-sidebar { display: none; }
+/* The tab frame's bar is its navigation, on phones and on desktops alike. */
+.app-frame[data-shell="tabs"] .app-bottom-nav { display: flex; }
+@media (min-width: 1024px) {
+  .app-frame[data-shell="tabs"] .app-main { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
+}
+
 /* ── Brand ───────────────────────────────────────────────────────────────
    A flat accent tile. The iris gradient stays in the logo asset and in
    docs/BRAND.md; a glowing gradient squircle in the chrome was the first
@@ -1264,6 +1288,30 @@ html[data-coach-open] .quicklaunch-orb { opacity: 0; pointer-events: none; }
   0%, 100% { transform: scaleY(0.35); }
   50%      { transform: scaleY(1); }
 }
+/* Timer-face motion: the tide drifts one wavelength per cycle (so the loop is
+   seamless — the phase shift is a whole period, not a two-third one), and the
+   candle flame leans and shortens. Both are transform/opacity only, and both
+   are switched off by the reduced-motion block below. */
+@keyframes fa-wave-drift {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100px); }
+}
+@keyframes fa-flame-flicker {
+  0%, 100% { transform: rotate(-1.5deg) scaleY(1); }
+  35%      { transform: rotate(1.8deg) scaleY(1.06); }
+  70%      { transform: rotate(-0.6deg) scaleY(0.97); }
+}
+/* The seven-segment face's colon: on, off, on — steps so it hard-cuts like a
+   clock rather than fading. */
+@keyframes fa-colon-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.25; }
+}
+@keyframes fa-impact {
+  0%   { transform: scale(0.7); opacity: 0; }
+  35%  { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1.16); opacity: 0; }
+}
 
 /* Print: ink-first. Chrome, navigation and GPU layers are hidden and panels
    become plain bordered blocks. */
@@ -1327,6 +1375,13 @@ html[data-coach-open] .quicklaunch-orb { opacity: 0; pointer-events: none; }
   .animate-pulse-once,
   .animate-spin-slow,
   .animate-wave-bar { animation: none !important; }
+  /* Named animations used inline by the ported timer faces and the arena's
+     impact flash. They are set via `style`, so a class-based switch cannot
+     reach them — the reduced-motion rule has to name the keyframes. */
+  [style*="fa-wave-drift"],
+  [style*="fa-flame-flicker"],
+  [style*="fa-colon-blink"],
+  [style*="fa-impact"] { animation: none !important; }
 }
 /* ═══════════════════════════════════════════════════════════════════════════
    ADMIN CONSOLE — dense tool settings, shared palette overrides

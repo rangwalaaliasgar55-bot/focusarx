@@ -7,6 +7,7 @@ import {
   BATTLE_DESIGNS,
   LAYOUTS,
   PET_DESIGNS,
+  SHELLS,
   TIMER_FACE_LABELS,
   type AppearanceField,
 } from "@/lib/designPacks";
@@ -191,6 +192,26 @@ export function DesignPackSettings() {
           </div>
         </div>
 
+        {/* App frame — the pack that moves everything at once. */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <Label className="text-sm font-medium">App frame</Label>
+            <span className="text-[11px] text-[var(--foreground-subtle)]">Moves the navigation, not just the timer</span>
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {SHELLS.map((design) => (
+              <OptionCard
+                key={design.id}
+                active={fields.shell === design.id}
+                disabled={locked || pending === "shell"}
+                label={design.label}
+                blurb={design.blurb}
+                onClick={() => void choose("shell", design.id)}
+              />
+            ))}
+          </div>
+        </div>
+
         {/* Workspace layout */}
         <div className="flex flex-col gap-2">
           <Label className="text-sm font-medium">Workspace layout</Label>
@@ -224,7 +245,8 @@ export function DesignPackSettings() {
 
         <p className="text-[11px] text-[var(--foreground-subtle)]">
           Current: {TIMER_FACE_LABELS[fields.timerFace]} · {PET_DESIGNS.find((d) => d.id === fields.petDesign)?.label} ·{" "}
-          {BATTLE_DESIGNS.find((d) => d.id === fields.battleDesign)?.label} · {LAYOUTS.find((d) => d.id === fields.layout)?.label}
+          {BATTLE_DESIGNS.find((d) => d.id === fields.battleDesign)?.label} · {LAYOUTS.find((d) => d.id === fields.layout)?.label} ·{" "}
+          {SHELLS.find((d) => d.id === fields.shell)?.label}
         </p>
       </CardContent>
     </Card>

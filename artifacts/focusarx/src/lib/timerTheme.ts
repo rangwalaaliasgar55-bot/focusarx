@@ -32,7 +32,14 @@ export type TimerTheme =
   | "hourglass"
   | "companion"
   | "garden"
-  | "analog";
+  | "analog"
+  // Faces written for this app in the uploads' idiom: a tide that sinks and a
+  // candle that burns down (see components/timerfaces/TimerFacesStudio.tsx).
+  | "wave"
+  | "candle"
+  // The uploads' own LED readout, ported as `seven` because the id `segments`
+  // was already the house's sixty-segment dial.
+  | "seven";
 
 export interface TimerThemeDef {
   id: TimerTheme;
@@ -61,6 +68,14 @@ export const TIMER_THEMES: TimerThemeDef[] = [
   { id: "companion", label: "Companion trail", blurb: "Your pet walks a ten-step track to the flag — how far along the animal is, is how much is left." },
   { id: "garden", label: "Garden", blurb: "A stem grows and a flower opens, one petal per remaining block. Written for breaks, not for work." },
   { id: "analog", label: "Analog clock", blurb: "A wedge dial with a hand and its own scale at twelve o'clock — a wall clock asked one question." },
+  // Written here in the uploads' idiom rather than ported from them: a tide and
+  // a candle are the two pictures their own palettes keep returning to (the
+  // Water cup, the Lantern Cup), and both answer "how much is left" as a level.
+  { id: "wave", label: "Wave", blurb: "A tide that sinks: the waterline is what is left, read against the mark the block started from." },
+  { id: "candle", label: "Candle", blurb: "A candle burning down — the wax is the time left and the flame walks down it as the block runs." },
+  // Ported from the uploads' `Segment` face: their LED display is kept as the
+  // display it is, under a different id than the house dial.
+  { id: "seven", label: "Seven-segment", blurb: "An LED readout: four seven-segment digits over a twenty-four block bar, with the block's percentage underneath." },
 ];
 
 const THEME_KEY = "focusarx-timer-theme";

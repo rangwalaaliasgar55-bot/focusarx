@@ -32,6 +32,9 @@ export const TIMER_FACE_IDS = [
   "companion",
   "garden",
   "analog",
+  "wave",
+  "candle",
+  "seven",
 ] as const;
 export type TimerFaceId = (typeof TIMER_FACE_IDS)[number];
 
@@ -116,6 +119,45 @@ export const LAYOUTS: DesignOption<LayoutId>[] = [
   },
 ];
 
+/**
+ * The app frame — which shell the whole interface is built in.
+ *
+ * This is the pack that moves everything: the sidebar frame, a top-bar frame and
+ * a tab frame are the three shells the PR #99 uploads shipped between them (each
+ * ZIP hard-codes one), and here they are a per-account choice an admin can pin
+ * like any other. The default is the frame this app already had, so nothing
+ * moves for anyone who never picks.
+ */
+export const SHELL_IDS = ["sidebar", "topbar", "tabs"] as const;
+export type ShellId = (typeof SHELL_IDS)[number];
+
+export const SHELLS: DesignOption<ShellId>[] = [
+  {
+    id: "sidebar",
+    label: "Sidebar",
+    short: "Rail + top bar",
+    blurb: "The default frame: destinations in a rail on the left, the page header across the top, tabs on phones.",
+  },
+  {
+    id: "topbar",
+    label: "Top bar",
+    short: "Nav across the top",
+    blurb: "The uploads' desktop frame: no rail, a horizontal row of destinations under the header, and the full width for content.",
+  },
+  {
+    id: "tabs",
+    label: "Bottom tabs",
+    short: "Tab bar everywhere",
+    blurb: "The uploads' phone frame at every width: one row of tabs along the bottom and nothing beside the content.",
+  },
+];
+
+export const SHELL_LABELS: Record<ShellId, string> = {
+  sidebar: "Sidebar",
+  topbar: "Top bar",
+  tabs: "Bottom tabs",
+};
+
 export const PET_DESIGN_LABELS: Record<PetDesignId, string> = {
   classic: "Studio rig",
   wild3d: "Wild 3D",
@@ -149,6 +191,9 @@ export const TIMER_FACE_LABELS: Record<TimerFaceId, string> = {
   companion: "Companion trail",
   garden: "Garden",
   analog: "Analog clock",
+  wave: "Wave",
+  candle: "Candle",
+  seven: "Seven-segment",
 };
 
 export interface AppearanceFields {
@@ -156,9 +201,10 @@ export interface AppearanceFields {
   petDesign: PetDesignId;
   battleDesign: BattleDesignId;
   layout: LayoutId;
+  shell: ShellId;
 }
 
-export const APPEARANCE_FIELDS = ["timerFace", "petDesign", "battleDesign", "layout"] as const;
+export const APPEARANCE_FIELDS = ["timerFace", "petDesign", "battleDesign", "layout", "shell"] as const;
 export type AppearanceField = (typeof APPEARANCE_FIELDS)[number];
 
 export const DEFAULT_APPEARANCE: AppearanceFields = {
@@ -166,6 +212,7 @@ export const DEFAULT_APPEARANCE: AppearanceFields = {
   petDesign: "classic",
   battleDesign: "duel",
   layout: "quiet",
+  shell: "sidebar",
 };
 
 const VALID: Record<AppearanceField, readonly string[]> = {
@@ -173,6 +220,7 @@ const VALID: Record<AppearanceField, readonly string[]> = {
   petDesign: PET_DESIGN_IDS,
   battleDesign: BATTLE_DESIGN_IDS,
   layout: LAYOUT_IDS,
+  shell: SHELL_IDS,
 };
 
 /**
@@ -207,5 +255,7 @@ export function designLabel(field: AppearanceField, id: string): string {
       return BATTLE_DESIGN_LABELS[id as BattleDesignId] ?? id;
     case "layout":
       return LAYOUT_LABELS[id as LayoutId] ?? id;
+    case "shell":
+      return SHELL_LABELS[id as ShellId] ?? id;
   }
 }

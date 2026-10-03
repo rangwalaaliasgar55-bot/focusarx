@@ -1,16 +1,21 @@
 # Timer layouts — what each one is and how it works
 
-The timer has fourteen faces. They are not fourteen colours of the same dial:
-ten of them (`segments`, `bars`, `dots`, `rounds`, `analog`, `aurora`, `orbit`,
-`hourglass`, `companion`, `garden`) are **layouts**, which means the geometry
-itself carries the information and the countdown is read a different way in each.
+The timer has seventeen faces. They are not seventeen colours of the same dial:
+thirteen of them (`segments`, `bars`, `dots`, `rounds`, `analog`, `aurora`,
+`orbit`, `hourglass`, `companion`, `garden`, `wave`, `candle`, `seven`) are
+**layouts**, which means the geometry itself carries the information and the
+countdown is read a different way in each.
 
 Pick one from the face row under the ring (the picker shows the selected face's
 explanation under it, and the choice is remembered per device). Nothing about a
 layout changes the session: same seconds, same rewards, same saved history.
 
-The first four layouts are the house set. The last six are the design-pack
-faces ported from the PR #99 uploads; they live in
+The first four layouts are the house set. The next six are the design-pack
+faces ported from the PR #99 uploads, the two after them (`wave`, `candle`) are
+written here in that same idiom — both are pictures the uploads lean on
+repeatedly (a tide, a lantern) — and `seven` is another port: the uploads'
+`Segment` face, kept under a new id because `segments` was already this app's
+sixty-segment dial. All nine live in
 `src/components/timerfaces/TimerFacesStudio.tsx` rather than with the house
 faces, and they are the human half of the same assignment an admin can pin per
 account from the console's Design packs tab.
@@ -34,6 +39,9 @@ account from the console's Design packs tab.
 | **Companion trail** | Your active pet walking a ten-step track to a flag | Your companion (the same animal as the focus-tab pet, from `useActivePet`) advances one step per tenth of the session and waits at the flag on the last one. How far along the animal is, is how much is left; the pet also reads as your own, which is the point. | People who respond to the pet more than to the clock. |
 | **Analog clock** | A wedge dial with a hand, minute ticks and numbers | A wedge fills from the middle for the time still ahead while a hand points at the remaining fraction — the wall-clock reading, with the difference that the hand answers the question instead of sweeping past it. The wedge stops inside the numerals so the scale never sits on top of a mid-tone accent, and twelve o'clock states the session's own length in minutes (with the numbers stepping in tens once the block passes an hour). | Anyone who wants the shape of the remaining time — a quarter of the dial is a glance, not an arithmetic problem. |
 | **Garden** | A stem that grows and a flower that opens, one petal per block | Deliberately written for breaks rather than for work: petals open as the session progresses, so the thing on screen gets *larger* as the block finishes instead of running out. | Breaks, and anyone who finds a countdown stressful. |
+| **Wave** | A tide that sinks behind a ruler, with the still-water mark drawn in | Two lines, not one: the crest of a slow swell is the time left, and the flat dashed line behind it is where the block started — so the level can be read without counting. The swell drifts only while the timer runs; a still surface would look broken and a moving one on a paused timer would say the wrong thing. A four-notch ruler on the left edge turns the gap into quarters. | Anyone who wants the fall to be obvious from across a room, and breaks (it reads as a pool draining slowly). |
+| **Seven-segment** | An LED readout: four segment glyphs, a twenty-four block bar, a percentage | The uploads' own display, drawn the way they drew it: the a–g bars are theirs verbatim, the bar under the digits has one block per twenty-fourth of the block, and the plate prints the mode and the percentage. The lit bars keep their small glow because here the glow is the reading — lit versus unlit *is* the state. | Anyone who wants a number and nothing else; the calmest face at a glance from a desk. |
+| **Candle** | A candle burning down: wax is the time, the flame is now | The wax column's height *is* the remaining fraction and the flame walks down it, which is the one property a candle has that a progress bar does not. The flame flickers only while running, and a stub of wax is always drawn — a candle with nothing left stops being a picture of time remaining. | Long blocks and quiet rooms; the flame is the calmest "still running" signal in the set. |
 
 ## The four ring faces
 
