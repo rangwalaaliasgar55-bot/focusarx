@@ -12,6 +12,7 @@ import { petSpeciesEmoji } from "@/lib/petSpecies";
 import { PetStage2D } from "@/components/pets/PetStage2D";
 import { PetSprite } from "@/components/pets/PetSprite";
 import type { WildAnim } from "@/components/pets/ProceduralWildPet";
+import { PetStatBars } from "@/components/pets/PetStatBars";
 
 // Lazy so three.js stays out of this page's static chunk graph.
 const Pet3D = lazy(() => import("@/components/Pet3D").then(m => ({ default: m.Pet3D })));
@@ -411,6 +412,17 @@ export default function PetsPage() {
                   <div className="h-full bg-[var(--brand-600)]" style={{ width: `${Math.min(100, ((activePet.inventory?.bondXp ?? 0) / ((activePet.inventory?.level ?? 1) * 100)) * 100)}%` }} />
                 </div>
                 <p className="mt-1 text-[11px] text-[var(--foreground-subtle)]">{activePet.inventory?.bondXp ?? 0} / {(activePet.inventory?.level ?? 1) * 100} XP to next level</p>
+
+                {/* The four stats the uploads' companion page put under the pet
+                    (see `PetStatBars`) — the numbers a fight is actually
+                    decided by, not a flavour table. */}
+                <div className="mt-4 w-full max-w-xs text-left">
+                  <PetStatBars
+                    slug={activePet.catalog?.slug ?? activePet.petType ?? "bulbasaur"}
+                    level={activePet.inventory?.level ?? activePet.petLevel ?? 1}
+                    maxLevel={activePet.catalog?.maxLevel ?? 20}
+                  />
+                </div>
               </div>
               <div>
                 <h3 className="text-sm font-bold">Progression unlocks</h3>

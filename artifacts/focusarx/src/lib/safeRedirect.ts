@@ -66,3 +66,31 @@ export function redirectFromSearch(
 ): string {
   return safeRedirect(new URLSearchParams(search).get("redirect"), fallback);
 }
+
+/**
+ * Where a signed-out visitor should be sent back to after signing in.
+ *
+ * The rule the product asked for is "sign in, land on the dashboard". The rule
+ * that a shared link needs is "sign in and the thing I clicked is still there".
+ * Both are true, and they only disagree on one destination: the timer itself.
+ *
+ *  - `/focus?duration=25&task=Revise` is somebody's link, an Instagram bio, a
+ *    `/go/*` redirect or the landing preview. It carries a session in its query
+ *    string, so it survives the sign-in.
+ *  - A bare `/focus` is not a deep link — it is the app's home screen, reached
+ *    by typing or by a stale bookmark. Sending the visitor straight into a
+ *    running-timer screen after they sign up is how you get a first session
+ *    abandoned at 00:25 with no task in it. They land on the dashboard and go
+ *    to the timer from there, with their own data already on screen.
+ */
+export function postLoginDestination(
+  pathWithQuery: string,
+  fallback: string = DEFAULT_FALLBACK,
+): string {
+  const safe = safeRedirect(pathWithQuery, fallback);
+  const [path, query = ""] = safe.split("?");
+  if (path !== "/focus") return safe;
+  return new URLSearchParams(query).has("duration") || new URLSearchParams(query).has("task")
+    ? safe
+    : fallback;
+}

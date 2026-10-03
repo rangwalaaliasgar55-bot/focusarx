@@ -33,6 +33,7 @@ import {
   nextCup,
 } from "@/lib/arenaLadder";
 import { AnimalGlyph } from "@/components/pets/AnimalGlyph";
+import { PetStatBars } from "@/components/pets/PetStatBars";
 import { petBodyParams } from "@/lib/petBodyParams";
 import { is3DCapable } from "@/lib/webglCapability";
 import { cn } from "@/lib/utils";
@@ -480,11 +481,14 @@ export default function ArenaPage() {
                       >
                         <AnimalGlyph params={petBodyParams(petSlug, petCategory)} size={44} />
                       </span>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-[var(--foreground)]">{petName}</p>
                         <p className="text-xs text-[var(--foreground-subtle)]">
                           Lv {petLevel} · {elementFor(petSlug)} type
                         </p>
+                        {/* Before the fight, the numbers it will be fought with —
+                            the uploads' companion stat rows (see `PetStatBars`). */}
+                        <PetStatBars slug={petSlug} level={petLevel} compact className="mt-2 max-w-[15rem]" />
                       </div>
                     </div>
 

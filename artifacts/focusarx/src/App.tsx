@@ -25,6 +25,7 @@ const ResetPasswordPage = lazyWithRetry(() => import("@/pages/reset-password"));
 const AuthCallbackPage = lazyWithRetry(() => import("@/pages/auth-callback"));
 const AdminPage = lazyWithRetry(() => import("@/pages/admin"));
 import { CookieConsent } from "@/components/CookieConsent";
+import { postLoginDestination } from "@/lib/safeRedirect";
 const AnnouncementBanner = lazyWithRetry(() => import("@/components/AnnouncementBanner").then((m) => ({ default: m.AnnouncementBanner })));
 const PublicDropBanner = lazyWithRetry(() => import("@/components/DropBanner").then((m) => ({ default: m.DropBanner })));
 
@@ -235,7 +236,10 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
     const safe = target.startsWith("/") ? target : "/";
     // Never bounce the user back to the login page itself.
     const redirect = safe === "/login" ? "/" : safe;
-    setLocation(`/login?redirect=${encodeURIComponent(redirect)}`);
+    // …and a bare visit to a gated screen is not a deep link: it lands on the
+    // dashboard, which is what "sign in and go to the dashboard" means. A
+    // `/focus?duration=…` link still comes back to the timer it asked for.
+    setLocation(`/login?redirect=${encodeURIComponent(postLoginDestination(redirect))}`);
   }, [status, setLocation]);
 
   if (status === "loading") return <PageLoader />;
