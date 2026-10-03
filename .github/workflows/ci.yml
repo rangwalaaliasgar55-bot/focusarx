@@ -234,9 +234,11 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
-      # cross-tab leader election, guest timer persistence (reload/offline),
-      # mobile responsive contract, and premium-economy UI gating — all run
-      # against the static preview server, no live API required. Restricted to a
+      # the sign-in gate itself (a guest is redirected, the deep link survives,
+      # a signed-in visitor gets the timer), cross-tab leader election, timer
+      # persistence (reload/offline) with a session, the mobile responsive
+      # contract, and premium-economy UI gating — all run against the static
+      # preview server, no live API required. Restricted to a
       # representative desktop + one mobile viewport (the specs self-skip by
       # width): the full 9-project matrix is ~324 tests and belongs to the axe
       # job, which needs every width for overflow; the behavioural contracts do
@@ -255,6 +257,7 @@ jobs:
       - name: Run behavioural E2E
         run: >
           pnpm exec playwright test
+          tests/e2e/auth-gate.spec.ts
           tests/e2e/cross-tab-leader.spec.ts
           tests/e2e/responsive.spec.ts
           tests/e2e/timer-persistence.spec.ts
