@@ -109,7 +109,7 @@ export function MobileMoreMenu({ open, onClose }: MobileMoreMenuProps) {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="grid h-9 w-9 place-items-center rounded-full bg-[var(--surface-hover)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"
+                  className="grid h-11 w-11 place-items-center rounded-full bg-[var(--surface-hover)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"
                   aria-label="Close menu"
                 >
                   <X size={18} />

@@ -209,7 +209,7 @@ function SidePanel() {
               type="button"
               onClick={() => setShowCompleted(v => !v)}
               aria-expanded={showCompleted}
-              className="flex min-h-8 w-full items-center gap-1.5 text-left"
+              className="flex min-h-11 w-full items-center gap-1.5 text-left"
             >
               <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-[var(--foreground-subtle)] transition-colors hover:text-[var(--foreground-muted)]">
                 Completed ({completedTasks.length})
@@ -219,7 +219,7 @@ function SidePanel() {
             {showCompleted && (
               <div className="mt-1 max-h-28 space-y-0.5 overflow-y-auto">
                 {completedTasks.slice(0, 5).map((t) => (
-                  <button key={t.id} type="button" onClick={() => toggleDone(t.id)} aria-label={`Reopen "${t.title}"`} className="group flex min-h-8 w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-1.5 text-left hover:bg-[var(--surface-hover)]">
+                  <button key={t.id} type="button" onClick={() => toggleDone(t.id)} aria-label={`Reopen "${t.title}"`} className="group flex min-h-11 w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-1.5 text-left hover:bg-[var(--surface-hover)]">
                     <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-[var(--success)] text-[var(--neutral-0)]" aria-hidden="true">
                       <Check size={10} strokeWidth={3} />
                     </span>
