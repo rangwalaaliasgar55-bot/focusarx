@@ -276,6 +276,21 @@ SELECT * FROM study_streaks WHERE userId = 'test-user-id';
 - [ ] Focus timer on mobile
   - [ ] Large touch-friendly buttons
   - [ ] Timer displays clearly
+- [ ] Rearrange the workspace (`Arrange`, above the timer)
+  - [ ] `Arrange` shows a grip and two move buttons on the timer, the
+        companion and the tasks rail; nothing shows until it is pressed
+  - [ ] "Move Companion earlier" puts the companion above the clock, and
+        "later" puts it back
+  - [ ] Dragging the grip with a mouse — and with a thumb on a phone — lands
+        the panel where the target panel sits
+  - [ ] On a phone the timings still stack, no horizontal scroll, and the
+        first two panels can be swapped
+  - [ ] Both ends' move buttons are disabled, and a screen reader announces
+        "… moved to position 2 of 3"
+  - [ ] Reload keeps the arrangement; `Reset layout` restores
+        timer → companion → tasks
+  - [ ] An admin-pinned `layout` pack still decides the frame (studio's two
+        columns, compact's folded rail) around the user's order
 - [ ] Swipe to complete task
   - [ ] Works on mobile
   - [ ] Feedback animation plays

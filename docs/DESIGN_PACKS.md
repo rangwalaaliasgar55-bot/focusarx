@@ -82,6 +82,21 @@ field later needs no migration of existing accounts.
 | `battleDesign` | `/focus` (the session board, via `MonsterBattleArena`'s `board` prop) and `/arena` (`retro` is the monospaced reading) |
 | `layout` | `/focus` (the workspace: rail, two-column studio, compact) and `/arena` |
 
+### The pack gives the frame, the user gives the order
+
+`layout` is the account's frame — how many columns, whether the tasks rail is
+folded away. On top of that, `/focus` lets the user arrange the three panels
+(timer, companion, tasks) themselves: `Arrange` reveals a grip and a pair of
+move buttons on each panel, and the order is stored per browser under
+`focusarx-panel-order` (`src/lib/panelLayout.ts`). The two do not fight — the
+pack decides whether a panel *exists* (compact has no rail) and how wide the
+columns are; the order only decides which of the existing panels comes first.
+
+Panels are placed with flex `order`, so the DOM and reading order never change,
+and the move buttons are the primary interaction: a drag handle has no keyboard
+equivalent, and an arrangement that can only be made with a pointer is an
+arrangement half the users cannot make.
+
 The client reads the assignment through one module store
 (`src/lib/appearance.ts`): a `useSyncExternalStore` snapshot the query
 hydrates, cached in `localStorage` so a cold start with no network still renders

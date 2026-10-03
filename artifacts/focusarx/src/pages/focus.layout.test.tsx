@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Suspense } from "react";
 import { Router } from "wouter";
@@ -95,6 +95,50 @@ describe("workspace layout pack", () => {
     expect(container.querySelector('[data-region="timer"]')!.className).toContain("lg:flex-1");
     // The rail is not what studio is about: tasks stay where they were.
     expect(container.querySelector('[data-region="rail"]')).toBeTruthy();
+  });
+
+  it("puts the workspace panels where the user arranged them", { timeout: 60_000 }, async () => {
+    const { container } = await mountFocusPage();
+    // Nothing to grab until the user asks for the arrangement controls — a
+    // handle that is always on the timer is a handle in the way of Start.
+    expect(screen.queryByRole("button", { name: "Move Companion earlier" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Arrange" }));
+    fireEvent.click(screen.getByRole("button", { name: "Move Companion earlier" }));
+
+    const panelled = [...container.querySelectorAll("[data-panel]")] as HTMLElement[];
+    const placement = Object.fromEntries(panelled.map((el) => [el.dataset.panel, el.style.order]));
+    expect(placement).toEqual({ companion: "0", timer: "1", tasks: "2" });
+    // The reading order is deliberately still timer → companion → tasks: the
+    // panels are painted in the arranged order by flex `order`, so nothing that
+    // walks the DOM (the mobile drawer, the skip link, a screen reader before
+    // layout) is reordered underneath the user.
+    expect(panelled.map((el) => el.dataset.panel)).toEqual(["timer", "companion", "tasks"]);
+    // The regions are the panels now, so the arrangement survives the styles
+    // that used to be the only way the three sat in a column.
+    expect(container.querySelector('[data-region="companion"]')!.getAttribute("data-panel")).toBe("companion");
+    expect(container.querySelector('[data-region="timer"]')!.getAttribute("data-panel")).toBe("timer");
+    expect(container.querySelector('[data-region="rail"]')!.getAttribute("data-panel")).toBe("tasks");
+    expect(JSON.parse(window.localStorage.getItem("focusarx-panel-order") ?? "null")).toEqual(["companion", "timer", "tasks"]);
+
+    // Reloading keeps it: the order is read from storage, not from the DOM.
+    cleanup();
+    const second = await mountFocusPage();
+    const reloaded = [...second.container.querySelectorAll("[data-panel]")] as HTMLElement[];
+    expect(Object.fromEntries(reloaded.map((el) => [el.dataset.panel, el.style.order]))).toEqual({
+      companion: "0",
+      timer: "1",
+      tasks: "2",
+    });
+
+    // Arrange mode itself is a mode, not a setting: the reloaded page is back
+    // to using the arrangement, not to editing it.
+    expect(screen.getByRole("button", { name: "Arrange" }).getAttribute("aria-pressed")).toBe("false");
+    expect(screen.queryByRole("button", { name: "Move Companion earlier" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Arrange" }));
+    expect(screen.getByRole("button", { name: "Done arranging" }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Done arranging" }));
+    expect(screen.queryByRole("button", { name: "Move Companion earlier" })).toBeNull();
   });
 
   it("folds the rail away and keeps the clock on the compact pack", { timeout: 60_000 }, async () => {

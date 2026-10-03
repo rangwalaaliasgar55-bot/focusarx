@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, lazy, Suspense } from "react";
 import { AnimatePresence, motion, motion as m } from "framer-motion";
-import { Check, ChevronDown, ClipboardList, Coins, Flame, Mic, Plus, Rocket, X } from "lucide-react";
+import { Check, ChevronDown, ClipboardList, Coins, Flame, Mic, Move, Plus, Rocket, RotateCcw, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiJson } from "@/lib/api";
 import { useFocusSessionState } from "@/lib/focusSessionBus";
@@ -9,6 +9,9 @@ import { PetStage2D } from "@/components/pets/PetStage2D";
 import { petSpeciesEmoji } from "@/lib/petSpecies";
 import { useAppearanceFields } from "@/lib/appearance";
 import { playChime } from "@/lib/audioLayers";
+import { MovablePanel } from "@/components/MovablePanel";
+import { usePanelOrder } from "@/hooks/usePanelOrder";
+import { orderIndex } from "@/lib/panelLayout";
 import { useAuth } from "@/lib/auth";
 import { SessionRecoveryProvider } from "@/components/SessionRecoveryContext";
 import Timer from "@/components/Timer";
@@ -730,6 +733,18 @@ export default function FocusHomePage() {
   const studio = layout === "studio";
   const compact = layout === "compact";
 
+  /**
+   * The arrangement of the three workspace panels (see `lib/panelLayout`).
+   *
+   * Arrange mode is deliberate rather than always-on: a drag handle that is
+   * always present sits on top of the clock, and an accidental drag while
+   * reaching for Start is a worse bug than a hidden control. While it is on
+   * every panel shows its grip and its two move buttons, and the toggle itself
+   * is a labelled switch.
+   */
+  const { order, move, drop, reset: resetPanels } = usePanelOrder();
+  const [arranging, setArranging] = useState(false);
+
   return (
     <SessionRecoveryProvider>
       <div className="flex flex-col min-h-[100dvh] focus-chamber relative" data-layout={layout}>
@@ -755,31 +770,85 @@ export default function FocusHomePage() {
                 column: the timer keeps its own column and the companion (with
                 the battle board under it) sits beside it from `lg` up. */}
             <div
+              data-region="arrange"
+              className="mb-1 flex w-full flex-wrap items-center justify-end gap-2"
+            >
+              <button
+                type="button"
+                onClick={() => setArranging((value) => !value)}
+                aria-pressed={arranging}
+                className={cn(
+                  "inline-flex min-h-[44px] items-center gap-1.5 rounded-full border px-3.5 text-xs font-bold transition-colors",
+                  arranging
+                    ? "border-[var(--brand-400)]/60 bg-[var(--brand-soft)] text-[var(--brand-400)]"
+                    : "border-[var(--border-subtle)] text-[var(--foreground-subtle)] hover:text-[var(--foreground)]",
+                )}
+              >
+                <Move size={14} aria-hidden="true" />
+                {arranging ? "Done arranging" : "Arrange"}
+              </button>
+              {arranging && (
+                <button
+                  type="button"
+                  onClick={resetPanels}
+                  className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-[var(--border-subtle)] px-3.5 text-xs font-bold text-[var(--foreground-subtle)] transition-colors hover:text-[var(--foreground)]"
+                >
+                  <RotateCcw size={14} aria-hidden="true" />
+                  Reset layout
+                </button>
+              )}
+            </div>
+            <div
               data-region="workspace"
               className={cn("w-full flex flex-col items-center", studio && "lg:flex-row lg:items-start lg:justify-center lg:gap-8")}
             >
-              <div data-region="timer" className={cn("flex w-full flex-col items-center", studio && "lg:flex-1")}>
+              <MovablePanel
+                id="timer"
+                region="timer"
+                index={orderIndex(order, "timer")}
+                count={order.length}
+                arranging={arranging}
+                onMove={move}
+                onDrop={drop}
+                className={cn("flex w-full flex-col items-center", studio && "lg:flex-1")}
+              >
                 {isMobile ? (
                   <FocusTimerMobileFirst onSessionComplete={handleSessionComplete} />
                 ) : (
                   <Timer onSessionComplete={handleSessionComplete} />
                 )}
                 {!compact && <MotivationalLine />}
-              </div>
-              <div data-region="companion" className={cn(studio && "w-full lg:w-[380px] lg:shrink-0")}>
+              </MovablePanel>
+              <MovablePanel
+                id="companion"
+                region="companion"
+                index={orderIndex(order, "companion")}
+                count={order.length}
+                arranging={arranging}
+                onMove={move}
+                onDrop={drop}
+                className={cn("w-full", studio && "lg:w-[380px] lg:shrink-0")}
+              >
                 <SessionCompanions />
-              </div>
+              </MovablePanel>
             </div>
           </div>
           {/* Desktop side panel — the rail `compact` folds away */}
           {!compact && (
-            <aside
-              data-region="rail"
+            <MovablePanel
+              id="tasks"
+              region="rail"
+              index={orderIndex(order, "tasks")}
+              count={order.length}
+              arranging={arranging}
+              onMove={move}
+              onDrop={drop}
               className="hidden shrink-0 border-l border-[var(--border-subtle)] p-4 lg:flex lg:w-[300px] lg:flex-col xl:w-[320px]"
-              aria-label="Session tasks and stats"
             >
-              <SidePanel />
-            </aside>
+              <aside aria-label="Session tasks and stats" className="flex w-full flex-col">
+                <SidePanel />
+              </aside>
+            </MovablePanel>
           )}
         </div>
         <MobileSidePanelDrawer />
