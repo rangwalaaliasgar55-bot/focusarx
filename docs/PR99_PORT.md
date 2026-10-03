@@ -114,6 +114,17 @@ phone's full-screen studying view, and `/arena`. All of them draw the same
 `components/pets/PetCompanionStage.tsx` in the account's art pack, so the
 admin's per-user `petDesign` is visible everywhere the pet is.
 
+**Their stat rows.** `Companion.tsx` put HP, ATK, DEF and SPD under the pet as
+labelled bars, normalised against a fixed `maxStat` table of its own
+(`{ hp: 260, atk: 90, def: 75, spd: 70 }`). The rows, the labels and the shape
+are ported (`components/pets/PetStatBars.tsx`); the numbers are this app's, from
+the one place a level becomes stats (`lib/petBattle.statsFor`) — the engine that
+actually decides a fight — and the ceiling is the same species at the level cap
+rather than their flat table, which is a table for *their* balance. Both give a
+level-20 owl 76% HP and a level-1 owl 22%. They live on `/pets` under the EXP
+bar and on the arena's pre-fight card, which is where the numbers are about to
+matter.
+
 **Their mood copy, not the enum.** `Companion.tsx` described the pet with a
 phrase — "Content and curious", "Feeling lonely", "Sleeping soundly" — never
 with the id, and the chip under a 2D stage is the only place the server's mood

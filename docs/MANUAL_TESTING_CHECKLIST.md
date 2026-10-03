@@ -299,6 +299,18 @@ SELECT * FROM study_streaks WHERE userId = 'test-user-id';
         instead of an empty square
   - [ ] One sound control, 44px, and it does not double with a second speaker
   - [ ] The pet leaves with the session when the session ends
+- [ ] The pet's four stats (`/pets`, and the arena's pre-fight card)
+  - [ ] HP, ATK, DEF and SPD are shown as labelled bars with the number beside
+        each one
+  - [ ] They match the fight: the same pet at the same level has the same
+        numbers in the arena and on the pets page
+  - [ ] At level 20 every bar is full; a level-1 pet's bars are all short
+- [ ] Signing in from the gate
+  - [ ] A signed-out visit to a bare `/focus` lands on `/login?redirect=%2Fdashboard`
+        and signing in goes to the dashboard
+  - [ ] A signed-out visit to `/focus?duration=50&task=Thermo` keeps the whole
+        link and comes back to that armed session after signing in
+  - [ ] A plain `/login` visit goes to the dashboard
 - [ ] Swipe to complete task
   - [ ] Works on mobile
   - [ ] Feedback animation plays
