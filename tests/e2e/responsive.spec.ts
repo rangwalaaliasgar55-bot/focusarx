@@ -294,3 +294,57 @@ test.describe("mobile layout", () => {
     }
   });
 });
+
+test.describe("the thumb-sized minimum, beyond the bottom bar", () => {
+  // The audit above measures the login page, and the bottom-nav test measures
+  // the bar. Everything else a phone actually touches in a session was outside
+  // both: the tasks drawer's rows, the sheet's close button, the timer's own
+  // controls. Two of those were 32px and 36px until they were fixed, which is
+  // exactly the size a one-handed thumb misses.
+  test.skip(({ viewport }) => (viewport?.width ?? 1280) > 500, "mobile-only contract");
+
+  test("every control on the timer and in its drawer meets 44px", async ({ page }) => {
+    // Reduced motion first: the page's mount animations otherwise keep the
+    // geometry (and the set of `:visible` controls) in flux while measuring.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await authenticate(page);
+    await gotoRoute(page, "/focus");
+
+    const measure = () =>
+      page.locator("button:visible, [role='radio']:visible").evaluateAll((nodes, min) =>
+        nodes
+          .filter((node) => !node.closest("nav[aria-label='Mobile navigation']"))
+          .flatMap((node) => {
+            const r = node.getBoundingClientRect();
+            if (r.width === 0 || r.height === 0) return [];
+            // 44px is a target *size*, not a requirement to be square: a wide
+            // pill only has to be tall enough to hit.
+            if (r.height >= min) return [];
+            return [`${(node.textContent ?? node.getAttribute("aria-label") ?? "").trim().slice(0, 32)} (${Math.round(r.width)}x${Math.round(r.height)})`];
+          }),
+        MIN_TOUCH_TARGET,
+      );
+
+    const small = await measure();
+    expect(small, `controls under ${MIN_TOUCH_TARGET}px:\n${small.join("\n")}`).toEqual([]);
+
+    // …and inside the tasks drawer, which is where the 32px rows lived.
+    await page.getByRole("button", { name: "Open tasks & stats" }).click();
+    await expect(page.locator("#mobile-panel-sheet")).toBeVisible();
+
+    const inDrawer = await page
+      .locator("button:visible")
+      .evaluateAll((nodes, min) =>
+        nodes
+          .filter((node) => node.closest("#mobile-panel-sheet") !== null)
+          .flatMap((node) => {
+            const r = node.getBoundingClientRect();
+            if (r.width === 0 || r.height === 0) return [];
+            if (r.height >= min) return [];
+            return [`${(node.textContent ?? node.getAttribute("aria-label") ?? "").trim().slice(0, 32)} (${Math.round(r.width)}x${Math.round(r.height)})`];
+          }),
+        MIN_TOUCH_TARGET,
+      );
+    expect(inDrawer, `drawer controls under ${MIN_TOUCH_TARGET}px:\n${inDrawer.join("\n")}`).toEqual([]);
+  });
+});

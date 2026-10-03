@@ -47,7 +47,7 @@ export function PetStatBars({ slug, level, maxLevel = 20, compact = false, class
         const pct = Math.min(100, Math.round((value / max) * 100));
         return (
           <div key={key} className="flex items-center gap-2">
-            <dt className={cn("shrink-0 font-semibold text-[var(--foreground-subtle)]", compact ? "w-8 text-[10px]" : "w-10 text-[11px]")}>
+            <dt className={cn("shrink-0 text-[11px] font-semibold text-[var(--foreground-subtle)]", compact ? "w-8" : "w-10")}>
               {label}
             </dt>
             <dd className="flex flex-1 items-center gap-2">
@@ -60,7 +60,7 @@ export function PetStatBars({ slug, level, maxLevel = 20, compact = false, class
               >
                 <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${pct}%`, background: colour }} />
               </span>
-              <span className={cn("shrink-0 text-right font-bold tabular-nums text-[var(--foreground)]", compact ? "w-8 text-[10px]" : "w-9 text-[11px]")}>
+              <span className={cn("shrink-0 text-right text-[11px] font-bold tabular-nums text-[var(--foreground)]", compact ? "w-8" : "w-9")}>
                 {value}
               </span>
             </dd>
