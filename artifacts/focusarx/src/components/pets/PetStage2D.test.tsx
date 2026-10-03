@@ -28,8 +28,20 @@ describe("PetStage2D", () => {
 
   it("shows the server-derived mood in the chip", () => {
     render(<PetStage2D emoji="🦉" name="Night Owl" rarity="common" mood="excited" />);
-    expect(screen.getByText("excited")).toBeTruthy();
+    // The chip is the only place the server's mood reaches a person, so it
+    // says what the uploads' companion said — a phrase, never the enum id.
+    expect(screen.getByText("excited you showed up")).toBeTruthy();
+    expect(screen.queryByText("excited")).toBeNull();
     expect(screen.getByText("tap to say hi")).toBeTruthy();
+  });
+
+  it("words every server mood as a phrase", () => {
+    const { unmount } = render(<PetStage2D emoji="🦊" name="Clever Fox" mood="happy" />);
+    expect(screen.getByText("content and curious")).toBeTruthy();
+    unmount();
+    render(<PetStage2D emoji="🦊" name="Clever Fox" mood="sleepy" />);
+    expect(screen.getByText("waiting for a session")).toBeTruthy();
+    expect(screen.queryByText("sleepy")).toBeNull();
   });
 
   it("names a care action instead of the mood while it plays", () => {

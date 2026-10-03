@@ -35,9 +35,15 @@ export const RARITY_GLOW: Record<PetRarity, string> = {
 };
 
 const MOOD_LABEL: Record<string, string> = {
-  excited: "excited",
-  happy: "happy",
-  sleepy: "sleepy",
+  // The uploads' companion was never described with its enum — it read
+  // "Content and curious" under the pet, not "happy" (see
+  // `redesign-focusarx-frontend-and-pet/src/pages/Companion.tsx`). A chip is
+  // the only place the server's three words reach a person, so they are
+  // phrases here; "sleepy" is this app's own state (no session in three days)
+  // and is worded as the welcome back rather than as a diagnosis.
+  excited: "excited you showed up",
+  happy: "content and curious",
+  sleepy: "waiting for a session",
   // Care actions (see `pages/pets.tsx`): the chip names what just happened,
   // which is the only feedback the glyph itself can carry.
   wave: "saying hi",

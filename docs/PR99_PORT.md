@@ -102,6 +102,34 @@ the code as well as here:
   server. The interactions were ported, the ledger was not — the copy under the
   care row says where XP comes from.
 
+## The pet they show, and the audio they play
+
+**The companion, in the places they show it.** Their builds draw the pet on the
+companion page
+(`redesign-focusarx-frontend-and-pet/src/pages/Companion.tsx`), beside the timer
+while a block runs (`.../src/pages/Focus.tsx`), on the battle page, and in the
+interface upload's frame. Here it is `/pets` (the stage, the care row, the mood
+chip, the XP bar), `/focus` (the companion panel with the board under it), the
+phone's full-screen studying view, and `/arena`. All of them draw the same
+`components/pets/PetCompanionStage.tsx` in the account's art pack, so the
+admin's per-user `petDesign` is visible everywhere the pet is.
+
+**Their mood copy, not the enum.** `Companion.tsx` described the pet with a
+phrase — "Content and curious", "Feeling lonely", "Sleeping soundly" — never
+with the id, and the chip under a 2D stage is the only place the server's mood
+reaches a person. It says `content and curious` for `happy`, `excited you showed
+up` for `excited`, and `waiting for a session` for this app's own `sleepy` (no
+session in three days — a state the uploads do not have). Care actions keep
+naming what just happened: `eating`, `playing`, `saying hi`.
+
+**Three audio files, two instruments.**
+
+| Upload | Where it lives now |
+| --- | --- |
+| `redesign-focusarx-frontend-interface/src/lib/audio.ts` | **Ported as-is** → `src/lib/audioLayers.ts` (the four layer faders, the `vol² × 0.55` law, the 700 ms teardown, the four-note chime, the 660 Hz tick) with the mixer section in `components/AmbientSoundBar.tsx`. Its `chime` is the completion cue. |
+| `new-chat/src/lib/audio.ts` | **Merged, not duplicated** → its four layers (`rain`, `brown`, `waves`, `wind`) are the same four the mixer exposes; its `click()` (520 Hz triangle) is `playClick`; its `chime("break")` (C5→D5, `783.99`, `587.33`) is the ported `playBreakChime`, and it is the only break cue any upload has — the interface upload carries just the chime and the tick. Its `chime("done")` is a *three*-note arpeggio for the same moment the interface upload rings four; two "session done" cues for one event would be one too many, so the four-note one is wired. |
+| `redesign-focusarx-frontend-and-pets/src/lib/audio.ts` | **Covered by the engine** → its `SOUNDS` list (`off`, `rain`, `brown`, `ocean`, `wind`, `fire`, `white`) is a subset of `lib/ambientEngine`'s beds, which already carry a label, a hint, per-bed volume and a stop: `rain`/`brown`/`ocean`/`white` are the same ids, `fire` is the engine's `fireplace`, and its `wind` bed is the mixer's wind layer. A second `playAmbient` would be a second AudioContext on a page that keeps exactly one. |
+
 ## Ours, not theirs (built here, labelled here)
 
 Three things in this branch have no line to point at in any upload. They are
