@@ -477,8 +477,11 @@ export const PAGE_SEO: Record<string, Omit<PageSEOProps, "canonical"> & { canoni
     description:
       "The FocusArx focus app: a free online timer with tasks, streaks and session scoring. A free account is what makes a session count.",
     keywords: "focus timer, deep work, pomodoro",
-    // Indexable: /focus is in sitemap-core.xml, the prerender manifest and
-    // robots Allow. A noindex here would deindex a sitemap-listed page.
+    // Indexable but not sitemap-listed: the timer requires a session, so
+    // sitemap-core.xml stopped advertising it (`sitemap.ts` explains why) while
+    // the prerendered document — and this entry — stay the same. A noindex
+    // would be the opposite mistake: "focus timer" is the query this page is
+    // written to answer, and the answer is honest about the sign-in step.
   },
   quests: {
     canonical: "/quests",

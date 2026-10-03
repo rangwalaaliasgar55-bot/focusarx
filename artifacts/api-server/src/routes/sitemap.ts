@@ -107,7 +107,7 @@ const COMPARISONS_REVIEWED = "2026-09-06"; // src/content/seo-pages.mjs
  * blog claiming to be older than it is.
  */
 const BLOG_REVIEWED = "2026-09-18"; // = newest post date in src/content/blog.mjs
-const APP_PAGES_REVIEWED = "2026-09-04"; // /focus and /changelog
+const APP_PAGES_REVIEWED = "2026-09-04"; // /changelog
 
 /**
  * Per-segment default, used when a page has no date of its own. Only segments
@@ -138,7 +138,9 @@ const PAGE_LASTMOD: Record<string, string> = {
   "/about": ABOUT_REVIEWED,
 
   // App pages, last edited with the app rather than reviewed as copy.
-  "/focus": APP_PAGES_REVIEWED,
+  // `/focus` used to be here; it left the sitemap the day it stopped being
+  // public, and a lastmod for a URL that is not listed would be a date nobody
+  // reads.
   "/changelog": APP_PAGES_REVIEWED,
 
   // Timer tools and their minute-length variants.
@@ -210,7 +212,12 @@ const CORE_PAGES: Page[] = [
   { url: "/about", changefreq: "monthly", priority: "0.6" },
   { url: "/contact", changefreq: "monthly", priority: "0.5" },
   { url: "/support", changefreq: "monthly", priority: "0.5" },
-  { url: "/focus", changefreq: "weekly", priority: "0.9" },
+  // `/focus` is deliberately **not** here. It is the app entry, and since the
+  // timer started requiring a session it is login-walled — advertising it
+  // would hand crawlers a page that immediately redirects. It is still
+  // prerendered (the sign-in copy is worth reading, and it is what an internal
+  // link or a shared URL resolves to), and `pageSeo.focus` explains why it
+  // stays indexable without being listed.
   { url: "/changelog", changefreq: "weekly", priority: "0.5" },
 ];
 

@@ -44,6 +44,9 @@ const routeOf = (file) => {
 
 /** Routes that are intentionally not in the sitemap (auth/private screens). */
 const NON_SITEMAP_ALLOWLIST = new Set([
+  // The timer became login-walled (see `App.tsx`); the page is prerendered and
+  // indexable, but a sitemap entry would advertise a redirect.
+  "/focus",
   "/login",
   "/signup",
   "/forgot-password",
